@@ -15,11 +15,11 @@ type Stage struct {
 // LoadPatternSpec defines the desired state of LoadPattern
 type LoadPatternSpec struct {
 	// Stages defines a list of stages for the LoadPattern.
-	Stages []Stage `json:"stages,omitempty"`
+	Stages []Stage `json:"stages"`
 	// PreAllocatedVUs defines pre-allocated virtual users for the K6 load generator.
 	PreAllocatedVUs int `json:"preAllocatedVUs,omitempty"`
 	// StartRate defines the initial requests per second when the K6 load generator starts.
-	StartRate int `json:"startRate,omitempty"`
+	StartRate int `json:"startRate"`
 	// MaxVUs defines the maximum virtual users for the K6 load generator.
 	MaxVUs int `json:"maxVUs,omitempty"`
 	// TimeUnit defines the unit of the time for K6 load generator.

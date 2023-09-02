@@ -1,41 +1,48 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// LoadPatternConfig defines the configuration of the load pattern in the experiment.
+type LoadPatternConfig struct {
+	// EndpointName defines the name of endpoint where to send the requests.
+	// It should match the name of endpoint declared in the specification of the pipeline.
+	EndpointName string `json:"endpointName"`
+	// LoadPatternRef defines s reference of the LoadPattern object.
+	LoadPatternRef corev1.ObjectReference `json:"loadPatternRef"`
+}
 
 // ExperimentSpec defines the desired state of Experiment
 type ExperimentSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Experiment. Edit experiment_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// PipelineRef defines s reference of the Pipeline object.
+	PipelineRef corev1.ObjectReference `json:"pipelineRef"`
+	// LoadPatterns defines a list of configuration of name of endpoints and LoadPatterns.
+	LoadPatterns []LoadPatternConfig `json:"loadPatterns"`
+	// ScheduledTime defines the scheduled time for the Experiment.
+	ScheduledTime metav1.Time `json:"scheduledTime,omitempty"`
 }
 
 // ExperimentStatus defines the observed state of Experiment
 type ExperimentStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// ExperimentState defines the state of the Experiment.
+	ExperimentState string `json:"experimentState,omitempty"`
+	// Protocols defines a map of name of endpoint (key) to request protocol (value).
+	Protocols map[string]string `json:"protocols,omitempty"`
+	// Tags defines the a map of key-value pair that use for tagging cloud resources.
+	Tags map[string]string `json:"tags,omitempty"`
+	// Duration defines the duration of the K6 load generator.
+	Duration map[string]metav1.Duration `json:"duration,omitempty"`
+	// StartTime defines the start of the K6 load generator.
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+	// EndTime defines the end of the Experiment.
+	// TODO: Add microservice to calculate the end time of the experiment.
+	EndTime *metav1.Time `json:"endTime,omitempty"`
+	// CloudVendor defines the cloud service provider which the pipeline-under-test is deployed.
+	CloudVendor string `json:"cloudVendor,omitempty"`
+	// EnableCostCalculation defines teh flag of cost calculation.
+	EnableCostCalculation bool `json:"enableCostCalculation,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -46,7 +53,9 @@ type Experiment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ExperimentSpec   `json:"spec,omitempty"`
+	// Spec defines the specification of the Experiment.
+	Spec ExperimentSpec `json:"spec,omitempty"`
+	// Status defines the status of the Experiment.
 	Status ExperimentStatus `json:"status,omitempty"`
 }
 
@@ -56,7 +65,8 @@ type Experiment struct {
 type ExperimentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Experiment `json:"items"`
+	// Items defines a list of Experiment.
+	Items []Experiment `json:"items"`
 }
 
 func init() {
