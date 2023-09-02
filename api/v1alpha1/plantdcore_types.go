@@ -23,13 +23,22 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type PrometheusSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	// Foo is an example field of PlantDCore. Edit plantdcore_types.go to remove/update
+	MemorySize     int32   `json:"memorySize,omitempty"`
+	ScrapeInterval float32 `json:"scrapeInterval,omitempty`
+}
+
 // PlantDCoreSpec defines the desired state of PlantDCore
 type PlantDCoreSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of PlantDCore. Edit plantdcore_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	PrometheusConfiguration PrometheusSpec `json:"prometheusConfiguration,omitempty`
 }
 
 // PlantDCoreStatus defines the observed state of PlantDCore
