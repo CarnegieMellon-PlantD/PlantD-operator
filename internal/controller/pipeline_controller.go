@@ -282,7 +282,6 @@ func (r *PipelineReconciler) CreateService(ctx context.Context, pipeline *windtu
 // SetupWithManager sets up the controller with the Manager.
 func (r *PipelineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
-		// For().
+		For(&windtunnelv1alpha1.Pipeline{}).
 		Complete(r)
 }
