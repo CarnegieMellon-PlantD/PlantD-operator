@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: datawindtunnel/plantd-controller
-  newTag: latest
+  newTag: test3
