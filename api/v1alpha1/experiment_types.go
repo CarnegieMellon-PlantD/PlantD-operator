@@ -55,7 +55,7 @@ type Experiment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specification of the Experiment.
+	// Spec defines the specifications of the Experiment.
 	Spec ExperimentSpec `json:"spec,omitempty"`
 	// Status defines the status of the Experiment.
 	Status ExperimentStatus `json:"status,omitempty"`
@@ -63,7 +63,7 @@ type Experiment struct {
 
 //+kubebuilder:object:root=true
 
-// ExperimentList contains a list of Experiment
+// ExperimentList contains a list of Experiments.
 type ExperimentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
