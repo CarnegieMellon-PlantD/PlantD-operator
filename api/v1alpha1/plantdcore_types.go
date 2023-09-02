@@ -17,18 +17,21 @@ limitations under the License.
 package v1alpha1
 
 import (
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type PrometheusSpec struct {
+type PlantDPrometheusSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// MemorySize     int `json:",omitempty"`
-	// monitoringv1.Scra `json:",omitempty"`
+	ResourceMemory v1.ResourceRequirements `json:"resourceMemory,omitempty"`
+	ScrapeInterval monitoringv1.Duration   `json:"scrapeInterval,omitempty"`
 }
 
 // PlantDCoreSpec defines the desired state of PlantDCore
@@ -37,7 +40,7 @@ type PlantDCoreSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of PlantDCore. Edit plantdcore_types.go to remove/update
-	PrometheusConfiguration PrometheusSpec `json:"prometheusConfiguration,omitempty"`
+	PrometheusConfiguration PlantDPrometheusSpec `json:"prometheusConfiguration,omitempty"`
 }
 
 // PlantDCoreStatus defines the observed state of PlantDCore

@@ -12,42 +12,105 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+var plantDCoreServiceAccountName string
 var kubeProxyImage string
-var frontendImage string
+var kubeProxyContainer string
+var kubeProxyLabel map[string]string
+var kubeProxySelectorKey string
+var kubeProxySelectorValue string
+var kubeProxyReplicas int
+var kubeProxyDeploymentName string
+var kubeProxyServiceName string
+var kubeProxyPort int32
+var kubeProxyTargetPort int32
+
+var studioImage string
+var studioContainer string
+var studioLabel map[string]string
+var studioSelectorKey string
+var studioSelectorValue string
+var studioReplicas int
+var studioDeploymentName string
+var studioServiceName string
+var studioPortName string
+var studioPort int32
+var studioTargetPort int32
+
+var prometheusServiceAccountName string
 var prometheusObjectName string
-var prometheusMetricLabelSelector string
+var prometheusResourceMemory string
+var prometheusScrapeInterval string
+var prometheusClusterRoleName string
+var prometheusSelectorKey string
+var prometheusSelectorValue string
+var prometheusClusterRoleBindingName string
+var prometheusMetricLabelSelector map[string]string
+var prometheusMetricSpecSelector map[string]string
+var prometheusMetricSelectorSelector map[string]string
+var prometheusServicePort int32
+var prometheusServiceNodePort int32
 
 // var prometheuDefaultScrapInterval model.Duration
 
 func init() {
-	kubeProxyImage = config.GetString("plantdCore.kubeProxyImage")
-	frontendImage = config.GetString("plantdCore.frontendImage")
-	prometheusObjectName = config.GetString("plantdCore.prometheusObjectName")
+	plantDCoreServiceAccountName = config.GetString("plantdCore.serviceAccount")
 
-	prometheusMetricLabelSelector = config.GetString("plantdCore.prometheusMetricLabelSelector")
-	// var prometheusScrapeIntervalString = config.GetString("plantdCore.prometheuDefaultScrapInterval")
-	// prometheuDefaultScrapInterval, _ = model.ParseDuration(prometheusScrapeIntervalString)
+	kubeProxyImage = config.GetString("plantdCore.kubeProxy.image")
+	kubeProxyLabel = config.GetStringMapString("plantdCore.kubeProxy.label")
+	kubeProxySelectorKey = config.GetString("plantdCore.kubeProxy.selector.key")
+	kubeProxySelectorValue = config.GetString("plantdCore.kubeProxy.selector.value")
+	kubeProxyContainer = config.GetString("plantdCore.kubeProxy.containerName")
+	kubeProxyReplicas = config.GetInt("plantdCore.kubeProxy.replicas")
+	kubeProxyDeploymentName = config.GetString("plantdCore.kubeProxy.deploymentName")
+	kubeProxyServiceName = config.GetString("plantdCore.kubeProxy.serviceName")
+	kubeProxyPort = config.GetInt32("plantdCore.kubeProxy.port")
+	kubeProxyTargetPort = config.GetInt32("plantdCore.kubeProxy.targetPort")
 
+	studioImage = config.GetString("plantdCore.studio.image")
+	studioLabel = config.GetStringMapString("plantdCore.studio.label")
+	studioSelectorKey = config.GetString("plantdCore.studio.selector.key")
+	studioSelectorValue = config.GetString("plantdCore.studio.selector.value")
+	studioContainer = config.GetString("plantdCore.studio.containerName")
+	studioReplicas = config.GetInt("plantdCore.studio.replicas")
+	studioDeploymentName = config.GetString("plantdCore.studio.deploymentName")
+	studioServiceName = config.GetString("plantdCore.studio.serviceName")
+	studioPortName = config.GetString("plantdCore.studio.portName")
+	studioPort = config.GetInt32("plantdCore.studio.port")
+	studioTargetPort = config.GetInt32("plantdCore.studio.targetPort")
+
+	prometheusServiceAccountName = config.GetString("plantdCore.prometheus.serviceAccount")
+	prometheusObjectName = config.GetString("plantdCore.prometheus.name")
+	prometheusResourceMemory = config.GetString("plantdCore.prometheus.resourceMemory")
+	prometheusScrapeInterval = config.GetString("plantdCore.prometheus.scrapeInterval")
+	prometheusMetricSpecSelector = config.GetStringMapString("prometheus.selector")
+	prometheusSelectorKey = config.GetString("plantdCore.prometheus.selector.key")
+	prometheusSelectorValue = config.GetString("plantdCore.prometheus.selector.value")
+	prometheusMetricLabelSelector = config.GetStringMapString("monitor.serviceMonitor.labels")
+	prometheusServicePort = config.GetInt32("plantdCore.prometheus.service.port")
+	prometheusServiceNodePort = config.GetInt32("plantdCore.prometheus.service.nodePort")
+	prometheusClusterRoleName = config.GetString("plantdCore.prometheus.clusterRole")
+	prometheusClusterRoleBindingName = config.GetString("plantdCore.prometheus.clusterRoleBinding")
 }
 
 // SetupKubeProxyDeployment creates kube proxy deployment with Cluster IP
 func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deployment, *corev1.Service) {
-	// Create the Kubernetes Job object
-	// Define labels and annotations as needed
-	labels := map[string]string{
-		"app": "kube-proxy",
-	}
-	numReplicas := int32(1)
+
+	numReplicas := int32(kubeProxyReplicas)
 	// Define the pod template
+
+	labels := map[string]string{
+		kubeProxySelectorKey: kubeProxySelectorValue,
+	}
+
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: "plantd-operator-controller-manager",
+			ServiceAccountName: plantDCoreServiceAccountName,
 			Containers: []corev1.Container{
 				{
-					Name:            "kube-proxy",
+					Name:            kubeProxyContainer,
 					Image:           kubeProxyImage,
 					ImagePullPolicy: corev1.PullAlways,
 				},
@@ -58,7 +121,7 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 	// Define the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kube-proxy-deployment",
+			Name:      kubeProxyDeploymentName,
 			Namespace: plantD.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -70,55 +133,44 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 		},
 	}
 
-	// Define the Service with a LoadBalancer
-	// Define the Service with a ClusterIP
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kube-proxy-service",
+			Name:      kubeProxyServiceName,
 			Namespace: plantD.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: labels,
+			Selector: kubeProxyLabel,
 			Ports: []corev1.ServicePort{
 				{
-					Protocol:   "TCP",
-					Port:       5000, // Specify the port as needed
-					TargetPort: intstr.FromInt(5000),
+					Protocol:   corev1.ProtocolTCP,
+					Port:       kubeProxyPort,
+					TargetPort: intstr.FromInt(int(kubeProxyTargetPort)),
 				},
 			},
-			Type: corev1.ServiceTypeClusterIP, // Use ClusterIP type
 		},
 	}
-
 	return deployment, service
 }
 
 // SetupFrontendDeployment creates a PlantD Frontend deployment
 func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN string) (*appsv1.Deployment, *corev1.Service) {
-	// Create the Kubernetes Job object
-	// Define labels and annotations as needed
-	labels := map[string]string{
-		"app": "frontend",
-	}
-	numReplicas := int32(1)
-	// Define the pod template
+
+	numReplicas := int32(studioReplicas)
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels: labels,
+			Labels: studioLabel,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:            "frontend",
-					Image:           frontendImage,
+					Name:            studioContainer,
+					Image:           studioImage,
 					ImagePullPolicy: corev1.PullAlways,
-					// Add environment variables as needed
 					Env: []corev1.EnvVar{
 						{
 							Name:  "KUBE_PROXY_URL",
 							Value: string(proxyFQDN),
 						},
-						// Add more environment variables here...
 					},
 				},
 			},
@@ -128,13 +180,15 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 	// Define the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "frontend-deployment",
+			Name:      studioDeploymentName,
 			Namespace: plantD.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &numReplicas, // Set the number of replicas as needed
+			Replicas: &numReplicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: map[string]string{
+					studioSelectorKey: studioSelectorValue,
+				},
 			},
 			Template: podTemplate,
 		},
@@ -143,28 +197,38 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 	// Define the Service with a LoadBalancer
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "frontend-service",
+			Name:      studioServiceName,
 			Namespace: plantD.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: labels,
+			Selector: studioLabel,
 			Ports: []corev1.ServicePort{
 				{
-					Name:       "http",
-					Port:       80, // Specify the port as needed
-					TargetPort: intstr.FromInt(8080),
+					Name:       studioPortName,
+					Port:       studioPort, // Specify the port as needed
+					TargetPort: intstr.FromInt(int(studioTargetPort)),
 				},
 			},
 			Type: corev1.ServiceTypeLoadBalancer, // Use LoadBalancer type
 		},
 	}
-
 	return deployment, service
 }
 
 // SetupFrontendDeployment creates a PlantD Frontend deployment
 func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1.Prometheus, *corev1.Service) {
 	// Define the Prometheus resource
+	var scrapeInterval = monitoringv1.Duration(prometheusScrapeInterval)
+	var resourceMemory = resource.MustParse(prometheusResourceMemory)
+
+	if plantD.Spec.PrometheusConfiguration.ScrapeInterval != "" {
+		scrapeInterval = monitoringv1.Duration(plantD.Spec.PrometheusConfiguration.ScrapeInterval)
+	}
+
+	if plantD.Spec.PrometheusConfiguration.ResourceMemory.String() != "" {
+		resourceMemory = resource.MustParse(plantD.Spec.PrometheusConfiguration.ResourceMemory.String())
+	}
+
 	prometheus := &monitoringv1.Prometheus{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      prometheusObjectName,
@@ -172,20 +236,20 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 		},
 		Spec: monitoringv1.PrometheusSpec{
 			CommonPrometheusFields: monitoringv1.CommonPrometheusFields{
-				ServiceAccountName: "prometheus",
+				ServiceAccountName: prometheusServiceAccountName,
 				ServiceMonitorSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"component": prometheusMetricLabelSelector,
+						prometheusSelectorKey: prometheusSelectorValue,
 					},
 				},
 				ServiceMonitorNamespaceSelector: &metav1.LabelSelector{},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						corev1.ResourceMemory: resource.MustParse("1Gi"),
+						corev1.ResourceMemory: resourceMemory,
 					},
 				},
 				EnableRemoteWriteReceiver: true,
-				ScrapeInterval:            "15s",
+				ScrapeInterval:            scrapeInterval,
 			},
 			EnableAdminAPI: false,
 		},
@@ -194,7 +258,7 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 	// Define the Service
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus",
+			Name:      prometheusObjectName,
 			Namespace: plantD.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
@@ -202,15 +266,13 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "web",
-					NodePort:   30900,
-					Port:       9090,
+					NodePort:   prometheusServiceNodePort,
+					Port:       prometheusServicePort,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: intstr.FromString("web"),
 				},
 			},
-			Selector: map[string]string{
-				"prometheus": "prometheus",
-			},
+			Selector: prometheusMetricSpecSelector,
 		},
 	}
 
@@ -221,14 +283,14 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*corev1.ServiceAccount, *rbac.ClusterRole, *rbac.ClusterRoleBinding) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus",
+			Name:      prometheusServiceAccountName,
 			Namespace: plantD.Namespace,
 		},
 	}
 
 	clusterRole := &rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "plantd-prometheus-role",
+			Name: prometheusClusterRoleName,
 		},
 		Rules: []rbac.PolicyRule{
 			{
@@ -261,17 +323,17 @@ func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*cor
 
 	clusterRoleBinding := &rbac.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "plantd-prometheus-role-binding",
+			Name: prometheusClusterRoleBindingName,
 		},
 		RoleRef: rbac.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     "plantd-prometheus-role",
+			Name:     prometheusClusterRoleName,
 		},
 		Subjects: []rbac.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      "prometheus",
+				Name:      prometheusServiceAccountName,
 				Namespace: plantD.Namespace,
 			},
 		},

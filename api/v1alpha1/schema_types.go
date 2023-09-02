@@ -17,7 +17,7 @@ type Column struct {
 	// Name defines the name of the column.
 	Name string `json:"name"`
 	// Type defines the data type of the column. Should match the type with one of the provided types.
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 	// Params defines the parameters for constructing the data give certain data type.
 	Params map[string]string `json:"params,omitempty"`
 	// Formula defines the formula applies to the column data.
