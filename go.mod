@@ -3,6 +3,7 @@ module github.com/CarnegieMellon-PlantD/PlantD-operator
 go 1.20
 
 require (
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	k8s.io/apimachinery v0.28.1
