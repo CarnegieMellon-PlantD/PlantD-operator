@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= plantd-controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.27.1
 
@@ -37,6 +37,14 @@ all: build
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
+.PHONY: bundle
+bundle: manifests kustomize ## Create bundle.yaml for all resources.
+	$(KUSTOMIZE) build config/crd > bundle.yaml
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default >> bundle.yaml
+	echo "---" >> bundle.yaml
+	cat config/external/cert-manager-bundle.yaml >> bundle.yaml
+	cat config/samples/windtunnel_v1alpha1_plantdcore.yaml >> bundle.yaml
 
 .PHONY: help
 help: ## Display this help.
