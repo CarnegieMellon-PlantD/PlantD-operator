@@ -44,6 +44,7 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 			Labels: labels,
 		},
 		Spec: corev1.PodSpec{
+			ServiceAccountName: "plantd-operator-controller-manager",
 			Containers: []corev1.Container{
 				{
 					Name:            "kube-proxy",
@@ -162,7 +163,7 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 }
 
 // SetupFrontendDeployment creates a PlantD Frontend deployment
-func SetupCreatePrometheusSMObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1.Prometheus, *corev1.Service) {
+func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1.Prometheus, *corev1.Service) {
 	// Define the Prometheus resource
 	prometheus := &monitoringv1.Prometheus{
 		ObjectMeta: metav1.ObjectMeta{
@@ -171,7 +172,7 @@ func SetupCreatePrometheusSMObject(plantD *windtunnelv1alpha1.PlantDCore) (*moni
 		},
 		Spec: monitoringv1.PrometheusSpec{
 			CommonPrometheusFields: monitoringv1.CommonPrometheusFields{
-				ServiceAccountName: "prometheus-operator",
+				ServiceAccountName: "prometheus",
 				ServiceMonitorSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"component": prometheusMetricLabelSelector,
@@ -217,7 +218,14 @@ func SetupCreatePrometheusSMObject(plantD *windtunnelv1alpha1.PlantDCore) (*moni
 }
 
 // SetupFrontendDeployment creates a PlantD Frontend deployment
-func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*rbac.ClusterRole, *rbac.ClusterRoleBinding) {
+func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*corev1.ServiceAccount, *rbac.ClusterRole, *rbac.ClusterRoleBinding) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "prometheus",
+			Namespace: plantD.Namespace,
+		},
+	}
+
 	clusterRole := &rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "plantd-prometheus-role",
@@ -258,15 +266,15 @@ func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*rba
 		RoleRef: rbac.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     "plantd-prometheus-role-binding",
+			Name:     "plantd-prometheus-role",
 		},
 		Subjects: []rbac.Subject{
 			{
-				Kind:     "ServiceAccount",
-				Name:     "system:serviceaccounts",
-				APIGroup: "rbac.authorization.k8s.io",
+				Kind:      "ServiceAccount",
+				Name:      "prometheus",
+				Namespace: plantD.Namespace,
 			},
 		},
 	}
-	return clusterRole, clusterRoleBinding
+	return sa, clusterRole, clusterRoleBinding
 }
