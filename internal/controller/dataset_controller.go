@@ -51,6 +51,7 @@ const (
 const (
 	CREATING   = "Creating"
 	GENERATING = "Generating"
+	RUNNING    = "Running"
 	FAILED     = "Failed"
 	SUCCESS    = "Success"
 	UNKNOWN    = "Unknown"
