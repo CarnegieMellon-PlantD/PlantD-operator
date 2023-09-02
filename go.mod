@@ -7,7 +7,7 @@ require (
 	github.com/onsi/gomega v1.27.10
 	k8s.io/apimachinery v0.28.1
 	k8s.io/client-go v0.28.1
-	sigs.k8s.io/controller-runtime v0.16.1
+	sigs.k8s.io/controller-runtime v0.15.0
 )
 
 require (
@@ -28,7 +28,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	go.k6.io/k6 v0.45.1 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	gopkg.in/guregu/null.v3 v3.3.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
