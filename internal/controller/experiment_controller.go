@@ -331,6 +331,8 @@ func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, 
 
 	if exp.Status.ExperimentState == ExperimentReady {
 		exp.Status.ExperimentState = ExperimentRunning
+		currTime := &metav1.Time{Time: time.Now()}
+		exp.Status.StartTime = currTime
 	}
 	return r.Status().Update(ctx, exp)
 }
@@ -513,6 +515,8 @@ func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp
 
 	if exp.Status.ExperimentState == ExperimentReady {
 		exp.Status.ExperimentState = ExperimentRunning
+		currTime := &metav1.Time{Time: time.Now()}
+		exp.Status.StartTime = currTime
 	}
 
 	return r.Status().Update(ctx, exp)
