@@ -1,0 +1,87 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: schemas.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: Schema
+    listKind: SchemaList
+    plural: schemas
+    singular: schema
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Schema is the Schema for the schemas API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the specifications of the Schema.
+            properties:
+              columns:
+                description: Columns defines a list of column specifications.
+                items:
+                  description: Column defines the metadata of the column data.
+                  properties:
+                    formula:
+                      description: Formula defines the formula applies to the column
+                        data.
+                      properties:
+                        args:
+                          description: Args defines the arugments for calling the
+                            formula.
+                          items:
+                            type: string
+                          type: array
+                        name:
+                          description: Name defines the name of the formula. Should
+                            match the name with one of the provided formulas.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    name:
+                      description: Name defines the name of the column.
+                      type: string
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: Params defines the parameters for constructing
+                        the data give certain data type.
+                      type: object
+                    type:
+                      description: Type defines the data type of the column. Should
+                        match the type with one of the provided types.
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
+            required:
+            - columns
+            type: object
+          status:
+            description: Status defines the status of the Schema.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
