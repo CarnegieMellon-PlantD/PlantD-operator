@@ -1,42 +1,37 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// FormulaSpec defines the specification of the formula.
+type FormulaSpec struct {
+	// Name defines the name of the formula. Should match the name with one of the provided formulas.
+	Name string `json:"name"`
+	// Args defines the arugments for calling the formula.
+	Args []string `json:"args,omitempty"`
+}
+
+// Column defines the metadata of the column data.
+type Column struct {
+	// Name defines the name of the column.
+	Name string `json:"name"`
+	// Type defines the data type of the column. Should match the type with one of the provided types.
+	Type string `json:"type"`
+	// Params defines the parameters for constructing the data give certain data type.
+	Params map[string]string `json:"params,omitempty"`
+	// Formula defines the formula applies to the column data.
+	Formula FormulaSpec `json:"formula,omitempty"`
+}
 
 // SchemaSpec defines the desired state of Schema
 type SchemaSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Schema. Edit schema_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Columns defines a list of column specifications.
+	Columns []Column `json:"columns"`
 }
 
 // SchemaStatus defines the observed state of Schema
-type SchemaStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type SchemaStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -45,8 +40,9 @@ type SchemaStatus struct {
 type Schema struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   SchemaSpec   `json:"spec,omitempty"`
+	// Spec defines the specifications of the Schema.
+	Spec SchemaSpec `json:"spec,omitempty"`
+	// Status defines the status of the Schema.
 	Status SchemaStatus `json:"status,omitempty"`
 }
 
@@ -56,7 +52,8 @@ type Schema struct {
 type SchemaList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Schema `json:"items"`
+	// Items defines a list of Schemas.
+	Items []Schema `json:"items"`
 }
 
 func init() {
