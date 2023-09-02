@@ -1,10 +1,7 @@
 package routes
 
 import (
-	"bytes"
-	b64 "encoding/base64"
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/proxy"
@@ -50,105 +47,6 @@ func GetSampleDataset(client client.Client) http.HandlerFunc {
 				json.NewEncoder(w).Encode(ErrorResponse{Message: "while writing response body: " + err.Error()})
 				return
 			}
-		}
-	}
-}
-
-// CheckPipelineHealth returns an HTTP handler function for checking the health of a pipeline.
-// It takes a client object of type client.Client for interacting with the Kubernetes API.
-// The handler function decodes the base64-encoded URL parameter "info" and checks the pipeline health using the proxy.CheckPipelineHealth function.
-// If the pipeline is healthy, it returns an HTTP 200 status.
-// If there is an error during the decoding or health check process, it returns an HTTP 500 status with an error message.
-func CheckPipelineHealth(client client.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		b64Info := chi.URLParam(r, "info")
-		info, err := b64.RawURLEncoding.DecodeString(b64Info)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while decoding base64 URL param: " + err.Error()})
-			return
-		}
-		healthCheckMeta := &proxy.HealthCheckMeta{}
-		err = json.Unmarshal(info, healthCheckMeta)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling base64 URL param: " + err.Error()})
-			return
-		}
-
-		if err := proxy.CheckPipelineHealth(ctx, client, healthCheckMeta.URL, healthCheckMeta.HealthCheckEndpoint); err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
-	}
-}
-
-// ExportCustomResources returns an HTTP handler function for exporting custom resources.
-// It takes a client object of type client.Client for interacting with the Kubernetes API.
-// The handler function decodes the base64-encoded URL parameter "info" and exports the custom resources using the proxy.ExportCustomResources function.
-// If the export is successful, it writes the exported resources as a ZIP file to the response.
-// If there is an error during the decoding or export process, it returns an HTTP 500 status with an error message.
-func ExportCustomResources(client client.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		b64Info := chi.URLParam(r, "info")
-		info, err := b64.RawURLEncoding.DecodeString(b64Info)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while decoding base64 URL param: " + err.Error()})
-			return
-		}
-		exportResourcesInfo := proxy.ExportResourcesInfo{}
-		err = json.Unmarshal(info, &exportResourcesInfo)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling base64 URL param: " + err.Error()})
-			return
-		}
-		zipBuffer, err := proxy.ExportCustomResources(ctx, client, &exportResourcesInfo)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-		} else {
-			w.Header().Set("Content-Type", "application/zip")
-			w.Header().Set("Content-Disposition", "attachment; filename=crds.zip")
-			w.WriteHeader(http.StatusOK)
-
-			if _, err := w.Write(zipBuffer); err != nil {
-				return
-			}
-		}
-	}
-}
-
-// ImportCustomResources returns an HTTP handler function for importing custom resources.
-// It takes a client object of type client.Client for interacting with the Kubernetes API.
-// The handler function reads the uploaded file from the request form data and imports the custom resources using the proxy.ImportCustomResources function.
-// If the import is successful, it returns an HTTP 200 status.
-// If there is an error during the file reading or import process, it returns an HTTP 500 status with an error message.
-func ImportCustomResources(client client.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		file, _, err := r.FormFile("file")
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while parsing request form data: " + err.Error()})
-		}
-
-		buf := bytes.NewBuffer(nil)
-		if _, err := io.Copy(buf, file); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading file: " + err.Error()})
-		}
-
-		if err := proxy.ImportCustomResources(ctx, client, buf.Bytes()); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-		} else {
-			w.WriteHeader(http.StatusOK)
 		}
 	}
 }

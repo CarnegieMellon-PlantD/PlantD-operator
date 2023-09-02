@@ -71,9 +71,6 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 		r.Put("/plantdcores/{namespace}/{name}", updateObject(client, proxy.PlantDCorePlural))
 
 		r.Get("/datasets/{namespace}/{name}/sample", GetSampleDataset(client))
-		r.Get("/pipelines/healthCheck/{info}", CheckPipelineHealth(client))
-		r.Get("/export/{info}", ExportCustomResources(client))
-		r.Post("/import", ImportCustomResources(client))
 	})
 
 	router.Route("/data", func(r chi.Router) {

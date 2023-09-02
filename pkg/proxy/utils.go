@@ -2,13 +2,10 @@ package proxy
 
 import (
 	"archive/tar"
-	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
-	"io"
 	"strconv"
-	"strings"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
@@ -16,9 +13,7 @@ import (
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 
 	"github.com/brianvoe/gofakeit/v6"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 // GetDataset retrieves a DataSet object by namespace and name.
@@ -209,129 +204,6 @@ func GetIndexByName(schemas []windtunnelv1alpha1.SchemaSelector, schemaName stri
 		}
 	}
 	return -1, false
-}
-
-// addFileToZip adds a file with the given content to a zip.Writer.
-func addFileToZip(zipWriter *zip.Writer, filename string, content []byte) error {
-	fileWriter, err := zipWriter.Create(filename)
-	if err != nil {
-		return err
-	}
-
-	_, err = fileWriter.Write(content)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// GetObjectFromKind returns an empty object of the specified kind.
-func GetObjectFromKind(kind string) client.Object {
-	switch kind {
-	case "DataSet":
-		return &windtunnelv1alpha1.DataSet{}
-	case "Experiment":
-		return &windtunnelv1alpha1.Experiment{}
-	case "LoadPattern":
-		return &windtunnelv1alpha1.LoadPattern{}
-	case "Pipeline":
-		return &windtunnelv1alpha1.Pipeline{}
-	case "Schema":
-		return &windtunnelv1alpha1.Schema{}
-	default:
-		return nil
-	}
-}
-
-// ExportCustomResources exports custom resources based on the provided metadata.
-func ExportCustomResources(ctx context.Context, c client.Client, exportResourcesInfo *ExportResourcesInfo) ([]byte, error) {
-
-	// Create a buffer to store the zip archive
-	zipBuf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(zipBuf)
-
-	// Iterate over each object metadata
-	for _, objectMeta := range exportResourcesInfo.Metadata {
-		namespace := objectMeta.Namespace
-		name := objectMeta.Name
-		kind := objectMeta.Kind
-
-		// Create the key for the object
-		key := types.NamespacedName{Name: name, Namespace: namespace}
-		// Get an empty object of the specified kind
-		object := GetObjectFromKind(kind)
-
-		// Fetch the object from the cluster
-		err := c.Get(ctx, key, object)
-		if err != nil {
-			return nil, err
-		}
-
-		// Convert the object to YAML
-		y, err := yaml.Marshal(object)
-		if err != nil {
-			return nil, err
-		}
-
-		// Add the YAML content to the zip archive
-		if err := addFileToZip(zipWriter, kind+"_"+namespace+"_"+name+".yaml", []byte(y)); err != nil {
-			return nil, err
-		}
-	}
-
-	// Close the zip writer
-	if err := zipWriter.Close(); err != nil {
-		return nil, err
-	}
-
-	// Return the zip archive as bytes
-	return zipBuf.Bytes(), nil
-}
-
-// ImportCustomResources imports custom resources from the provided data.
-func ImportCustomResources(ctx context.Context, c client.Client, data []byte) error {
-
-	// Create a zip reader from the provided data
-	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		return nil
-	}
-
-	// Iterate over each file in the zip archive
-	for _, file := range zipReader.File {
-		fileReader, err := file.Open()
-		if err != nil {
-			return err
-		}
-
-		// Read the file content
-		fileContent, err := io.ReadAll(fileReader)
-		if err != nil {
-			return err
-		}
-
-		// Get the kind of the object from the filename
-		object := GetObjectFromKind(strings.SplitN(file.Name, "_", 2)[0])
-
-		// Unmarshal the YAML content into the object
-		err = yaml.Unmarshal(fileContent, &object)
-		if err != nil {
-			return err
-		}
-
-		// Set the resource version to empty
-		object.SetResourceVersion("")
-
-		// Create the object in the cluster
-		if err := c.Create(ctx, object); err != nil {
-			return err
-		}
-
-		fileReader.Close()
-	}
-
-	return nil
 }
 
 // AddFileToTar adds a file with the given content to a tar.Writer.
