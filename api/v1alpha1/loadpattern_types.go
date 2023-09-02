@@ -1,42 +1,33 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Stage defines the stage configuration of the load.
+type Stage struct {
+	// Target defines the target requests per second.
+	Target int `json:"target"`
+	// Duration defines the duration of the current stage.
+	Duration string `json:"duration"`
+}
 
 // LoadPatternSpec defines the desired state of LoadPattern
 type LoadPatternSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of LoadPattern. Edit loadpattern_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Stages defines a list of stages for the LoadPattern.
+	Stages []Stage `json:"stages,omitempty"`
+	// PreAllocatedVUs defines pre-allocated virtual users for the K6 load generator.
+	PreAllocatedVUs int `json:"preAllocatedVUs,omitempty"`
+	// StartRate defines the initial requests per second when the K6 load generator starts.
+	StartRate int `json:"startRate,omitempty"`
+	// MaxVUs defines the maximum virtual users for the K6 load generator.
+	MaxVUs int `json:"maxVUs,omitempty"`
+	// TimeUnit defines the unit of the time for K6 load generator.
+	TimeUnit string `json:"timeUnit,omitempty"`
 }
 
 // LoadPatternStatus defines the observed state of LoadPattern
-type LoadPatternStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type LoadPatternStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -46,7 +37,9 @@ type LoadPattern struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   LoadPatternSpec   `json:"spec,omitempty"`
+	// Spec defines the specification of the LoadPattern.
+	Spec LoadPatternSpec `json:"spec,omitempty"`
+	// Status defines the status of the LoadPattern.
 	Status LoadPatternStatus `json:"status,omitempty"`
 }
 
@@ -56,7 +49,8 @@ type LoadPattern struct {
 type LoadPatternList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []LoadPattern `json:"items"`
+	// Items defines a list of LoadPattern.
+	Items []LoadPattern `json:"items"`
 }
 
 func init() {
