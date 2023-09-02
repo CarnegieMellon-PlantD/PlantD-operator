@@ -1,0 +1,163 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: datasets.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: DataSet
+    listKind: DataSetList
+    plural: datasets
+    singular: dataset
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.startTime
+      name: StartTime
+      type: string
+    - jsonPath: .status.completionTime
+      name: CompletionTime
+      type: string
+    - jsonPath: .status.jobStatus
+      name: JobStatus
+      type: string
+    - jsonPath: .status.pvcStatus
+      name: VolumeStatus
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.errorCount
+      name: ErrorCount
+      type: integer
+    - jsonPath: .status.errorsString
+      name: Errors
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DataSet is the Schema for the datasets API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the specifications of the DataSet.
+            properties:
+              compressPerSchema:
+                description: CompressPerSchema defines the flag of compression. If
+                  you wish files from all the different schemas to compressed into
+                  one compressed file leave this field as false. If you wish to have
+                  a different compressed file for every schema, mark this field as
+                  true.
+                type: boolean
+              compressedFileFormat:
+                description: CompressedFileFormat defines the file format for the
+                  compressed files. Each file inside the compressed file is of "fileFormat"
+                  format specified above. This is the output format if specified for
+                  the files.
+                type: string
+              fileFormat:
+                description: FileFormat defines the file format of the each file containing
+                  the generated data. This may or may not be the output file format
+                  based on whether you want to compress these files.
+                type: string
+              numFiles:
+                description: NumberOfFiles defines the total number of output files
+                  irrespective of compression. Unless "compressPerSchema" is false,
+                  this field is applicable per schema.
+                format: int32
+                type: integer
+              parallelJobs:
+                description: 'ParallelJobs defines the number of parallel jobs when
+                  generating the dataset. TODO: Infer the optimal number of parallel
+                  jobs automatically.'
+                format: int32
+                type: integer
+              schemas:
+                description: Schemas defines a list of Schemas.
+                items:
+                  description: SchemaSelector defines a list of Schemas and the required
+                    numbers and format.
+                  properties:
+                    name:
+                      description: Name defines the name of the Schame. Should match
+                        the name of existing Schema in the same namespace as the DataSet.
+                      type: string
+                    numFilesPerCompressedFile:
+                      additionalProperties:
+                        type: integer
+                      description: NumberOfFilesPerCompressedFile defines the number
+                        of intermediate files to be compressed into a single compressed
+                        file. A random number is picked from the specified range.
+                      type: object
+                    numRecords:
+                      additionalProperties:
+                        type: integer
+                      description: NumRecords defines the number of records to be
+                        generated in each output file. A random number is picked from
+                        the specified range.
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+            required:
+            - fileFormat
+            - numFiles
+            - schemas
+            type: object
+          status:
+            description: Status defines the status of the DataSet.
+            properties:
+              completionTime:
+                description: CompletionTime defines the duration of the data generating
+                  job.
+                format: date-time
+                type: string
+              errorCount:
+                description: ErrorCount defines the number of errors raised by the
+                  controller or data generating job.
+                type: integer
+              errors:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: Errors defines the map of error messages.
+                type: object
+              jobStatus:
+                description: JobStatus defines the status of the data generating job.
+                type: string
+              lastGeneration:
+                description: LastGeneration defines the last generation of the DataSet
+                  object.
+                format: int64
+                type: integer
+              pvcStatus:
+                description: PVCStatus defines the status of the PVC mount to the
+                  data generating pod.
+                type: string
+              startTime:
+                description: StartTime defines the start time of the data generating
+                  job.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,79 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: loadpatterns.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: LoadPattern
+    listKind: LoadPatternList
+    plural: loadpatterns
+    singular: loadpattern
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: LoadPattern is the Schema for the loadpatterns API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the specification of the LoadPattern.
+            properties:
+              maxVUs:
+                description: MaxVUs defines the maximum virtual users for the K6 load
+                  generator.
+                type: integer
+              preAllocatedVUs:
+                description: PreAllocatedVUs defines pre-allocated virtual users for
+                  the K6 load generator.
+                type: integer
+              stages:
+                description: Stages defines a list of stages for the LoadPattern.
+                items:
+                  description: Stage defines the stage configuration of the load.
+                  properties:
+                    duration:
+                      description: Duration defines the duration of the current stage.
+                      type: string
+                    target:
+                      description: Target defines the target requests per second.
+                      type: integer
+                  required:
+                  - duration
+                  - target
+                  type: object
+                type: array
+              startRate:
+                description: StartRate defines the initial requests per second when
+                  the K6 load generator starts.
+                type: integer
+              timeUnit:
+                description: TimeUnit defines the unit of the time for K6 load generator.
+                type: string
+            required:
+            - stages
+            - startRate
+            type: object
+          status:
+            description: Status defines the status of the LoadPattern.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
