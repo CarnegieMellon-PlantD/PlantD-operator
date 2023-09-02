@@ -34,10 +34,10 @@ spec:
           spec:
             description: PlantDCoreSpec defines the desired state of PlantDCore
             properties:
-              foo:
+              prometheusConfiguration:
                 description: Foo is an example field of PlantDCore. Edit plantdcore_types.go
                   to remove/update
-                type: string
+                type: object
             type: object
           status:
             description: PlantDCoreStatus defines the observed state of PlantDCore

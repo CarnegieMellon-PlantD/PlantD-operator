@@ -2,6 +2,7 @@ package core
 
 import (
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +11,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+var kubeProxyImage string
+var frontendImage string
+var prometheusObjectName string
+var prometheusMetricLabelSelector string
+
+// var prometheuDefaultScrapInterval model.Duration
+
+func init() {
+	kubeProxyImage = config.GetString("plantdCore.kubeProxyImage")
+	frontendImage = config.GetString("plantdCore.frontendImage")
+	prometheusObjectName = config.GetString("plantdCore.prometheusObjectName")
+
+	prometheusMetricLabelSelector = config.GetString("plantdCore.prometheusMetricLabelSelector")
+	// var prometheusScrapeIntervalString = config.GetString("plantdCore.prometheuDefaultScrapInterval")
+	// prometheuDefaultScrapInterval, _ = model.ParseDuration(prometheusScrapeIntervalString)
+
+}
 
 // SetupKubeProxyDeployment creates kube proxy deployment with Cluster IP
 func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deployment, *corev1.Service) {
@@ -28,7 +47,7 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 			Containers: []corev1.Container{
 				{
 					Name:            "kube-proxy",
-					Image:           "docker.io/datawindtunnel/kube-frontend-proxy:latest",
+					Image:           kubeProxyImage,
 					ImagePullPolicy: corev1.PullAlways,
 				},
 			},
@@ -90,7 +109,7 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 			Containers: []corev1.Container{
 				{
 					Name:            "frontend",
-					Image:           "docker.io/datawindtunnel/frontend:latest",
+					Image:           frontendImage,
 					ImagePullPolicy: corev1.PullAlways,
 					// Add environment variables as needed
 					Env: []corev1.EnvVar{
@@ -147,7 +166,7 @@ func SetupCreatePrometheusSMObject(plantD *windtunnelv1alpha1.PlantDCore) (*moni
 	// Define the Prometheus resource
 	prometheus := &monitoringv1.Prometheus{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus",
+			Name:      prometheusObjectName,
 			Namespace: plantD.Namespace,
 		},
 		Spec: monitoringv1.PrometheusSpec{
@@ -155,7 +174,7 @@ func SetupCreatePrometheusSMObject(plantD *windtunnelv1alpha1.PlantDCore) (*moni
 				ServiceAccountName: "prometheus-operator",
 				ServiceMonitorSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"component": "plantd-metrics-endpoint",
+						"component": prometheusMetricLabelSelector,
 					},
 				},
 				ServiceMonitorNamespaceSelector: &metav1.LabelSelector{},

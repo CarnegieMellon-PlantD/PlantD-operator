@@ -23,11 +23,8 @@ import (
 	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	plantdcore "github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/core"
 
-	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,6 +39,8 @@ type PlantDCoreReconciler struct {
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=plantdcores,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=plantdcores/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=plantdcores/finalizers,verbs=update
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheuses,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -70,55 +69,93 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Deploy Proxy as a Deployment and a Service with a ClusterIP
 	proxyDeployment, proxyService := plantdcore.SetupProxyDeployment(plantdCore)
 
-	r.CreateObject(ctx, r.Client, proxyDeployment)
-	r.CreateObject(ctx, r.Client, proxyService)
-
-	// Deploy Studio as a Deployment and a Service with a LoadBalancer
-	studioDeployment, studioService := plantdcore.SetupFrontendDeployment(plantdCore, fmt.Sprintf("%s.%s.svc.%s", proxyService.Name, proxyService.Namespace, "cluster.local"))
-	r.CreateObject(ctx, r.Client, studioDeployment)
-	r.CreateObject(ctx, r.Client, studioService)
-
-	// Check if the Prometheus CRD exists before deploying the prometheus service monitor object
-	prometheus := &monitoringv1.Prometheus{}
-	if err := r.Get(ctx, types.NamespacedName{Name: "prometheus", Namespace: plantdCore.Namespace}, prometheus); err != nil {
-		if errors.IsNotFound(err) {
-			// Handle successful creation
-			return ctrl.Result{}, nil
-		}
+	if err := ctrl.SetControllerReference(plantdCore, proxyDeployment, r.Scheme); err != nil {
+		return ctrl.Result{}, err
 	}
 
+	if err := ctrl.SetControllerReference(plantdCore, proxyService, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, proxyDeployment); err != nil {
+		log.Error(err, "error creating proxy deployment")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, proxyService); err != nil {
+		log.Error(err, "error creating proxy service")
+		return ctrl.Result{}, err
+	}
+
+	// r.CreateObject(ctx, r.Client, proxyDeployment)
+	// r.CreateObject(ctx, r.Client, proxyService)
+
+	// Deploy Studio as a Deployment and a Service with a LoadBalancer
+	studioDeployment, studioService := plantdcore.SetupFrontendDeployment(plantdCore, fmt.Sprintf("http://%s.%s.svc.%s:5000", proxyService.Name, proxyService.Namespace, "cluster.local"))
+	if err := ctrl.SetControllerReference(plantdCore, studioDeployment, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := ctrl.SetControllerReference(plantdCore, studioService, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, studioDeployment); err != nil {
+		log.Error(err, "error creating studio deployment")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, studioService); err != nil {
+		log.Error(err, "error creating studio service")
+		return ctrl.Result{}, err
+	}
+
+	log.Info("now adding prometheus stuff")
+
 	prometheus, prometheusService := plantdcore.SetupCreatePrometheusSMObject(plantdCore)
-	r.CreateObject(ctx, r.Client, prometheus)
-	r.CreateObject(ctx, r.Client, prometheusService)
+	if err := ctrl.SetControllerReference(plantdCore, prometheus, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	log.Info("now setting controller reference stuff")
+
+	if err := ctrl.SetControllerReference(plantdCore, prometheusService, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, prometheus); err != nil {
+		log.Error(err, "error creating prometheus resource")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, prometheusService); err != nil {
+		log.Error(err, "error creating prometheus service")
+		return ctrl.Result{}, err
+	}
 
 	// Deploy ClusterRole and ClusterRoleBinding for Prometheus
 	clusterRole, clusterRoleBinding := plantdcore.SetupRoleBindingsForPrometheus(plantdCore)
-	r.CreateObject(ctx, r.Client, clusterRole)
-	r.CreateObject(ctx, r.Client, clusterRoleBinding)
 
+	if err := ctrl.SetControllerReference(plantdCore, clusterRole, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	log.Info("now setting controller reference stuff")
+
+	if err := ctrl.SetControllerReference(plantdCore, clusterRoleBinding, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, clusterRole); err != nil {
+		log.Error(err, "error creating prometheus resource")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, clusterRoleBinding); err != nil {
+		log.Error(err, "error creating prometheus service")
+		return ctrl.Result{}, err
+	}
 	// Deploy RedisStack
 
 	return ctrl.Result{}, nil
-}
-
-// CreateObject creates a new object of the provided kind.
-func (r *PlantDCoreReconciler) CreateObject(ctx context.Context, c client.Client, newObj client.Object) (objectExists, creationFailed error) {
-
-	if err := ctrl.SetControllerReference(&plantdv1alpha1.PlantDCore{}, newObj, r.Scheme); err != nil {
-		return nil, err
-	}
-
-	key := types.NamespacedName{Name: newObj.GetName(), Namespace: newObj.GetNamespace()}
-
-	err := c.Get(ctx, key, newObj)
-	if err == nil {
-		return nil, err
-	}
-
-	if err := c.Create(ctx, newObj); err != nil {
-		return nil, err
-	}
-	return nil, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

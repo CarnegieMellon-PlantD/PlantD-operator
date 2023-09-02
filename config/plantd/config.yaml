@@ -1,4 +1,4 @@
-name: windtunnel
+name: plantd
 version: 1.0.0
 pvc.requests.storage: 10Gi
 dataGenerator:
@@ -8,6 +8,12 @@ dataGenerator:
   backoffLimit: 1
   requests.cpu: 1
   limits.cpu: 1
+plantdCore:
+  kubeProxyImage: "docker.io/datawindtunnel/kube-frontend-proxy:latest"
+  frontendImage: "docker.io/datawindtunnel/frontend:latest"
+  prometheusObjectName: "prometheus"
+  prometheusMetricLabelSelector: "plantd-metrics-endpoint"
+  prometheuDefaultScrapInterval: "15s"
 k6:
   arguments: --out experimental-prometheus-rw
   remoteWriteURL:

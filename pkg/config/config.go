@@ -24,7 +24,7 @@ func init() {
 // GetKinds returns the list of kinds defined in the configuration.
 func GetKinds() []string {
 	// Replace this with your actual implementation to retrieve the list of kinds from the configuration.
-	kinds := []string{"schema", "dataset", "loadpattern", "pipeline", "experiment"}
+	kinds := []string{"schema", "dataset", "loadpattern", "pipeline", "experiment", "plantdcore"}
 	return kinds
 }
 
