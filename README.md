@@ -1,4 +1,4 @@
-<img alt="Data Pipeline Wind Tunnel" src="https://github.com/sailplatform/wind-tunnel-kubernetes-operator/assets/5161102/7106eb69-1d64-409a-9961-465409744f7a" width=200>
+<img alt="Data Pipeline Wind Tunnel" src="./docs/img/plantd.png" width=200>
 
 
 ## Data Pipeline PlantD
@@ -63,9 +63,9 @@ For more detailed information about how to use Data Pipeline Wind Tunnel, see ou
 
 ## Contact
 
-[<img alt="99p Labs" src="https://github.com/sailplatform/wind-tunnel-kubernetes-operator/assets/5161102/d669e9c6-7f1b-4ba2-be34-0937d0b60cb8" width="200">](https://developer.99plabs.io/home/)
-[<img alt="TEEL Lab logo" src="https://github.com/sailplatform/wind-tunnel-kubernetes-operator/assets/5161102/0e0df808-2561-4636-a32d-02beeb94268d" width="100">](https://teel.cs.cmu.edu)
-[<img alt="Carnegie Mellon University" src="https://github.com/sailplatform/wind-tunnel-kubernetes-operator/assets/5161102/862162e0-a7cc-498a-8884-8358b3ff0d87" width="100">](https://www.cmu.edu)
+[<img alt="99p Labs" src="./docs/img/99P_Labs_Red_linear.png" width="200">](https://developer.99plabs.io/home/)
+[<img alt="TEEL Lab logo" src="./docs/img/teel-logo.png" width="100">](https://teel.cs.cmu.edu)
+[<img alt="Carnegie Mellon University" src="./docs/img/cmu-logo.png" width="100">](https://www.cmu.edu)
 
 For more information about the Data Pipeline Wind Tunnel project, please contact us:
 
