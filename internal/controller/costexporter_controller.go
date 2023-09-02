@@ -61,6 +61,7 @@ type CostExporterReconciler struct {
 // move the current state of the cluster closer to the desired state.
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
+// TODO: break the method down.
 func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
