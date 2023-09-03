@@ -14,43 +14,43 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-var plantDCoreServiceAccountName string
-var kubeProxyImage string
-var kubeProxyContainer string
-var kubeProxyLabel map[string]string
-var kubeProxySelectorKey string
-var kubeProxySelectorValue string
-var kubeProxyReplicas int
-var kubeProxyDeploymentName string
-var kubeProxyServiceName string
-var kubeProxyPort int32
-var kubeProxyTargetPort int32
+var (
+	plantDCoreServiceAccountName string
+	kubeProxyImage               string
+	kubeProxyContainer           string
+	kubeProxyLabel               map[string]string
+	kubeProxySelectorKey         string
+	kubeProxySelectorValue       string
+	kubeProxyReplicas            int
+	kubeProxyDeploymentName      string
+	kubeProxyServiceName         string
+	kubeProxyPort                int32
+	kubeProxyTargetPort          int32
 
-var studioImage string
-var studioContainer string
-var studioLabel map[string]string
-var studioSelectorKey string
-var studioSelectorValue string
-var studioReplicas int
-var studioDeploymentName string
-var studioServiceName string
-var studioPortName string
-var studioPort int32
-var studioTargetPort int32
+	studioImage          string
+	studioContainer      string
+	studioLabel          map[string]string
+	studioSelectorKey    string
+	studioSelectorValue  string
+	studioReplicas       int
+	studioDeploymentName string
+	studioServiceName    string
+	studioPortName       string
+	studioPort           int32
+	studioTargetPort     int32
 
-var prometheusServiceAccountName string
-var prometheusObjectName string
-var prometheusResourceMemory string
-var prometheusScrapeInterval string
-var prometheusClusterRoleName string
-var prometheusSelectorKey string
-var prometheusSelectorValue string
-var prometheusClusterRoleBindingName string
-var prometheusMetricSpecSelector map[string]string
-var prometheusServicePort int32
-var prometheusServiceNodePort int32
-
-// var prometheuDefaultScrapInterval model.Duration
+	prometheusServiceAccountName     string
+	prometheusObjectName             string
+	prometheusResourceMemory         string
+	prometheusScrapeInterval         string
+	prometheusClusterRoleName        string
+	prometheusSelectorKey            string
+	prometheusSelectorValue          string
+	prometheusClusterRoleBindingName string
+	prometheusMetricSpecSelector     map[string]string
+	prometheusServicePort            int32
+	prometheusServiceNodePort        int32
+)
 
 func init() {
 	plantDCoreServiceAccountName = config.GetString("plantdCore.serviceAccountName")
@@ -217,8 +217,8 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 // SetupFrontendDeployment creates a PlantD Frontend deployment
 func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1.Prometheus, *corev1.Service) {
 	// Define the Prometheus resource
-	var scrapeInterval = monitoringv1.Duration(prometheusScrapeInterval)
-	var resourceMemory = resource.MustParse(prometheusResourceMemory)
+	scrapeInterval := monitoringv1.Duration(prometheusScrapeInterval)
+	resourceMemory := resource.MustParse(prometheusResourceMemory)
 
 	if plantD.Spec.PrometheusConfiguration.ScrapeInterval != "" {
 		scrapeInterval = monitoringv1.Duration(plantD.Spec.PrometheusConfiguration.ScrapeInterval)
