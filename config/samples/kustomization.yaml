@@ -1,0 +1,10 @@
+## Append samples of your project ##
+resources:
+- windtunnel_v1alpha1_plantdcore.yaml
+- windtunnel_v1alpha1_schema.yaml
+- windtunnel_v1alpha1_dataset.yaml
+- windtunnel_v1alpha1_loadpattern.yaml
+- windtunnel_v1alpha1_pipeline.yaml
+- windtunnel_v1alpha1_experiment.yaml
+- windtunnel_v1alpha1_costexporter.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
