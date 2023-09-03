@@ -5303,7 +5303,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: datawindtunnel/plantd-controller:latest
+        image: ghcr.io/carnegiemellon-plantd/plantd-controller:latest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

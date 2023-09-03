@@ -2,8 +2,8 @@ name: plantd
 version: 1.0.0
 pvc.requests.storage: 10Gi
 dataGenerator:
-  path: /plantd
-  image: docker.io/datawindtunnel/datageneratorjob:v1demo6
+  path: /test # Default path where k6 looks for the files
+  image: ghcr.io/carnegiemellon-plantd/datagenerator:latest
   restartPolicy: Never
   backoffLimit: 1
   requests.cpu: 1
@@ -11,29 +11,29 @@ dataGenerator:
 plantdCore:
   serviceAccountName: plantd-operator-controller-manager
   kubeProxy:
-    image: docker.io/datawindtunnel/kube-frontend-proxy:latest
+    image: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
     label: 
-      app: kube-proxy
+      app: plantd-proxy
     selector: 
       key: app
-      value: kube-proxy
-    containerName: kube-proxy
+      value: plantd-proxy
+    containerName: plantd-proxy
     replicas: 1
-    deploymentName: kube-proxy-deployment
-    serviceName: kube-proxy-service
+    deploymentName: plantd-proxy-deployment
+    serviceName: plantd-proxy-service
     port: 5000
     targetPort: 5000
   studio:
-    image: docker.io/datawindtunnel/frontend:latest
+    image: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
     label: 
-      app: frontend
+      app: plantd-studio
     selector: 
       key: app
-      value: frontend
-    containerName: frontend
+      value: plantd-studio
+    containerName: plantd-studio
     replicas: 1
-    deploymentName: frontend-deployment
-    serviceName: frontend-service
+    deploymentName: plantd-studio-deployment
+    serviceName: plantd-studio-service
     portName: http
     port: 80
     targetPort: 8080
