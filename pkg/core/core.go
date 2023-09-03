@@ -336,7 +336,7 @@ func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*cor
 		},
 		Subjects: []rbac.Subject{
 			{
-				Kind:      "ServiceAccount",
+				Kind:      rbac.ServiceAccountKind,
 				Name:      prometheusServiceAccountName,
 				Namespace: plantD.Namespace,
 			},
