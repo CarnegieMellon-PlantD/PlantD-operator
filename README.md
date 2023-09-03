@@ -67,7 +67,7 @@ PlantD is licensed under the GPLv2 License. See [LICENSE](LICENSE) for more deta
 
 ## Documentation
 
-For more detailed information about how to use PlantD, see our full [documentation](https://DataPipelineWindTunnel.github.io/docs).
+For more detailed information about how to use PlantD, see our full [documentation](https://plantd.org/).
 
 API documentation can be found in the [docs](docs/api.md)
 

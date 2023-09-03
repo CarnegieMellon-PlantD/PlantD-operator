@@ -11,7 +11,7 @@ branch to base your changes on, and so on.
 1. Open an issue to describe your proposed improvement or feature
 1. Create a fork of this repository
 1. Create a new feature branch in the forked repo with an appropriate name
-1. If applicable, add a [CHANGELOG-7.md entry](#changelog) describing your change.
+1. If applicable, add a [CHANGELOG.md entry](#changelog) describing your change.
 1. Create a Pull Request into the main repo as appropriate based on the issue discussion
 
 PlantD is and always will be open source, and we continue to highly
