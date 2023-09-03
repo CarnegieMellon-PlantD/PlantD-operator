@@ -222,5 +222,5 @@ monitor:
   jobLabel: experiment
 database:
   prometheus:
-    url: http://prometheus:9090
+    url: http://prometheus.plantd-operator-system.svc.cluster.local:9090
     scrapeInterval: 15s

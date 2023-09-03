@@ -300,6 +300,9 @@ spec:
     - jsonPath: .status.duration
       name: Duration
       type: string
+    - jsonPath: .status.startTime
+      name: StartTime
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -2663,6 +2666,9 @@ spec:
       type: string
     - jsonPath: .status.duration
       name: Duration
+      type: string
+    - jsonPath: .status.startTime
+      name: StartTime
       type: string
     name: v1alpha1
     schema:

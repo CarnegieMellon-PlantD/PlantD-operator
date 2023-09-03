@@ -49,6 +49,7 @@ type ExperimentStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="ExperimentState",type="string",JSONPath=".status.experimentState"
 //+kubebuilder:printcolumn:name="Duration",type="string",JSONPath=".status.duration"
+//+kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
 
 // Experiment is the Schema for the experiments API
 type Experiment struct {
