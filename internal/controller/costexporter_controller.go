@@ -61,7 +61,6 @@ type CostExporterReconciler struct {
 // move the current state of the cluster closer to the desired state.
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
-// TODO: break the method down.
 func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
@@ -142,8 +141,6 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err := r.Status().Update(ctx, costExporter); err != nil {
 		log.Error(err, "Cannot update the status of Cost Service after creation.")
 	}
-
-	// TODO(user): your logic here
 	currTime := time.Now()
 	if costExporter.Status.JobCompletionTime != nil && (currTime.Sub(costExporter.Status.JobCompletionTime.Time) < (8 * time.Hour)) {
 		return ctrl.Result{RequeueAfter: (8 * time.Hour) - currTime.Sub(costExporter.Status.JobCompletionTime.Time)}, nil
