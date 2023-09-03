@@ -9,15 +9,16 @@ dataGenerator:
   requests.cpu: 1
   limits.cpu: 1
 plantdCore:
+  serviceAccountName: plantd-operator-controller-manager
   kubeProxy:
-    image: docker.io/datawindtunnel/kube-frontend-proxy:2
+    image: docker.io/datawindtunnel/kube-frontend-proxy:latest
     label: 
       app: kube-proxy
     selector: 
       key: app
       value: kube-proxy
     containerName: kube-proxy
-    replicas: 1,
+    replicas: 1
     deploymentName: kube-proxy-deployment
     serviceName: kube-proxy-service
     port: 5000
@@ -30,16 +31,16 @@ plantdCore:
       key: app
       value: frontend
     containerName: frontend
-    replicas: 1,
+    replicas: 1
     deploymentName: frontend-deployment
     serviceName: frontend-service
     portName: http
     port: 80
-    targetPort: 80
+    targetPort: 8080
   prometheus:
     name: prometheus
-    serviceAccountname: prometheus
-    resourceMemory: 1G
+    serviceAccount: prometheus
+    resourceMemory: 1Gi
     scrapeInterval: 15s
     clusteRoleName: plantd-prometheus-role
     clusterRoleBindingName: plantd-prometheus-role-binding
@@ -49,13 +50,13 @@ plantdCore:
     service:
       port: 9090
       nodePort: 30900
-    selector:
+    specSelector:
       prometheus: prometheus
 k6:
   arguments: --out experimental-prometheus-rw
   remoteWriteURL:
     name: K6_PROMETHEUS_RW_SERVER_URL
-    value: http://prometheus:9090/api/v1/write
+    value: http://prometheus.plantd-operator-system.svc.cluster.local:9090/api/v1/write
   script.http.withData: |
     import http from 'k6/http';
     import { check } from 'k6';

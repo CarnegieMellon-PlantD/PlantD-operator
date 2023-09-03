@@ -2196,6 +2196,62 @@ spec:
               prometheusConfiguration:
                 description: Foo is an example field of PlantDCore. Edit plantdcore_types.go
                   to remove/update
+                properties:
+                  resourceMemory:
+                    description: MemorySize     int `json:",omitempty"`
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  scrapeInterval:
+                    description: 'Duration is a valid time duration that can be parsed
+                      by Prometheus model.ParseDuration() function. Supported units:
+                      y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`, `15d`'
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
                 type: object
             type: object
           status:
@@ -2279,7 +2335,6 @@ spec:
                       type: string
                   required:
                   - name
-                  - type
                   type: object
                 type: array
             required:
@@ -2293,6 +2348,7 @@ spec:
     storage: true
     subresources:
       status: {}
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -4504,6 +4560,62 @@ spec:
               prometheusConfiguration:
                 description: Foo is an example field of PlantDCore. Edit plantdcore_types.go
                   to remove/update
+                properties:
+                  resourceMemory:
+                    description: MemorySize     int `json:",omitempty"`
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  scrapeInterval:
+                    description: 'Duration is a valid time duration that can be parsed
+                      by Prometheus model.ParseDuration() function. Supported units:
+                      y, w, d, h, m, s, ms Examples: `30s`, `1m`, `1h20m15s`, `15d`'
+                    pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
                 type: object
             type: object
           status:
@@ -4587,7 +4699,6 @@ spec:
                       type: string
                   required:
                   - name
-                  - type
                   type: object
                 type: array
             required:
@@ -4665,6 +4776,10 @@ kind: ClusterRole
 metadata:
   name: plantd-operator-manager-role
 rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
 - apiGroups:
   - ""
   resources:
@@ -4688,6 +4803,22 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes/metrics
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - ""
@@ -4720,6 +4851,18 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -4785,6 +4928,38 @@ rules:
   - monitoring.coreos.com
   resources:
   - servicemonitors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
   verbs:
   - create
   - delete
@@ -5128,7 +5303,8 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: plantd-controller:latest
+        image: datawindtunnel/plantd-controller:latest
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz
@@ -10681,11 +10857,10 @@ kind: PlantDCore
 metadata:
   labels:
     app.kubernetes.io/name: plantdcore
-    app.kubernetes.io/instance: plantdcore-sample
+    app.kubernetes.io/instance: plantdcore-core
     app.kubernetes.io/part-of: plantd-operator
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: plantd-operator
-  name: plantdcore-sample
+  name: plantdcore-core
+  namespace: plantd-operator-system
 spec:
-  # Empty field
-
+  # TODO(user): Add fields here

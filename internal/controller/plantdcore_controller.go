@@ -81,10 +81,12 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	proxyDeployment, proxyService := plantdcore.SetupProxyDeployment(plantdCoreObj)
 
 	if err := ctrl.SetControllerReference(plantdCoreObj, proxyDeployment, r.Scheme); err != nil {
+		log.Error(err, "error creating proxy deployment")
 		return ctrl.Result{}, err
 	}
 
 	if err := ctrl.SetControllerReference(plantdCoreObj, proxyService, r.Scheme); err != nil {
+		log.Error(err, "error creating proxy deployment")
 		return ctrl.Result{}, err
 	}
 
@@ -101,10 +103,12 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Deploy Studio as a Deployment and a Service with a LoadBalancer
 	studioDeployment, studioService := plantdcore.SetupFrontendDeployment(plantdCoreObj, fmt.Sprintf("http://%s.%s.svc.%s:5000", proxyService.Name, proxyService.Namespace, "cluster.local"))
 	if err := ctrl.SetControllerReference(plantdCoreObj, studioDeployment, r.Scheme); err != nil {
+		log.Error(err, "error creating studio deployment controller reference")
 		return ctrl.Result{}, err
 	}
 
 	if err := ctrl.SetControllerReference(plantdCoreObj, studioService, r.Scheme); err != nil {
+		log.Error(err, "error creating studio controller reference")
 		return ctrl.Result{}, err
 	}
 

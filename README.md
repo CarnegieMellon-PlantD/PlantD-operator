@@ -36,7 +36,6 @@ Type `kubectl cluster-info` to check that it's running
 The easiest way to setup oeprator is to use the `bundle.yaml` deployments. 
 
 #### Bundle deployments
-
 	
 	### Instal the K6 Operator
 	curl https://raw.githubusercontent.com/grafana/k6-operator/main/bundle.yaml | kubectl create -f -
@@ -47,6 +46,11 @@ The easiest way to setup oeprator is to use the `bundle.yaml` deployments.
 
 	### Install the PlantD Operator
 	curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f - 
+
+	### Get the Frontend service hostname
+	kubectl get svc frontend-service -n plantd-operator-system -o jsonpath='{.status.loadBalancer.ingress[0].hostname}{"\n"}'
+
+Note that it may take upto 2-3 minutes for the PlantD Studio to be available at the above hostname.
 
 
 ## Contributing

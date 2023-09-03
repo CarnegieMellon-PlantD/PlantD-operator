@@ -1,6 +1,8 @@
 package core
 
 import (
+	"log"
+
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -53,7 +55,7 @@ var prometheusServiceNodePort int32
 // var prometheuDefaultScrapInterval model.Duration
 
 func init() {
-	plantDCoreServiceAccountName = config.GetString("plantdCore.serviceAccount")
+	plantDCoreServiceAccountName = config.GetString("plantdCore.serviceAccountName")
 
 	kubeProxyImage = config.GetString("plantdCore.kubeProxy.image")
 	kubeProxyLabel = config.GetStringMapString("plantdCore.kubeProxy.label")
@@ -82,14 +84,14 @@ func init() {
 	prometheusObjectName = config.GetString("plantdCore.prometheus.name")
 	prometheusResourceMemory = config.GetString("plantdCore.prometheus.resourceMemory")
 	prometheusScrapeInterval = config.GetString("plantdCore.prometheus.scrapeInterval")
-	prometheusMetricSpecSelector = config.GetStringMapString("prometheus.selector")
+	prometheusMetricSpecSelector = config.GetStringMapString("plantdCore.prometheus.specSelector")
 	prometheusSelectorKey = config.GetString("plantdCore.prometheus.selector.key")
 	prometheusSelectorValue = config.GetString("plantdCore.prometheus.selector.value")
-	prometheusMetricLabelSelector = config.GetStringMapString("monitor.serviceMonitor.labels")
+	prometheusMetricLabelSelector = config.GetStringMapString("plantdCore.monitor.serviceMonitor.labels")
 	prometheusServicePort = config.GetInt32("plantdCore.prometheus.service.port")
 	prometheusServiceNodePort = config.GetInt32("plantdCore.prometheus.service.nodePort")
-	prometheusClusterRoleName = config.GetString("plantdCore.prometheus.clusterRole")
-	prometheusClusterRoleBindingName = config.GetString("plantdCore.prometheus.clusterRoleBinding")
+	prometheusClusterRoleName = config.GetString("plantdCore.prometheus.clusteRoleName")
+	prometheusClusterRoleBindingName = config.GetString("plantdCore.prometheus.clusterRoleBindingName")
 }
 
 // SetupKubeProxyDeployment creates kube proxy deployment with Cluster IP
@@ -101,7 +103,7 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 	labels := map[string]string{
 		kubeProxySelectorKey: kubeProxySelectorValue,
 	}
-
+	log.Println(plantDCoreServiceAccountName)
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
@@ -225,8 +227,10 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 		scrapeInterval = monitoringv1.Duration(plantD.Spec.PrometheusConfiguration.ScrapeInterval)
 	}
 
-	if plantD.Spec.PrometheusConfiguration.ResourceMemory.String() != "" {
-		resourceMemory = resource.MustParse(plantD.Spec.PrometheusConfiguration.ResourceMemory.String())
+	if plantD.Spec.PrometheusConfiguration.ResourceMemory.Limits != nil {
+		if !plantD.Spec.PrometheusConfiguration.ResourceMemory.Limits.Memory().IsZero() {
+			resourceMemory = resource.MustParse(plantD.Spec.PrometheusConfiguration.ResourceMemory.Limits.Memory().String())
+		}
 	}
 
 	prometheus := &monitoringv1.Prometheus{
