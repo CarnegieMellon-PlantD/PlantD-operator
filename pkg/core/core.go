@@ -46,9 +46,7 @@ var prometheusClusterRoleName string
 var prometheusSelectorKey string
 var prometheusSelectorValue string
 var prometheusClusterRoleBindingName string
-var prometheusMetricLabelSelector map[string]string
 var prometheusMetricSpecSelector map[string]string
-var prometheusMetricSelectorSelector map[string]string
 var prometheusServicePort int32
 var prometheusServiceNodePort int32
 
@@ -87,7 +85,6 @@ func init() {
 	prometheusMetricSpecSelector = config.GetStringMapString("plantdCore.prometheus.specSelector")
 	prometheusSelectorKey = config.GetString("plantdCore.prometheus.selector.key")
 	prometheusSelectorValue = config.GetString("plantdCore.prometheus.selector.value")
-	prometheusMetricLabelSelector = config.GetStringMapString("plantdCore.monitor.serviceMonitor.labels")
 	prometheusServicePort = config.GetInt32("plantdCore.prometheus.service.port")
 	prometheusServiceNodePort = config.GetInt32("plantdCore.prometheus.service.nodePort")
 	prometheusClusterRoleName = config.GetString("plantdCore.prometheus.clusteRoleName")
