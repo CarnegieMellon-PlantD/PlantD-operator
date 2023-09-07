@@ -10,11 +10,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ListNamespaces returns an HTTP handler function that handles GET requests to fetch a list of namespaces.
+// listNamespaces returns an HTTP handler function that handles GET requests to fetch a list of namespaces.
 // The handler function calls the proxy.ListNamespaces function to retrieve the namespaces using the provided client.
 // If successful, it encodes the namespace list as JSON and writes it to the response.
 // If an error occurs, it writes an error response with the corresponding status code and error message.
-func ListNamespaces(client client.Client) http.HandlerFunc {
+func listNamespaces(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		nsList, err := proxy.ListNamespaces(ctx, client)
@@ -29,13 +29,13 @@ func ListNamespaces(client client.Client) http.HandlerFunc {
 	}
 }
 
-// CreateNamespace returns an HTTP handler function that handles POST requests to create a new namespace.
+// createNamespace returns an HTTP handler function that handles POST requests to create a new namespace.
 // The handler function reads the namespace parameter from the request URL.
 // It calls the proxy.CreateNamespace function to create the namespace using the provided client and namespace name.
 // If the namespace already exists, it writes an error response with the status code 409.
 // If the creation fails, it writes an error response with the corresponding status code and error message.
 // If successful, it writes a response with the status code 200.
-func CreateNamespace(client client.Client) http.HandlerFunc {
+func createNamespace(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
@@ -51,13 +51,13 @@ func CreateNamespace(client client.Client) http.HandlerFunc {
 	}
 }
 
-// DeleteNamespace returns an HTTP handler function that handles DELETE requests to delete a namespace.
+// deleteNamespace returns an HTTP handler function that handles DELETE requests to delete a namespace.
 // The handler function reads the namespace parameter from the request URL.
 // It calls the proxy.DeleteNamespace function to delete the namespace using the provided client and namespace name.
 // If the namespace is not found, it writes an error response with the status code 404.
 // If the deletion fails, it writes an error response with the corresponding status code and error message.
 // If successful, it writes a response with the status code 200.
-func DeleteNamespace(client client.Client) http.HandlerFunc {
+func deleteNamespace(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")

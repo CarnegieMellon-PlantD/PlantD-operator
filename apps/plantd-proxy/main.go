@@ -22,7 +22,7 @@ var (
 	scheme = runtime.NewScheme()
 )
 
-func MethodOverrider(next http.Handler) http.Handler {
+func MethodOverrideMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get overriding method from header
 		methodToOverride := r.Header.Get("X-Http-Method-Override")
@@ -45,7 +45,7 @@ func init() {
 
 func main() {
 	r := chi.NewRouter()
-	r.Use(MethodOverrider)
+	r.Use(MethodOverrideMiddleware)
 	r.Use(middleware.Logger)
 
 	cfg, err := ctrl.GetConfig()

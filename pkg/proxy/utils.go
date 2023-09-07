@@ -7,7 +7,7 @@ import (
 	"context"
 	"strconv"
 
-	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
@@ -17,8 +17,8 @@ import (
 )
 
 // GetDataset retrieves a DataSet object by namespace and name.
-func GetDataset(ctx context.Context, c client.Client, namespace string, name string) (*windtunnelv1alpha1.DataSet, error) {
-	dataset := &windtunnelv1alpha1.DataSet{}
+func GetDataset(ctx context.Context, c client.Client, namespace string, name string) (*plantdv1alpha1.DataSet, error) {
+	dataset := &plantdv1alpha1.DataSet{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
@@ -29,8 +29,8 @@ func GetDataset(ctx context.Context, c client.Client, namespace string, name str
 }
 
 // GetSchema retrieves a Schema object by namespace and name.
-func GetSchema(ctx context.Context, c client.Client, namespace string, name string) (*windtunnelv1alpha1.Schema, error) {
-	schema := &windtunnelv1alpha1.Schema{}
+func GetSchema(ctx context.Context, c client.Client, namespace string, name string) (*plantdv1alpha1.Schema, error) {
+	schema := &plantdv1alpha1.Schema{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
@@ -40,8 +40,8 @@ func GetSchema(ctx context.Context, c client.Client, namespace string, name stri
 	return schema, nil
 }
 
-// GetSampleDataset generates a sample dataset based on the provided dataset name.
-func GetSampleDataset(ctx context.Context, c client.Client, namespace string, datasetName string) (string, *bytes.Buffer, error) {
+// GetSampleDataSet generates a sample dataset based on the provided dataset name.
+func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, datasetName string) (string, *bytes.Buffer, error) {
 
 	// Get the DataSet object
 	dataset, err := GetDataset(ctx, c, namespace, datasetName)
@@ -197,7 +197,7 @@ func GetSampleDataset(ctx context.Context, c client.Client, namespace string, da
 }
 
 // GetIndexByName retrieves the index of a schema by name from a list of schema selectors.
-func GetIndexByName(schemas []windtunnelv1alpha1.SchemaSelector, schemaName string) (int, bool) {
+func GetIndexByName(schemas []plantdv1alpha1.SchemaSelector, schemaName string) (int, bool) {
 	for i, schema := range schemas {
 		if schema.Name == schemaName {
 			return i, true

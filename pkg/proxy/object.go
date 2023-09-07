@@ -6,7 +6,7 @@ import (
 
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
 
-	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,19 +27,19 @@ const (
 func ForObject(kind string) client.Object {
 	switch kind {
 	case SchemaPlural:
-		return &windtunnelv1alpha1.Schema{}
+		return &plantdv1alpha1.Schema{}
 	case DatasetPlural:
-		return &windtunnelv1alpha1.DataSet{}
+		return &plantdv1alpha1.DataSet{}
 	case LoadPatternPlural:
-		return &windtunnelv1alpha1.LoadPattern{}
+		return &plantdv1alpha1.LoadPattern{}
 	case PipelinePlural:
-		return &windtunnelv1alpha1.Pipeline{}
+		return &plantdv1alpha1.Pipeline{}
 	case ExperimentPlural:
-		return &windtunnelv1alpha1.Experiment{}
+		return &plantdv1alpha1.Experiment{}
 	case PlantDCorePlural:
-		return &windtunnelv1alpha1.PlantDCore{}
+		return &plantdv1alpha1.PlantDCore{}
 	case CostExporterPlural:
-		return &windtunnelv1alpha1.CostExporter{}
+		return &plantdv1alpha1.CostExporter{}
 	}
 	return nil
 }
@@ -48,19 +48,19 @@ func ForObject(kind string) client.Object {
 func ForObjectList(kind string) client.ObjectList {
 	switch kind {
 	case SchemaPlural:
-		return &windtunnelv1alpha1.SchemaList{}
+		return &plantdv1alpha1.SchemaList{}
 	case DatasetPlural:
-		return &windtunnelv1alpha1.DataSetList{}
+		return &plantdv1alpha1.DataSetList{}
 	case LoadPatternPlural:
-		return &windtunnelv1alpha1.LoadPatternList{}
+		return &plantdv1alpha1.LoadPatternList{}
 	case PipelinePlural:
-		return &windtunnelv1alpha1.PipelineList{}
+		return &plantdv1alpha1.PipelineList{}
 	case ExperimentPlural:
-		return &windtunnelv1alpha1.ExperimentList{}
+		return &plantdv1alpha1.ExperimentList{}
 	case PlantDCorePlural:
-		return &windtunnelv1alpha1.PlantDCoreList{}
+		return &plantdv1alpha1.PlantDCoreList{}
 	case CostExporterPlural:
-		return &windtunnelv1alpha1.CostExporterList{}
+		return &plantdv1alpha1.CostExporterList{}
 	}
 	return nil
 }
@@ -69,11 +69,11 @@ func ForObjectList(kind string) client.ObjectList {
 
 // updateCostExporterSpec updates the Spec field of a fetched Schema object with the updated Schema object.
 func updateCostExporterSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.CostExporter)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.CostExporter)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to schemas")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.CostExporter)
+	updatedTyped, ok := updated.(*plantdv1alpha1.CostExporter)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to schemas")
 	}
@@ -84,11 +84,11 @@ func updateCostExporterSpec(fetched client.Object, updated client.Object) error 
 
 // updateSchemaSpec updates the Spec field of a fetched Schema object with the updated Schema object.
 func updateSchemaSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.Schema)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.Schema)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to schemas")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.Schema)
+	updatedTyped, ok := updated.(*plantdv1alpha1.Schema)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to schemas")
 	}
@@ -99,11 +99,11 @@ func updateSchemaSpec(fetched client.Object, updated client.Object) error {
 
 // updateDatasetSpec updates the Spec field of a fetched DataSet object with the updated DataSet object.
 func updateDatasetSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.DataSet)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.DataSet)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to datasets")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.DataSet)
+	updatedTyped, ok := updated.(*plantdv1alpha1.DataSet)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to datasets")
 	}
@@ -114,11 +114,11 @@ func updateDatasetSpec(fetched client.Object, updated client.Object) error {
 
 // updateLoadPatternSpec updates the Spec field of a fetched LoadPattern object with the updated LoadPattern object.
 func updateLoadPatternSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.LoadPattern)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.LoadPattern)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to loadpatterns")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.LoadPattern)
+	updatedTyped, ok := updated.(*plantdv1alpha1.LoadPattern)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to loadpatterns")
 	}
@@ -129,11 +129,11 @@ func updateLoadPatternSpec(fetched client.Object, updated client.Object) error {
 
 // updatePipelineSpec updates the Spec field of a fetched Pipeline object with the updated Pipeline object.
 func updatePipelineSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.Pipeline)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.Pipeline)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to pipelines")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.Pipeline)
+	updatedTyped, ok := updated.(*plantdv1alpha1.Pipeline)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to pipelines")
 	}
@@ -144,11 +144,11 @@ func updatePipelineSpec(fetched client.Object, updated client.Object) error {
 
 // updateExperimentSpec updates the Spec field of a fetched Experiment object with the updated Experiment object.
 func updateExperimentSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.Experiment)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.Experiment)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to experiments")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.Experiment)
+	updatedTyped, ok := updated.(*plantdv1alpha1.Experiment)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to experiments")
 	}
@@ -159,11 +159,11 @@ func updateExperimentSpec(fetched client.Object, updated client.Object) error {
 
 // updatePlantDCoreSpec updates the Spec field of a fetched WindTunnelCluster object with the updated WindTunnelCluster object.
 func updatePlantDCoreSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*windtunnelv1alpha1.PlantDCore)
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.PlantDCore)
 	if !ok {
 		return fmt.Errorf("could not convert fetched object to windtunnelclusters")
 	}
-	updatedTyped, ok := updated.(*windtunnelv1alpha1.PlantDCore)
+	updatedTyped, ok := updated.(*plantdv1alpha1.PlantDCore)
 	if !ok {
 		return fmt.Errorf("could not convert updated object to windtunnelclusters")
 	}

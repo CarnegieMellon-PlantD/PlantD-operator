@@ -27,9 +27,9 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 	router.Route("/api", func(r chi.Router) {
 		r.Post("/health", healthCheck)
 
-		r.Get("/namespaces", ListNamespaces(client))
-		r.Post("/namespaces/{namespace}", CreateNamespace(client))
-		r.Delete("/namespaces/{namespace}", DeleteNamespace(client))
+		r.Get("/namespaces", listNamespaces(client))
+		r.Post("/namespaces/{namespace}", createNamespace(client))
+		r.Delete("/namespaces/{namespace}", deleteNamespace(client))
 
 		r.Get("/schemas", getObjectList(client, proxy.SchemaPlural))
 		r.Get("/schemas/{namespace}/{name}", getObject(client, proxy.SchemaPlural))
@@ -70,7 +70,7 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 		r.Get("/plantdcores/{namespace}/{name}", getObject(client, proxy.PlantDCorePlural))
 		r.Put("/plantdcores/{namespace}/{name}", updateObject(client, proxy.PlantDCorePlural))
 
-		r.Get("/datasets/{namespace}/{name}/sample", GetSampleDataset(client))
+		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataset(client))
 	})
 
 	router.Route("/data", func(r chi.Router) {

@@ -21,17 +21,17 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Healthy"))
 }
 
-// GetSampleDataset returns an HTTP handler function for retrieving a sample dataset.
+// getSampleDataSet returns an HTTP handler function for retrieving a sample dataset.
 // It takes a client object of type client.Client for interacting with the Kubernetes API.
 // The handler function retrieves the sample dataset based on the provided namespace and dataset name.
-// It calls the proxy.GetSampleDataset function and writes the dataset to the response.
+// It calls the proxy.GetSampleDataSet function and writes the dataset to the response.
 // If there is an error during the retrieval process, it returns an HTTP 500 status with an error message.
-func GetSampleDataset(client client.Client) http.HandlerFunc {
+func getSampleDataSet(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
 		datasetName := chi.URLParam(r, "name")
-		if fileFormat, bytes, err := proxy.GetSampleDataset(ctx, client, namespace, datasetName); err != nil {
+		if fileFormat, bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, datasetName); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while getting sample DataSet: " + err.Error()})
 			return
