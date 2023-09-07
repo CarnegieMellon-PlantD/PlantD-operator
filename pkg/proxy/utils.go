@@ -10,8 +10,6 @@ import (
 	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
-
 	"github.com/brianvoe/gofakeit/v6"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -218,21 +216,4 @@ func AddFileToTar(tw *tar.Writer, name string, content []byte) error {
 	}
 	_, err := tw.Write(content)
 	return err
-}
-
-// CheckPipelineHealth checks the health of a pipeline.
-func CheckPipelineHealth(ctx context.Context, c client.Client, URL string, HealthCheckEndpoint string) error {
-
-	if HealthCheckEndpoint != "" {
-		healthCheckURL, err := utils.GetHealthCheckURL(URL, HealthCheckEndpoint)
-		if err != nil {
-			return err
-		}
-		ok, err := utils.HealthCheck(healthCheckURL)
-		if err != nil || !ok {
-			return err
-		}
-	}
-
-	return nil
 }

@@ -70,7 +70,8 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 		r.Get("/plantdcores/{namespace}/{name}", getObject(client, proxy.PlantDCorePlural))
 		r.Put("/plantdcores/{namespace}/{name}", updateObject(client, proxy.PlantDCorePlural))
 
-		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataset(client))
+		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataSet(client))
+		r.Get("/healthcheck/http", checkHTTPHealth())
 	})
 
 	router.Route("/data", func(r chi.Router) {

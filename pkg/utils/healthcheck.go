@@ -42,18 +42,7 @@ func GetPort(serviceURL string) (int32, error) {
 	}
 }
 
-func GetHealthCheckURL(serviceURL string, healthCheckEndpoint string) (string, error) {
-	u, err := url.Parse(serviceURL)
-	if err != nil {
-		return "", fmt.Errorf("Error parsing URL: %v\n", err)
-	}
-
-	// Set Path to health check endpoint
-	u.Path = healthCheckEndpoint
-	return u.String(), nil
-}
-
-func HealthCheck(url string) (bool, error) {
+func CheckHTTPHealth(url string) (bool, error) {
 	client := http.Client{
 		Timeout: healthCheckTimeout,
 	}
@@ -66,7 +55,7 @@ func HealthCheck(url string) (bool, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("Expected status OK but got %v from %s", resp.StatusCode, url)
+		return false, fmt.Errorf("expected status OK but got %v from %s", resp.StatusCode, url)
 	}
 
 	return true, nil
