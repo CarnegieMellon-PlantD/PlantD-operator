@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -32,23 +33,18 @@ func getSampleDataSet(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
-		datasetName := chi.URLParam(r, "name")
-		if fileFormat, bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, datasetName); err != nil {
+		name := chi.URLParam(r, "name")
+		if fileExt, bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, name); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while getting sample DataSet: " + err.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "while getting sample dataset: " + err.Error()})
 			return
 		} else {
-			contentDisposition := "attachment; filename=example." + fileFormat
+			contentDisposition := fmt.Sprintf("attachment; filename=sample-%s-%s.%s", namespace, name, fileExt)
 			w.Header().Set("Content-Disposition", contentDisposition)
-			contentType := "application/" + fileFormat
+			contentType := "application/octet-stream"
 			w.Header().Set("Content-Type", contentType)
 			w.WriteHeader(http.StatusOK)
-
-			if _, err := bytes.WriteTo(w); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(ErrorResponse{Message: "while writing response body: " + err.Error()})
-				return
-			}
+			bytes.WriteTo(w)
 		}
 	}
 }
@@ -65,24 +61,21 @@ func checkHTTPHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
 		data := CheckHTTPHealthRequest{}
 		err = json.Unmarshal(body, &data)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
 		_, err = utils.CheckHTTPHealth(data.URL)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while checking health: " + err.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 			return
 		}
 		w.WriteHeader(http.StatusOK)

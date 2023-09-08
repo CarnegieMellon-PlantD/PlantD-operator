@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
-
 	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -65,32 +63,15 @@ func ForObjectList(kind string) client.ObjectList {
 	return nil
 }
 
-// Helper functions to update the Spec field of different resource types.
-
-// updateCostExporterSpec updates the Spec field of a fetched Schema object with the updated Schema object.
-func updateCostExporterSpec(fetched client.Object, updated client.Object) error {
-	fetchedTyped, ok := fetched.(*plantdv1alpha1.CostExporter)
-	if !ok {
-		return fmt.Errorf("could not convert fetched object to schemas")
-	}
-	updatedTyped, ok := updated.(*plantdv1alpha1.CostExporter)
-	if !ok {
-		return fmt.Errorf("could not convert updated object to schemas")
-	}
-
-	fetchedTyped.Spec = updatedTyped.Spec
-	return nil
-}
-
 // updateSchemaSpec updates the Spec field of a fetched Schema object with the updated Schema object.
 func updateSchemaSpec(fetched client.Object, updated client.Object) error {
 	fetchedTyped, ok := fetched.(*plantdv1alpha1.Schema)
 	if !ok {
-		return fmt.Errorf("could not convert fetched object to schemas")
+		return fmt.Errorf("could not convert fetched object to schema")
 	}
 	updatedTyped, ok := updated.(*plantdv1alpha1.Schema)
 	if !ok {
-		return fmt.Errorf("could not convert updated object to schemas")
+		return fmt.Errorf("could not convert updated object to schema")
 	}
 
 	fetchedTyped.Spec = updatedTyped.Spec
@@ -101,11 +82,11 @@ func updateSchemaSpec(fetched client.Object, updated client.Object) error {
 func updateDatasetSpec(fetched client.Object, updated client.Object) error {
 	fetchedTyped, ok := fetched.(*plantdv1alpha1.DataSet)
 	if !ok {
-		return fmt.Errorf("could not convert fetched object to datasets")
+		return fmt.Errorf("could not convert fetched object to dataset")
 	}
 	updatedTyped, ok := updated.(*plantdv1alpha1.DataSet)
 	if !ok {
-		return fmt.Errorf("could not convert updated object to datasets")
+		return fmt.Errorf("could not convert updated object to dataset")
 	}
 
 	fetchedTyped.Spec = updatedTyped.Spec
@@ -116,11 +97,11 @@ func updateDatasetSpec(fetched client.Object, updated client.Object) error {
 func updateLoadPatternSpec(fetched client.Object, updated client.Object) error {
 	fetchedTyped, ok := fetched.(*plantdv1alpha1.LoadPattern)
 	if !ok {
-		return fmt.Errorf("could not convert fetched object to loadpatterns")
+		return fmt.Errorf("could not convert fetched object to loadpattern")
 	}
 	updatedTyped, ok := updated.(*plantdv1alpha1.LoadPattern)
 	if !ok {
-		return fmt.Errorf("could not convert updated object to loadpatterns")
+		return fmt.Errorf("could not convert updated object to loadpattern")
 	}
 
 	fetchedTyped.Spec = updatedTyped.Spec
@@ -131,11 +112,11 @@ func updateLoadPatternSpec(fetched client.Object, updated client.Object) error {
 func updatePipelineSpec(fetched client.Object, updated client.Object) error {
 	fetchedTyped, ok := fetched.(*plantdv1alpha1.Pipeline)
 	if !ok {
-		return fmt.Errorf("could not convert fetched object to pipelines")
+		return fmt.Errorf("could not convert fetched object to pipeline")
 	}
 	updatedTyped, ok := updated.(*plantdv1alpha1.Pipeline)
 	if !ok {
-		return fmt.Errorf("could not convert updated object to pipelines")
+		return fmt.Errorf("could not convert updated object to pipeline")
 	}
 
 	fetchedTyped.Spec = updatedTyped.Spec
@@ -146,26 +127,41 @@ func updatePipelineSpec(fetched client.Object, updated client.Object) error {
 func updateExperimentSpec(fetched client.Object, updated client.Object) error {
 	fetchedTyped, ok := fetched.(*plantdv1alpha1.Experiment)
 	if !ok {
-		return fmt.Errorf("could not convert fetched object to experiments")
+		return fmt.Errorf("could not convert fetched object to experiment")
 	}
 	updatedTyped, ok := updated.(*plantdv1alpha1.Experiment)
 	if !ok {
-		return fmt.Errorf("could not convert updated object to experiments")
+		return fmt.Errorf("could not convert updated object to experiment")
 	}
 
 	fetchedTyped.Spec = updatedTyped.Spec
 	return nil
 }
 
-// updatePlantDCoreSpec updates the Spec field of a fetched WindTunnelCluster object with the updated WindTunnelCluster object.
+// updatePlantDCoreSpec updates the Spec field of a fetched PlantDCore object with the updated PlantDCore object.
 func updatePlantDCoreSpec(fetched client.Object, updated client.Object) error {
 	fetchedTyped, ok := fetched.(*plantdv1alpha1.PlantDCore)
 	if !ok {
-		return fmt.Errorf("could not convert fetched object to windtunnelclusters")
+		return fmt.Errorf("could not convert fetched object to plantdcore")
 	}
 	updatedTyped, ok := updated.(*plantdv1alpha1.PlantDCore)
 	if !ok {
-		return fmt.Errorf("could not convert updated object to windtunnelclusters")
+		return fmt.Errorf("could not convert updated object to plantdcore")
+	}
+
+	fetchedTyped.Spec = updatedTyped.Spec
+	return nil
+}
+
+// updateCostExporterSpec updates the Spec field of a fetched Schema object with the updated Schema object.
+func updateCostExporterSpec(fetched client.Object, updated client.Object) error {
+	fetchedTyped, ok := fetched.(*plantdv1alpha1.CostExporter)
+	if !ok {
+		return fmt.Errorf("could not convert fetched object to costexporter")
+	}
+	updatedTyped, ok := updated.(*plantdv1alpha1.CostExporter)
+	if !ok {
+		return fmt.Errorf("could not convert updated object to costexporter")
 	}
 
 	fetchedTyped.Spec = updatedTyped.Spec
@@ -193,96 +189,84 @@ func updateSpec(fetched client.Object, updated client.Object, kind string) error
 	return nil
 }
 
-// GetObjectList retrieves a list of objects of the provided kind and namespace.
-func GetObjectList(ctx context.Context, c client.Client, kind, namespace string) (client.ObjectList, error) {
-	list := ForObjectList(kind)
-	if list == nil {
-		return nil, fmt.Errorf("does not exist kind: %s", kind)
+// GetObjectList retrieves a list of objects of the provided kind.
+func GetObjectList(ctx context.Context, c client.Client, kind string) (client.ObjectList, error) {
+	objList := ForObjectList(kind)
+	if objList == nil {
+		return nil, fmt.Errorf("kind \"%s\" not found", kind)
 	}
-	if err := c.List(ctx, list, client.InNamespace(namespace)); err != nil {
+
+	if err := c.List(ctx, objList); err != nil {
 		return nil, err
 	}
 
-	return list, nil
+	return objList, nil
 }
 
 // GetObject retrieves an object of the provided kind, namespace, and name.
 func GetObject(ctx context.Context, c client.Client, kind, namespace, name string) (client.Object, error) {
 	obj := ForObject(kind)
 	if obj == nil {
-		return nil, fmt.Errorf("does not exist kind: %s", kind)
+		return nil, fmt.Errorf("kind \"%s\" not found", kind)
 	}
+
 	if err := c.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
 	}, obj); err != nil {
 		return nil, err
 	}
+
 	return obj, nil
 }
 
 // CreateObject creates a new object of the provided kind.
-func CreateObject(ctx context.Context, c client.Client, newObj client.Object, kind string) (objectExists, creationFailed error) {
-
-	key := types.NamespacedName{Name: newObj.GetName(), Namespace: newObj.GetNamespace()}
-
-	obj := ForObject(kind)
-	if obj == nil {
-		return nil, fmt.Errorf("kind not found: %s", kind)
-	}
-	err := c.Get(ctx, key, obj)
-	if err == nil {
-		return errors.DuplicateIDError(newObj.GetName()), nil
-	}
-
+func CreateObject(ctx context.Context, c client.Client, newObj client.Object) error {
 	if err := c.Create(ctx, newObj); err != nil {
-		return nil, err
+		return err
 	}
 
-	return nil, nil
+	return nil
 }
 
 // UpdateObject updates an existing object of the provided kind.
-func UpdateObject(ctx context.Context, c client.Client, updated client.Object, kind string) (notFound, updationFailed error) {
-
+func UpdateObject(ctx context.Context, c client.Client, updated client.Object, kind string) error {
 	fetched := ForObject(kind)
 	if fetched == nil {
-		return nil, fmt.Errorf("does not exist kind: %s", kind)
+		return fmt.Errorf("kind \"%s\" not found", kind)
 	}
 	key := types.NamespacedName{Name: updated.GetName(), Namespace: updated.GetNamespace()}
 	if err := c.Get(ctx, key, fetched); err != nil {
-		return err, nil
+		return err
 	}
 
 	if err := updateSpec(fetched, updated, kind); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.Update(ctx, fetched); err != nil {
-		return nil, err
+		return err
 	}
 
-	return nil, nil
+	return nil
 }
 
 // DeleteObject deletes an existing object of the provided kind, namespace, and name.
-func DeleteObject(ctx context.Context, c client.Client, kind, namespace, name string) (objectNotFound, deletionFailed error) {
-
+func DeleteObject(ctx context.Context, c client.Client, kind, namespace, name string) error {
 	key := types.NamespacedName{Name: name, Namespace: namespace}
-
 	obj := ForObject(kind)
 	if obj == nil {
-		return nil, fmt.Errorf("does not exist kind: %s", kind)
+		return fmt.Errorf("kind \"%s\" not found", kind)
 	}
 	err := c.Get(ctx, key, obj)
 	if err != nil {
-		return err, nil
+		return err
 	}
 
 	err = c.Delete(ctx, obj)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return nil, nil
+	return nil
 }

@@ -19,6 +19,7 @@ func listNamespaces(client client.Client) http.HandlerFunc {
 		ctx := r.Context()
 		nsList, err := proxy.ListNamespaces(ctx, client)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
@@ -39,13 +40,12 @@ func createNamespace(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
-		if namespaceExistsErr, creationFailedErr := proxy.CreateNamespace(ctx, client, namespace); namespaceExistsErr != nil {
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: namespaceExistsErr.Error()})
-		} else if creationFailedErr != nil {
+		if err := proxy.CreateNamespace(ctx, client, namespace); err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: creationFailedErr.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 		}
 	}
@@ -61,13 +61,12 @@ func deleteNamespace(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
-		if namespaceNotFoundErr, deletionFailedErr := proxy.DeleteNamespace(ctx, client, namespace); namespaceNotFoundErr != nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: namespaceNotFoundErr.Error()})
-		} else if deletionFailedErr != nil {
+		if err := proxy.DeleteNamespace(ctx, client, namespace); err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: deletionFailedErr.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 		}
 	}

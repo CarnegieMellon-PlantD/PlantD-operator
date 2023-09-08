@@ -20,9 +20,9 @@ import (
 func getObjectList(client client.Client, kind string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		namespace := r.URL.Query().Get("namespace")
-		list, err := proxy.GetObjectList(ctx, client, kind, namespace)
+		list, err := proxy.GetObjectList(ctx, client, kind)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
@@ -47,7 +47,8 @@ func getObject(client client.Client, kind string) http.HandlerFunc {
 		name := chi.URLParam(r, "name")
 		obj, err := proxy.GetObject(ctx, client, kind, namespace, name)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
 			w.Header().Set("Content-Type", "application/json")
@@ -74,24 +75,24 @@ func createObject(client client.Client, kind string) http.HandlerFunc {
 		name := chi.URLParam(r, "name")
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
-		err = json.Unmarshal([]byte(body), obj)
+		err = json.Unmarshal(body, obj)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
-		obj.SetName(name)
 		obj.SetNamespace(namespace)
-		if objectExistsErr, creationFailedErr := proxy.CreateObject(ctx, client, obj, kind); objectExistsErr != nil {
-			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: objectExistsErr.Error()})
-		} else if creationFailedErr != nil {
+		obj.SetName(name)
+		if err := proxy.CreateObject(ctx, client, obj); err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: creationFailedErr.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
@@ -115,24 +116,24 @@ func updateObject(client client.Client, kind string) http.HandlerFunc {
 		name := chi.URLParam(r, "name")
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
 		err = json.Unmarshal([]byte(body), obj)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
 		obj.SetName(name)
 		obj.SetNamespace(namespace)
-		if objectNotFoundErr, updationFailedErr := proxy.UpdateObject(ctx, client, obj, kind); objectNotFoundErr != nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: objectNotFoundErr.Error()})
-		} else if updationFailedErr != nil {
+		if err := proxy.UpdateObject(ctx, client, obj, kind); err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: updationFailedErr.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
@@ -151,12 +152,10 @@ func deleteObject(client client.Client, kind string) http.HandlerFunc {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
-		if objectNotFoundErr, deletionFailedErr := proxy.DeleteObject(ctx, client, kind, namespace, name); objectNotFoundErr != nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: objectNotFoundErr.Error()})
-		} else if deletionFailedErr != nil {
+		if err := proxy.DeleteObject(ctx, client, kind, namespace, name); err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: deletionFailedErr.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}

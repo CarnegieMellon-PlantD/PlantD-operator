@@ -55,7 +55,7 @@ func CheckHTTPHealth(url string) (bool, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("expected status OK but got %v from %s", resp.StatusCode, url)
+		return false, fmt.Errorf("expected status OK but got %d from %s", resp.StatusCode, url)
 	}
 
 	return true, nil
