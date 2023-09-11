@@ -72,6 +72,7 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 
 		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataSet(client))
 		r.Get("/healthcheck/http", checkHTTPHealth())
+		r.Post("/import", importResources(client))
 		r.Get("/export", exportResources(client))
 	})
 

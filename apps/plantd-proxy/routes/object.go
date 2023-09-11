@@ -61,7 +61,7 @@ func getObject(client client.Client, group, version, kind string) http.HandlerFu
 // createObject creates a new object of a specified GVK, namespace, and name.
 // It returns an HTTP handler function that handles requests to create the object.
 // The handler function reads the namespace and name parameters from the request URL.
-// It reads the request body and unmarshalls it into an object of the specified GVK.
+// It reads the request body and unmarshals it into an object of the specified GVK.
 // It calls the proxy.CreateObject function to create the object using the provided client, GVK, namespace, and name.
 // If successful, it responds an HTTP 201 status code.
 // If an error occurs while creating the object of the specified GVK, reading or unmarshalling the request body,
@@ -112,7 +112,7 @@ func createObject(client client.Client, group, version, kind string) http.Handle
 // updateObject updates an existing object of a specified GVK, namespace, and name.
 // It returns an HTTP handler function that handles requests to update the object.
 // The handler function reads the namespace and name parameters from the request URL.
-// It reads the request body and unmarshalls it into an object of the specified kind.
+// It reads the request body and unmarshals it into an object of the specified kind.
 // It calls the proxy.UpdateObject function to update the object using the provided client, GVK, namespace, name.
 // If successful, it responds an HTTP 200 status code.
 // If an error occurs while creating the object of the specified GVK, reading or unmarshalling the request body,

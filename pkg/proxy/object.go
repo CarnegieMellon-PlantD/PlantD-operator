@@ -78,6 +78,8 @@ func UpdateObject(ctx context.Context, c client.Client, group, version, kind, na
 		Kind:    kind,
 	})
 
+	// Note: we need to get the full object based on the specified GVK, namespace and name, so that other fields such as
+	// .metadata.resourceVersion will present, otherwise an error will occur when updating the object.
 	if err := c.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
