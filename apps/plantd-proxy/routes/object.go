@@ -45,7 +45,7 @@ func getObject(client client.Client, group, version, kind string) http.HandlerFu
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
 
-		obj, err := proxy.GetObject(ctx, client, proxy.PlantDGroup, proxy.V1Alpha1Version, kind, namespace, name)
+		obj, err := proxy.GetObject(ctx, client, group, version, kind, namespace, name)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -99,7 +99,7 @@ func createObject(client client.Client, group, version, kind string) http.Handle
 			return
 		}
 
-		if err := proxy.CreateObject(ctx, client, proxy.PlantDGroup, proxy.V1Alpha1Version, kind, namespace, name, obj); err != nil {
+		if err := proxy.CreateObject(ctx, client, group, version, kind, namespace, name, obj); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})

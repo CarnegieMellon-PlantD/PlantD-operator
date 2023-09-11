@@ -22,11 +22,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// Constants defining the possible values for GVK (Group, Version, Kind).
-// All values can be used in the schema.GroupVersionKind struct.
+// Constants defining the possible Kind names that can be used in the schema.GroupVersionKind struct.
 const (
-	PlantDGroup      string = "windtunnel.plantd.org"
-	V1Alpha1Version  string = "v1alpha1"
 	SchemaKind       string = "Schema"
 	DatasetKind      string = "DataSet"
 	LoadPatternKind  string = "LoadPattern"
@@ -38,8 +35,8 @@ const (
 
 // ForObject returns a client.Object instance based on the provided group, version, kind.
 func ForObject(group, version, kind string) (client.Object, error) {
-	if group == PlantDGroup {
-		if version == V1Alpha1Version {
+	if group == plantdv1alpha1.GroupVersion.Group {
+		if version == plantdv1alpha1.GroupVersion.Version {
 			switch kind {
 			case SchemaKind:
 				return &plantdv1alpha1.Schema{}, nil
