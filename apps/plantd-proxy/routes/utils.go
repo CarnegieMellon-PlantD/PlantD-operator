@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/proxy"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
@@ -35,14 +36,14 @@ func getSampleDataSet(client client.Client) http.HandlerFunc {
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
 		if fileExt, bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, name); err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while getting sample dataset: " + err.Error()})
 			return
 		} else {
-			contentDisposition := fmt.Sprintf("attachment; filename=sample-%s-%s.%s", namespace, name, fileExt)
+			contentDisposition := fmt.Sprintf("attachment; filename=sample_%s_%s.%s", namespace, name, fileExt)
 			w.Header().Set("Content-Disposition", contentDisposition)
-			contentType := "application/octet-stream"
-			w.Header().Set("Content-Type", contentType)
+			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
 			bytes.WriteTo(w)
 		}
@@ -61,6 +62,7 @@ func checkHTTPHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
@@ -68,17 +70,61 @@ func checkHTTPHealth() http.HandlerFunc {
 		data := CheckHTTPHealthRequest{}
 		err = json.Unmarshal(body, &data)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
+
 		_, err = utils.CheckHTTPHealth(data.URL)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
+	}
+}
+
+type ExportResourcesRequest struct {
+	Items []proxy.ResourceInfo `json:"items,omitempty"`
+}
+
+// exportResources return an HTTP handler function for exporting custom resource definitions to YAML files.
+// The handler function receives an array of proxy.ResourceInfo objects as the request, calls proxy.ExportResources
+// to export all the specified objects to YAML files, and return a ZIP file that contains them.
+// When any error occurs, it returns an HTTP 500 status code and error message.
+func exportResources(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
+			return
+		}
+		data := ExportResourcesRequest{}
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
+			return
+		}
+
+		bytes, err := proxy.ExportResources(ctx, client, &data.Items)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			return
+		}
+		contentDisposition := fmt.Sprintf("attachment; filename=%s.zip", time.Now().Format("2006-01-02-15-04-05"))
+		w.Header().Set("Content-Disposition", contentDisposition)
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		bytes.WriteTo(w)
 	}
 }
