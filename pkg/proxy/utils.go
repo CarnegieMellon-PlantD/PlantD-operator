@@ -86,7 +86,7 @@ func GetSchema(ctx context.Context, c client.Client, namespace string, name stri
 func AddFileToTar(tw *tar.Writer, name string, content []byte) error {
 	header := &tar.Header{
 		Name: name,
-		Mode: 0600,
+		Mode: 0644,
 		Size: int64(len(content)),
 	}
 	if err := tw.WriteHeader(header); err != nil {
