@@ -67,8 +67,8 @@ func checkHTTPHealth() http.HandlerFunc {
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
-		data := CheckHTTPHealthRequest{}
-		err = json.Unmarshal(body, &data)
+		data := &CheckHTTPHealthRequest{}
+		err = json.Unmarshal(body, data)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -104,7 +104,7 @@ func importResources(client client.Client) http.HandlerFunc {
 			return
 		}
 
-		if stat, err := proxy.ImportResources(ctx, client, &body); err != nil {
+		if stat, err := proxy.ImportResources(ctx, client, body); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -135,8 +135,8 @@ func exportResources(client client.Client) http.HandlerFunc {
 			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
-		data := ExportResourcesRequest{}
-		err = json.Unmarshal(body, &data)
+		data := &ExportResourcesRequest{}
+		err = json.Unmarshal(body, data)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -144,7 +144,7 @@ func exportResources(client client.Client) http.HandlerFunc {
 			return
 		}
 
-		bytes, err := proxy.ExportResources(ctx, client, &data.Items)
+		bytes, err := proxy.ExportResources(ctx, client, data.Items)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
