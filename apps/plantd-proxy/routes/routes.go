@@ -3,7 +3,6 @@ package routes
 import (
 	"net/http"
 
-	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/proxy"
 
 	"github.com/go-chi/chi/v5"
@@ -32,44 +31,44 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 		r.Post("/namespaces/{namespace}", createNamespace(client))
 		r.Delete("/namespaces/{namespace}", deleteNamespace(client))
 
-		r.Get("/schemas", getObjectList(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.SchemaKind))
-		r.Get("/schemas/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.SchemaKind))
-		r.Post("/schemas/{namespace}/{name}", createObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.SchemaKind))
-		r.Put("/schemas/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.SchemaKind))
-		r.Delete("/schemas/{namespace}/{name}", deleteObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.SchemaKind))
+		r.Get("/schemas", getObjectList(client, proxy.SchemaKind))
+		r.Get("/schemas/{namespace}/{name}", getObject(client, proxy.SchemaKind))
+		r.Post("/schemas/{namespace}/{name}", createObject(client, proxy.SchemaKind))
+		r.Put("/schemas/{namespace}/{name}", updateObject(client, proxy.SchemaKind))
+		r.Delete("/schemas/{namespace}/{name}", deleteObject(client, proxy.SchemaKind))
 
-		r.Get("/datasets", getObjectList(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.DatasetKind))
-		r.Get("/datasets/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.DatasetKind))
-		r.Post("/datasets/{namespace}/{name}", createObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.DatasetKind))
-		r.Put("/datasets/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.DatasetKind))
-		r.Delete("/datasets/{namespace}/{name}", deleteObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.DatasetKind))
+		r.Get("/datasets", getObjectList(client, proxy.DatasetKind))
+		r.Get("/datasets/{namespace}/{name}", getObject(client, proxy.DatasetKind))
+		r.Post("/datasets/{namespace}/{name}", createObject(client, proxy.DatasetKind))
+		r.Put("/datasets/{namespace}/{name}", updateObject(client, proxy.DatasetKind))
+		r.Delete("/datasets/{namespace}/{name}", deleteObject(client, proxy.DatasetKind))
 
-		r.Get("/loadpatterns", getObjectList(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.LoadPatternKind))
-		r.Get("/loadpatterns/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.LoadPatternKind))
-		r.Post("/loadpatterns/{namespace}/{name}", createObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.LoadPatternKind))
-		r.Put("/loadpatterns/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.LoadPatternKind))
-		r.Delete("/loadpatterns/{namespace}/{name}", deleteObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.LoadPatternKind))
+		r.Get("/loadpatterns", getObjectList(client, proxy.LoadPatternKind))
+		r.Get("/loadpatterns/{namespace}/{name}", getObject(client, proxy.LoadPatternKind))
+		r.Post("/loadpatterns/{namespace}/{name}", createObject(client, proxy.LoadPatternKind))
+		r.Put("/loadpatterns/{namespace}/{name}", updateObject(client, proxy.LoadPatternKind))
+		r.Delete("/loadpatterns/{namespace}/{name}", deleteObject(client, proxy.LoadPatternKind))
 
-		r.Get("/pipelines", getObjectList(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PipelineKind))
-		r.Get("/pipelines/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PipelineKind))
-		r.Post("/pipelines/{namespace}/{name}", createObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PipelineKind))
-		r.Put("/pipelines/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PipelineKind))
-		r.Delete("/pipelines/{namespace}/{name}", deleteObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PipelineKind))
+		r.Get("/pipelines", getObjectList(client, proxy.PipelineKind))
+		r.Get("/pipelines/{namespace}/{name}", getObject(client, proxy.PipelineKind))
+		r.Post("/pipelines/{namespace}/{name}", createObject(client, proxy.PipelineKind))
+		r.Put("/pipelines/{namespace}/{name}", updateObject(client, proxy.PipelineKind))
+		r.Delete("/pipelines/{namespace}/{name}", deleteObject(client, proxy.PipelineKind))
 
-		r.Get("/experiments", getObjectList(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.ExperimentKind))
-		r.Get("/experiments/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.ExperimentKind))
-		r.Post("/experiments/{namespace}/{name}", createObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.ExperimentKind))
-		r.Put("/experiments/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.ExperimentKind))
-		r.Delete("/experiments/{namespace}/{name}", deleteObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.ExperimentKind))
+		r.Get("/experiments", getObjectList(client, proxy.ExperimentKind))
+		r.Get("/experiments/{namespace}/{name}", getObject(client, proxy.ExperimentKind))
+		r.Post("/experiments/{namespace}/{name}", createObject(client, proxy.ExperimentKind))
+		r.Put("/experiments/{namespace}/{name}", updateObject(client, proxy.ExperimentKind))
+		r.Delete("/experiments/{namespace}/{name}", deleteObject(client, proxy.ExperimentKind))
 
-		r.Get("/costexporters", getObjectList(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.CostExporterKind))
-		r.Get("/costexporters/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.CostExporterKind))
-		r.Post("/costexporters/{namespace}/{name}", createObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.CostExporterKind))
-		r.Put("/costexporters/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.CostExporterKind))
-		r.Delete("/costexporters/{namespace}/{name}", deleteObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.CostExporterKind))
+		r.Get("/costexporters", getObjectList(client, proxy.CostExporterKind))
+		r.Get("/costexporters/{namespace}/{name}", getObject(client, proxy.CostExporterKind))
+		r.Post("/costexporters/{namespace}/{name}", createObject(client, proxy.CostExporterKind))
+		r.Put("/costexporters/{namespace}/{name}", updateObject(client, proxy.CostExporterKind))
+		r.Delete("/costexporters/{namespace}/{name}", deleteObject(client, proxy.CostExporterKind))
 
-		r.Get("/plantdcores/{namespace}/{name}", getObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PlantDCoreKind))
-		r.Put("/plantdcores/{namespace}/{name}", updateObject(client, windtunnelv1alpha1.GroupVersion.Group, windtunnelv1alpha1.GroupVersion.Version, proxy.PlantDCoreKind))
+		r.Get("/plantdcores/{namespace}/{name}", getObject(client, proxy.PlantDCoreKind))
+		r.Put("/plantdcores/{namespace}/{name}", updateObject(client, proxy.PlantDCoreKind))
 
 		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataSet(client))
 		r.Get("/healthcheck/http", checkHTTPHealth())

@@ -33,29 +33,25 @@ const (
 	CostExporterKind string = "CostExporter"
 )
 
-// ForObject returns a client.Object instance based on the provided group, version, kind.
-func ForObject(group, version, kind string) (client.Object, error) {
-	if group == windtunnelv1alpha1.GroupVersion.Group {
-		if version == windtunnelv1alpha1.GroupVersion.Version {
-			switch kind {
-			case SchemaKind:
-				return &windtunnelv1alpha1.Schema{}, nil
-			case DatasetKind:
-				return &windtunnelv1alpha1.DataSet{}, nil
-			case LoadPatternKind:
-				return &windtunnelv1alpha1.LoadPattern{}, nil
-			case PipelineKind:
-				return &windtunnelv1alpha1.Pipeline{}, nil
-			case ExperimentKind:
-				return &windtunnelv1alpha1.Experiment{}, nil
-			case PlantDCoreKind:
-				return &windtunnelv1alpha1.PlantDCore{}, nil
-			case CostExporterKind:
-				return &windtunnelv1alpha1.CostExporter{}, nil
-			}
-		}
+// ForObject returns a client.Object instance based on the provided kind.
+func ForObject(kind string) (client.Object, error) {
+	switch kind {
+	case SchemaKind:
+		return &windtunnelv1alpha1.Schema{}, nil
+	case DatasetKind:
+		return &windtunnelv1alpha1.DataSet{}, nil
+	case LoadPatternKind:
+		return &windtunnelv1alpha1.LoadPattern{}, nil
+	case PipelineKind:
+		return &windtunnelv1alpha1.Pipeline{}, nil
+	case ExperimentKind:
+		return &windtunnelv1alpha1.Experiment{}, nil
+	case PlantDCoreKind:
+		return &windtunnelv1alpha1.PlantDCore{}, nil
+	case CostExporterKind:
+		return &windtunnelv1alpha1.CostExporter{}, nil
 	}
-	return nil, fmt.Errorf("failed to find resource with group \"%s\" version \"%s\" kind \"%s\"", group, version, kind)
+	return nil, fmt.Errorf("failed to find resource of kind \"%s\"", kind)
 }
 
 // GetDataSet retrieves a DataSet object by namespace and name.
