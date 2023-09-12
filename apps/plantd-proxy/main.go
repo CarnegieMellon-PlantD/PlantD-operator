@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/apps/plantd-proxy/routes"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/proxy"
@@ -40,7 +40,7 @@ func MethodOverrideMiddleware(next http.Handler) http.Handler {
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(plantdv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(windtunnelv1alpha1.AddToScheme(scheme))
 }
 
 func main() {

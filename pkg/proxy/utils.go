@@ -10,7 +10,7 @@ import (
 	"io"
 	"strconv"
 
-	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
 
@@ -35,23 +35,23 @@ const (
 
 // ForObject returns a client.Object instance based on the provided group, version, kind.
 func ForObject(group, version, kind string) (client.Object, error) {
-	if group == plantdv1alpha1.GroupVersion.Group {
-		if version == plantdv1alpha1.GroupVersion.Version {
+	if group == windtunnelv1alpha1.GroupVersion.Group {
+		if version == windtunnelv1alpha1.GroupVersion.Version {
 			switch kind {
 			case SchemaKind:
-				return &plantdv1alpha1.Schema{}, nil
+				return &windtunnelv1alpha1.Schema{}, nil
 			case DatasetKind:
-				return &plantdv1alpha1.DataSet{}, nil
+				return &windtunnelv1alpha1.DataSet{}, nil
 			case LoadPatternKind:
-				return &plantdv1alpha1.LoadPattern{}, nil
+				return &windtunnelv1alpha1.LoadPattern{}, nil
 			case PipelineKind:
-				return &plantdv1alpha1.Pipeline{}, nil
+				return &windtunnelv1alpha1.Pipeline{}, nil
 			case ExperimentKind:
-				return &plantdv1alpha1.Experiment{}, nil
+				return &windtunnelv1alpha1.Experiment{}, nil
 			case PlantDCoreKind:
-				return &plantdv1alpha1.PlantDCore{}, nil
+				return &windtunnelv1alpha1.PlantDCore{}, nil
 			case CostExporterKind:
-				return &plantdv1alpha1.CostExporter{}, nil
+				return &windtunnelv1alpha1.CostExporter{}, nil
 			}
 		}
 	}
@@ -59,8 +59,8 @@ func ForObject(group, version, kind string) (client.Object, error) {
 }
 
 // GetDataSet retrieves a DataSet object by namespace and name.
-func GetDataSet(ctx context.Context, c client.Client, namespace string, name string) (*plantdv1alpha1.DataSet, error) {
-	dataset := &plantdv1alpha1.DataSet{}
+func GetDataSet(ctx context.Context, c client.Client, namespace string, name string) (*windtunnelv1alpha1.DataSet, error) {
+	dataset := &windtunnelv1alpha1.DataSet{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
@@ -71,8 +71,8 @@ func GetDataSet(ctx context.Context, c client.Client, namespace string, name str
 }
 
 // GetSchema retrieves a Schema object by namespace and name.
-func GetSchema(ctx context.Context, c client.Client, namespace string, name string) (*plantdv1alpha1.Schema, error) {
-	schema := &plantdv1alpha1.Schema{}
+func GetSchema(ctx context.Context, c client.Client, namespace string, name string) (*windtunnelv1alpha1.Schema, error) {
+	schema := &windtunnelv1alpha1.Schema{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
 		Name:      name,

@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	plantdv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	plantdcore "github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/core"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,7 +66,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	log := log.FromContext(ctx)
 
 	// Fetch the PlantD resource
-	plantdCoreObj := &plantdv1alpha1.PlantDCore{}
+	plantdCoreObj := &windtunnelv1alpha1.PlantDCore{}
 	if err := r.Get(ctx, req.NamespacedName, plantdCoreObj); err != nil {
 		if errors.IsNotFound(err) {
 			// Custom resource not found, perform cleanup tasks here.
@@ -172,6 +172,6 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PlantDCoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&plantdv1alpha1.PlantDCore{}).
+		For(&windtunnelv1alpha1.PlantDCore{}).
 		Complete(r)
 }
