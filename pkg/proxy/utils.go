@@ -319,7 +319,7 @@ func ImportResources(ctx context.Context, c client.Client, data []byte) (*Import
 }
 
 type ResourceInfo struct {
-	schema.GroupVersionKind
+	Kind string
 	types.NamespacedName
 }
 
@@ -330,8 +330,8 @@ func ExportResources(ctx context.Context, c client.Client, resInfoList []Resourc
 	for idx, info := range resInfoList {
 		obj := &unstructured.Unstructured{}
 		obj.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   info.Group,
-			Version: info.Version,
+			Group:   windtunnelv1alpha1.GroupVersion.Group,
+			Version: windtunnelv1alpha1.GroupVersion.Version,
 			Kind:    info.Kind,
 		})
 
@@ -347,8 +347,8 @@ func ExportResources(ctx context.Context, c client.Client, resInfoList []Resourc
 		// Last, we copy the spec field from the fetched object.
 		objToOutput := &unstructured.Unstructured{}
 		objToOutput.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   info.Group,
-			Version: info.Version,
+			Group:   windtunnelv1alpha1.GroupVersion.Group,
+			Version: windtunnelv1alpha1.GroupVersion.Version,
 			Kind:    info.Kind,
 		})
 		objToOutput.SetNamespace(info.Namespace)
