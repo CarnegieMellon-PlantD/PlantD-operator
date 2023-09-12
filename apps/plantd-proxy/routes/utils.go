@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -96,15 +97,21 @@ func checkHTTPHealth() http.HandlerFunc {
 func importResources(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		body, err := io.ReadAll(r.Body)
+		file, _, err := r.FormFile("file")
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request form: " + err.Error()})
 			return
 		}
-
-		if stat, err := proxy.ImportResources(ctx, client, body); err != nil {
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, file); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading file data: " + err.Error()})
+			return
+		}
+		if stat, err := proxy.ImportResources(ctx, client, buf); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})

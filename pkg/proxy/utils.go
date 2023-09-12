@@ -273,8 +273,8 @@ type ImportResourcesStatistics struct {
 	ErrorMessages []string `json:"errors"`
 }
 
-func ImportResources(ctx context.Context, c client.Client, data []byte) (*ImportResourcesStatistics, error) {
-	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*ImportResourcesStatistics, error) {
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if err != nil {
 		return nil, fmt.Errorf("while opening zip file: %s", err.Error())
 	}
