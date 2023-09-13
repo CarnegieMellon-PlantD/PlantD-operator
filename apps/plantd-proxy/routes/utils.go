@@ -37,9 +37,9 @@ func getSampleDataSet(client client.Client) http.HandlerFunc {
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
 		if fileExt, bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, name); err != nil {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while getting sample dataset: " + err.Error()})
+			w.Write([]byte(fmt.Sprintf("Error: Failed to get sample dataset: %s", err.Error())))
 			return
 		} else {
 			contentDisposition := fmt.Sprintf("attachment; filename=sample_%s_%s.%s", namespace, name, fileExt)
@@ -89,11 +89,11 @@ func checkHTTPHealth() http.HandlerFunc {
 }
 
 // importResources return an HTTP handler function for importing custom resource definitions from YAML files.
-// The handler function reads the ZIP file content from the request body.
+// The handler function reads the ZIP file content from the `file` field of the request body, which is a form.
 // It calls proxy.ImportResources to extract the ZIP file and import each YAML file.
 // If it completes successfully or with minor errors, it responds an HTTP 200 status code with a
 // proxy.ImportResourcesStatistics in JSON.
-// If a fundamental error occurs, it responds an 500 HTTP status code with a ErrorResponse in JSON.
+// If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in JSON.
 func importResources(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -108,7 +108,7 @@ func importResources(client client.Client) http.HandlerFunc {
 		if _, err := io.Copy(buf, file); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading file data: " + err.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading file content: " + err.Error()})
 			return
 		}
 		if stat, err := proxy.ImportResources(ctx, client, buf); err != nil {
@@ -123,39 +123,34 @@ func importResources(client client.Client) http.HandlerFunc {
 	}
 }
 
-type ExportResourcesRequest struct {
-	Items []proxy.ResourceInfo `json:"items,omitempty"`
-}
-
 // exportResources return an HTTP handler function for exporting custom resource definitions to YAML files.
-// The handler function reads an array of proxy.ResourceInfo objects from the request body.
+// The handler function gets an array of proxy.ResourceInfo objects from the `info` field of the request body, which is a form.
 // It calls proxy.ExportResources to export all the specified objects to YAML files, and return a ZIP file that contains them.
 // If successful, it responds an HTTP 200 status code.
-// If an error occurs, it responds an HTTP 500 status code with an ErrorResponse in JSON.
+// If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in JSON.
 func exportResources(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
+		info := r.FormValue("info")
+		if info == "" {
+			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
+			w.Write([]byte("Error: Request form does not contain `info` field"))
 			return
 		}
-		data := &ExportResourcesRequest{}
-		err = json.Unmarshal(body, data)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
+		var data []proxy.ResourceInfo
+		if err := json.Unmarshal([]byte(info), &data); err != nil {
+			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
+			w.Write([]byte(fmt.Sprintf("Error: Failed to unmarshal `info` field: %s", err.Error())))
 			return
 		}
 
-		bytes, err := proxy.ExportResources(ctx, client, data.Items)
+		bytes, err := proxy.ExportResources(ctx, client, data)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			w.Write([]byte(fmt.Sprintf("Error: Failed to export resources: %s", err.Error())))
 			return
 		}
 		contentDisposition := fmt.Sprintf("attachment; filename=%s.zip", time.Now().Format("2006-01-02-15-04-05"))

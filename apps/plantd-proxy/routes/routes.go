@@ -73,7 +73,8 @@ func getRoutes(router *chi.Mux, client client.Client, agent proxy.QueryClient) {
 		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataSet(client))
 		r.Get("/healthcheck/http", checkHTTPHealth())
 		r.Post("/import", importResources(client))
-		r.Get("/export", exportResources(client))
+		// We are violating RESTful API design principles and using POST instead of GET here, because we want to accept a request body.
+		r.Post("/export", exportResources(client))
 	})
 
 	router.Route("/data", func(r chi.Router) {
