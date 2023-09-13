@@ -217,7 +217,7 @@ func (r *PipelineReconciler) InitializeExp(ctx context.Context, pipeline *windtu
 func (r *PipelineReconciler) HealthCheck(ctx context.Context, pipeline *windtunnelv1alpha1.Pipeline) error {
 	if pipeline.Spec.HealthCheckEndpoints != nil {
 		for _, endpoint := range pipeline.Spec.HealthCheckEndpoints {
-			ok, err := utils.HealthCheck(endpoint)
+			ok, err := utils.CheckHTTPHealth(endpoint)
 			if err != nil || !ok {
 				pipeline.Status.StatusCheck = windtunnelv1alpha1.PipelineFailed
 				return err

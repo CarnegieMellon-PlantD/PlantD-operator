@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,56 +22,39 @@ func ListNamespaces(ctx context.Context, client client.Client) (*corev1.Namespac
 }
 
 // CreateNamespace creates a new namespace with the provided name.
-func CreateNamespace(ctx context.Context, client client.Client, namespaceName string) (namespaceExists, creationFailed error) {
-
-	namespace := &corev1.Namespace{}
-	err := client.Get(ctx, types.NamespacedName{Name: namespaceName}, namespace)
-	if err == nil {
-		return errors.DuplicateIDError(namespaceName), nil
-	}
-
-	newNamespace := &corev1.Namespace{
+func CreateNamespace(ctx context.Context, client client.Client, namespaceName string) error {
+	newNs := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
 		},
 	}
 
-	err = client.Create(ctx, newNamespace)
+	err := client.Create(ctx, newNs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return nil, nil
+	return nil
 }
 
 // DeleteNamespace deletes the namespace with the provided name.
-func DeleteNamespace(ctx context.Context, client client.Client, namespaceName string) (namespaceNotFound, deletionFailed error) {
-	namespace := &corev1.Namespace{
+func DeleteNamespace(ctx context.Context, client client.Client, namespaceName string) error {
+	nsToDelete := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
 		},
 	}
 
-	err := client.Get(ctx, types.NamespacedName{Name: namespaceName}, namespace)
-	if err != nil {
-		return err, nil
+	if err := client.Delete(ctx, nsToDelete); err != nil {
+		return err
 	}
 
-	if err := client.Delete(ctx, namespace); err != nil {
-		return nil, err
-	}
-
+	// Wait until the namespace is completely deleted
 	for {
-		err := client.Get(ctx, types.NamespacedName{Name: namespaceName}, namespace)
+		err := client.Get(ctx, types.NamespacedName{Name: namespaceName}, nsToDelete)
 		if err != nil {
-			return nil, nil
+			return nil
 		}
-
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-			time.Sleep(time.Second)
-		}
+		time.Sleep(time.Second)
 	}
 }

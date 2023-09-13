@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	datav1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/apps/plantd-proxy/routes"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/proxy"
@@ -22,7 +22,7 @@ var (
 	scheme = runtime.NewScheme()
 )
 
-func MethodOverrider(next http.Handler) http.Handler {
+func MethodOverrideMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get overriding method from header
 		methodToOverride := r.Header.Get("X-Http-Method-Override")
@@ -40,12 +40,12 @@ func MethodOverrider(next http.Handler) http.Handler {
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(datav1alpha1.AddToScheme(scheme))
+	utilruntime.Must(windtunnelv1alpha1.AddToScheme(scheme))
 }
 
 func main() {
 	r := chi.NewRouter()
-	r.Use(MethodOverrider)
+	r.Use(MethodOverrideMiddleware)
 	r.Use(middleware.Logger)
 
 	cfg, err := ctrl.GetConfig()

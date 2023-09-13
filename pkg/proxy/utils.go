@@ -2,22 +2,60 @@ package proxy
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
+	"io"
 	"strconv"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
-// GetDataset retrieves a DataSet object by namespace and name.
-func GetDataset(ctx context.Context, c client.Client, namespace string, name string) (*windtunnelv1alpha1.DataSet, error) {
+// Constants defining the possible Kind names that can be used in the schema.GroupVersionKind struct.
+const (
+	SchemaKind       string = "Schema"
+	DatasetKind      string = "DataSet"
+	LoadPatternKind  string = "LoadPattern"
+	PipelineKind     string = "Pipeline"
+	ExperimentKind   string = "Experiment"
+	PlantDCoreKind   string = "PlantDCore"
+	CostExporterKind string = "CostExporter"
+)
+
+// ForObject returns a client.Object instance based on the provided kind.
+func ForObject(kind string) (client.Object, error) {
+	switch kind {
+	case SchemaKind:
+		return &windtunnelv1alpha1.Schema{}, nil
+	case DatasetKind:
+		return &windtunnelv1alpha1.DataSet{}, nil
+	case LoadPatternKind:
+		return &windtunnelv1alpha1.LoadPattern{}, nil
+	case PipelineKind:
+		return &windtunnelv1alpha1.Pipeline{}, nil
+	case ExperimentKind:
+		return &windtunnelv1alpha1.Experiment{}, nil
+	case PlantDCoreKind:
+		return &windtunnelv1alpha1.PlantDCore{}, nil
+	case CostExporterKind:
+		return &windtunnelv1alpha1.CostExporter{}, nil
+	}
+	return nil, fmt.Errorf("failed to find resource of kind \"%s\"", kind)
+}
+
+// GetDataSet retrieves a DataSet object by namespace and name.
+func GetDataSet(ctx context.Context, c client.Client, namespace string, name string) (*windtunnelv1alpha1.DataSet, error) {
 	dataset := &windtunnelv1alpha1.DataSet{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
@@ -40,11 +78,40 @@ func GetSchema(ctx context.Context, c client.Client, namespace string, name stri
 	return schema, nil
 }
 
-// GetSampleDataset generates a sample dataset based on the provided dataset name.
-func GetSampleDataset(ctx context.Context, c client.Client, namespace string, datasetName string) (string, *bytes.Buffer, error) {
+// AddFileToTar adds a file with the given content to a tar.Writer.
+func AddFileToTar(tw *tar.Writer, name string, content []byte) error {
+	header := &tar.Header{
+		Name: name,
+		Mode: 0644,
+		Size: int64(len(content)),
+	}
+	if err := tw.WriteHeader(header); err != nil {
+		return err
+	}
+	_, err := tw.Write(content)
+	return err
+}
+
+// AddFileToZip adds a file with the given content to a zip.Writer.
+func AddFileToZip(zw *zip.Writer, name string, content []byte) error {
+	fw, err := zw.Create(name)
+	if err != nil {
+		return err
+	}
+
+	_, err = fw.Write(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetSampleDataSet generates a sample dataset based on the provided dataset name.
+func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, datasetName string) (string, *bytes.Buffer, error) {
 
 	// Get the DataSet object
-	dataset, err := GetDataset(ctx, c, namespace, datasetName)
+	dataset, err := GetDataSet(ctx, c, namespace, datasetName)
 	if err != nil {
 		return "", nil, err
 	}
@@ -196,43 +263,107 @@ func GetSampleDataset(ctx context.Context, c client.Client, namespace string, da
 	}
 }
 
-// GetIndexByName retrieves the index of a schema by name from a list of schema selectors.
-func GetIndexByName(schemas []windtunnelv1alpha1.SchemaSelector, schemaName string) (int, bool) {
-	for i, schema := range schemas {
-		if schema.Name == schemaName {
-			return i, true
-		}
-	}
-	return -1, false
+type ImportResourcesStatistics struct {
+	NumSucceeded  int      `json:"numSucceeded"`
+	NumFailed     int      `json:"numFailed"`
+	ErrorMessages []string `json:"errors"`
 }
 
-// AddFileToTar adds a file with the given content to a tar.Writer.
-func AddFileToTar(tw *tar.Writer, name string, content []byte) error {
-	header := &tar.Header{
-		Name: name,
-		Mode: 0600,
-		Size: int64(len(content)),
+func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*ImportResourcesStatistics, error) {
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		return nil, fmt.Errorf("while opening zip file: %s", err.Error())
 	}
-	if err := tw.WriteHeader(header); err != nil {
-		return err
+
+	result := &ImportResourcesStatistics{
+		NumSucceeded:  0,
+		NumFailed:     0,
+		ErrorMessages: []string{},
 	}
-	_, err := tw.Write(content)
-	return err
-}
-
-// CheckPipelineHealth checks the health of a pipeline.
-func CheckPipelineHealth(ctx context.Context, c client.Client, URL string, HealthCheckEndpoint string) error {
-
-	if HealthCheckEndpoint != "" {
-		healthCheckURL, err := utils.GetHealthCheckURL(URL, HealthCheckEndpoint)
+	for _, file := range zr.File {
+		fr, err := file.Open()
 		if err != nil {
-			return err
+			result.NumFailed++
+			result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("while opening file \"%s\": %s", file.Name, err.Error()))
+			continue
 		}
-		ok, err := utils.HealthCheck(healthCheckURL)
-		if err != nil || !ok {
-			return err
+
+		fileContent, err := io.ReadAll(fr)
+		if err != nil {
+			result.NumFailed++
+			result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("while reading file \"%s\": %s", file.Name, err.Error()))
+			continue
+		}
+
+		obj := &unstructured.Unstructured{}
+		if err = yaml.Unmarshal(fileContent, obj); err != nil {
+			result.NumFailed++
+			result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("while unmarshalling file \"%s\": %s", file.Name, err.Error()))
+			continue
+		}
+
+		if err = c.Create(ctx, obj); err != nil {
+			result.NumFailed++
+			result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("while creating object in file \"%s\": %s", file.Name, err.Error()))
+			continue
+		}
+
+		result.NumSucceeded++
+	}
+
+	return result, nil
+}
+
+type ResourceInfo struct {
+	Kind string
+	types.NamespacedName
+}
+
+func ExportResources(ctx context.Context, c client.Client, resInfoList []ResourceInfo) (*bytes.Buffer, error) {
+	buf := &bytes.Buffer{}
+	zw := zip.NewWriter(buf)
+
+	for idx, info := range resInfoList {
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   windtunnelv1alpha1.GroupVersion.Group,
+			Version: windtunnelv1alpha1.GroupVersion.Version,
+			Kind:    info.Kind,
+		})
+
+		if err := c.Get(ctx, types.NamespacedName{
+			Namespace: info.Namespace,
+			Name:      info.Name,
+		}, obj); err != nil {
+			return nil, fmt.Errorf("while getting object at pos %d: %s", idx, err.Error())
+		}
+
+		// For the output object, we manually set the GVK, which will result in the apiVersion and kind fields.
+		// We also manually set the namespace and name, so that the metadata field will only contain these two fields.
+		// Last, we copy the spec field from the fetched object.
+		objToOutput := &unstructured.Unstructured{}
+		objToOutput.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   windtunnelv1alpha1.GroupVersion.Group,
+			Version: windtunnelv1alpha1.GroupVersion.Version,
+			Kind:    info.Kind,
+		})
+		objToOutput.SetNamespace(info.Namespace)
+		objToOutput.SetName(info.Name)
+		objToOutput.Object["spec"] = obj.Object["spec"]
+
+		fileContent, err := yaml.Marshal(objToOutput)
+		if err != nil {
+			return nil, fmt.Errorf("while marshalling object at pos %d: %s", idx, err.Error())
+		}
+
+		err = AddFileToZip(zw, fmt.Sprintf("%s_%s_%s.yaml", info.Kind, info.Namespace, info.Name), fileContent)
+		if err != nil {
+			return nil, fmt.Errorf("while writing object at pos %d to file: %s", idx, err.Error())
 		}
 	}
 
-	return nil
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf, nil
 }

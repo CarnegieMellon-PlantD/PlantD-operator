@@ -10,7 +10,7 @@ import (
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 
 	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
@@ -33,7 +33,7 @@ type QueryClient interface {
 }
 
 type QueryAgent struct {
-	PromAPI v1.API
+	PromAPI prometheusv1.API
 }
 
 type LabelSelector struct {
@@ -61,7 +61,7 @@ func NewQueryAgent(url string) (*QueryAgent, error) {
 	if err != nil {
 		return nil, err
 	}
-	v1api := v1.NewAPI(promClient)
+	v1api := prometheusv1.NewAPI(promClient)
 	return &QueryAgent{
 		PromAPI: v1api,
 	}, nil
@@ -125,7 +125,7 @@ func (c *QueryAgent) QueryTriChannProm(ctx context.Context, req *QueryRequest) (
 		promStep = time.Duration(req.Param.Step) * time.Second
 	}
 
-	r := v1.Range{
+	r := prometheusv1.Range{
 		Start: req.Param.StartTimestamp.Time,
 		End:   req.Param.EndTimestamp.Time,
 		Step:  promStep,
