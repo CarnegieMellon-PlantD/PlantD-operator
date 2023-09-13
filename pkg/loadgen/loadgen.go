@@ -2,6 +2,7 @@ package loadgen
 
 import (
 	"encoding/json"
+	"fmt"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
@@ -20,7 +21,7 @@ func CreateTestRunManifest(name string, namespace string) *k6v1alpha1.K6 {
 		},
 		Spec: k6v1alpha1.K6Spec{
 			Parallelism: 1,
-			Arguments:   config.GetString("k6.arguments"),
+			Arguments:   config.GetString("k6.arguments") + fmt.Sprintf(" --tag experiment=%s/%s", namespace, name),
 			Runner: k6v1alpha1.Pod{
 				Env: []corev1.EnvVar{
 					{
