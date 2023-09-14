@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateTestRunManifest(name string, namespace string) *k6v1alpha1.K6 {
+func CreateTestRunManifest(namespace, name, endpointName string) *k6v1alpha1.K6 {
 	return &k6v1alpha1.K6{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -21,7 +21,8 @@ func CreateTestRunManifest(name string, namespace string) *k6v1alpha1.K6 {
 		},
 		Spec: k6v1alpha1.K6Spec{
 			Parallelism: 1,
-			Arguments:   config.GetString("k6.arguments") + fmt.Sprintf(" --tag experiment=%s/%s", namespace, name),
+			Arguments: config.GetString("k6.arguments") +
+				fmt.Sprintf(" --tag experiment=%s/%s --tag endpoint=%s", namespace, name, endpointName),
 			Runner: k6v1alpha1.Pod{
 				Env: []corev1.EnvVar{
 					{

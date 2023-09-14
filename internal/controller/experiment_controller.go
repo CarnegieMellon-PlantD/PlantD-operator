@@ -324,8 +324,7 @@ func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, 
 	if err := r.CreateConfigMap(ctx, exp, endpoint, load); err != nil {
 		return err
 	}
-	testRunName := GetTestRunName(exp.Name, targetEndpointName)
-	if err := r.CreateK6(ctx, exp, testRunName); err != nil {
+	if err := r.CreateK6(ctx, exp, targetEndpointName); err != nil {
 		return err
 	}
 
@@ -408,14 +407,15 @@ func (r *ExperimentReconciler) CopyConfiMap(ctx context.Context, dataset *windtu
 	return fmt.Errorf("copying pod is running")
 }
 
-func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1alpha1.Experiment, testRunName string) error {
+func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointName string) error {
 	log := log.FromContext(ctx)
+	testRunName := GetTestRunName(exp.Name, endpointName)
 	k6Name := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
 	k6 := &k6v1alpha1.K6{}
 	if err := r.Get(ctx, k6Name, k6); err == nil {
 		return nil
 	}
-	testRun := loadgen.CreateTestRunManifest(testRunName, exp.Namespace)
+	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName)
 
 	testRun.Spec.Script = k6v1alpha1.K6Script{
 		ConfigMap: k6v1alpha1.K6Configmap{
@@ -434,14 +434,14 @@ func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1al
 	return nil
 }
 
-func (r *ExperimentReconciler) CreateK6WithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, dataset *windtunnelv1alpha1.DataSet, testRunName string) error {
+func (r *ExperimentReconciler) CreateK6WithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, dataset *windtunnelv1alpha1.DataSet, endpointName string) error {
 	log := log.FromContext(ctx)
 	k6Name := types.NamespacedName{Namespace: exp.Namespace, Name: exp.Name}
 	k6 := &k6v1alpha1.K6{}
 	if err := r.Get(ctx, k6Name, k6); err == nil {
 		return nil
 	}
-	testRun := loadgen.CreateTestRunManifest(testRunName, exp.Namespace)
+	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName)
 
 	testRun.Spec.Script = k6v1alpha1.K6Script{
 		VolumeClaim: k6v1alpha1.K6VolumeClaim{
@@ -509,7 +509,7 @@ func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp
 	if err := r.CopyConfiMap(ctx, dataset, configMap, exp); err != nil {
 		return err
 	}
-	if err := r.CreateK6WithDataSet(ctx, exp, dataset, testRunName); err != nil {
+	if err := r.CreateK6WithDataSet(ctx, exp, dataset, targetEndpointName); err != nil {
 		return err
 	}
 
