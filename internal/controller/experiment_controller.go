@@ -415,7 +415,7 @@ func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1al
 	if err := r.Get(ctx, k6Name, k6); err == nil {
 		return nil
 	}
-	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName)
+	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName, testRunName)
 
 	testRun.Spec.Script = k6v1alpha1.K6Script{
 		ConfigMap: k6v1alpha1.K6Configmap{
@@ -436,12 +436,13 @@ func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1al
 
 func (r *ExperimentReconciler) CreateK6WithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, dataset *windtunnelv1alpha1.DataSet, endpointName string) error {
 	log := log.FromContext(ctx)
+	testRunName := GetTestRunName(exp.Name, endpointName)
 	k6Name := types.NamespacedName{Namespace: exp.Namespace, Name: exp.Name}
 	k6 := &k6v1alpha1.K6{}
 	if err := r.Get(ctx, k6Name, k6); err == nil {
 		return nil
 	}
-	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName)
+	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName, testRunName)
 
 	testRun.Spec.Script = k6v1alpha1.K6Script{
 		VolumeClaim: k6v1alpha1.K6VolumeClaim{

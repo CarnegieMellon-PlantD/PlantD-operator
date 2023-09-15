@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ghcr.io/carnegiemellon-plantd/plantd-controller
-  newTag: test
+  newTag: latest
