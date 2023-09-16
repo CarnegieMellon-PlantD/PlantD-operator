@@ -16,7 +16,7 @@ import (
 func CreateTestRunManifest(namespace, name, endpointName string) *k6v1alpha1.K6 {
 	return &k6v1alpha1.K6{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      utils.GetTestRunName(name, endpointName),
 			Namespace: namespace,
 		},
 		Spec: k6v1alpha1.K6Spec{

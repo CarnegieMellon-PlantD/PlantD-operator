@@ -296,8 +296,66 @@ func GetLoadPatternNamespace(exp *windtunnelv1alpha1.Experiment, ref *corev1.Obj
 	return exp.Namespace
 }
 
-func GetTestRunName(expName string, endpointName string) string {
-	return fmt.Sprintf("%s-%s", expName, endpointName)
+func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint) error {
+	log := log.FromContext(ctx)
+
+	targetEndpointName := endpoint.Name
+	loadpatternConfig := FindLoadConfig(targetEndpointName, exp)
+	if loadpatternConfig == nil {
+		exp.Status.ExperimentState = "Error: No LoadPatternConfig found"
+		log.Info("Cannot find Load Configuration for endpoint: " + targetEndpointName)
+		return r.Status().Update(ctx, exp)
+	}
+	load := &windtunnelv1alpha1.LoadPattern{}
+
+	loadName := types.NamespacedName{
+		Namespace: GetLoadPatternNamespace(exp, &loadpatternConfig.LoadPatternRef),
+		Name:      loadpatternConfig.LoadPatternRef.Name,
+	}
+	if err := r.Get(ctx, loadName, load); err != nil {
+		exp.Status.ExperimentState = "Error: No LoadPattern found"
+		log.Error(err, "Cannot get LoadPattern: "+loadName.String())
+		return r.Status().Update(ctx, exp)
+	}
+
+	dataset := &windtunnelv1alpha1.DataSet{}
+	datasetName := types.NamespacedName{
+		Namespace: endpoint.HTTP.Body.DataSetRef.Namespace,
+		Name:      endpoint.HTTP.Body.DataSetRef.Name,
+	}
+	if err := r.Get(ctx, datasetName, dataset); err != nil {
+		exp.Status.ExperimentState = "Error: No DataSet found"
+		log.Error(err, "Cannot get DataSet: "+datasetName.String())
+		return r.Status().Update(ctx, exp)
+	}
+
+	if err := r.CreateConfigMapWithDataSet(ctx, exp, endpoint, load, dataset); err != nil {
+		exp.Status.ExperimentState = "Error: Failed to create configMap"
+		return r.Status().Update(ctx, exp)
+	}
+	// TODO: Fix the config map name
+	testRunName := utils.GetTestRunName(exp.Name, targetEndpointName)
+	configMapName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
+	configMap := &corev1.ConfigMap{}
+	if err := r.Get(ctx, configMapName, configMap); err != nil {
+		log.Error(err, "Cannot get ConfigMap: "+configMapName.String())
+		return err
+	}
+
+	if err := r.CopyConfigMap(ctx, dataset, configMap, exp); err != nil {
+		return err
+	}
+	if err := r.CreateK6WithDataSet(ctx, exp, dataset, targetEndpointName); err != nil {
+		return err
+	}
+
+	if exp.Status.ExperimentState == ExperimentReady {
+		exp.Status.ExperimentState = ExperimentRunning
+		currTime := &metav1.Time{Time: time.Now()}
+		exp.Status.StartTime = currTime
+	}
+
+	return r.Status().Update(ctx, exp)
 }
 
 func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint) error {
@@ -338,7 +396,7 @@ func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, 
 
 func (r *ExperimentReconciler) CreateConfigMap(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint, load *windtunnelv1alpha1.LoadPattern) error {
 	log := log.FromContext(ctx)
-	testRunName := GetTestRunName(exp.Name, endpoint.Name)
+	testRunName := utils.GetTestRunName(exp.Name, endpoint.Name)
 	configName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
 	config := &corev1.ConfigMap{}
 	if err := r.Get(ctx, configName, config); err == nil {
@@ -363,7 +421,7 @@ func (r *ExperimentReconciler) CreateConfigMap(ctx context.Context, exp *windtun
 
 func (r *ExperimentReconciler) CreateConfigMapWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint, load *windtunnelv1alpha1.LoadPattern, dataset *windtunnelv1alpha1.DataSet) error {
 	log := log.FromContext(ctx)
-	testRunName := GetTestRunName(exp.Name, endpoint.Name)
+	testRunName := utils.GetTestRunName(exp.Name, endpoint.Name)
 	configName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
 	config := &corev1.ConfigMap{}
 	if err := r.Get(ctx, configName, config); err == nil {
@@ -386,7 +444,7 @@ func (r *ExperimentReconciler) CreateConfigMapWithDataSet(ctx context.Context, e
 	return nil
 }
 
-func (r *ExperimentReconciler) CopyConfiMap(ctx context.Context, dataset *windtunnelv1alpha1.DataSet, configMap *corev1.ConfigMap, exp *windtunnelv1alpha1.Experiment) error {
+func (r *ExperimentReconciler) CopyConfigMap(ctx context.Context, dataset *windtunnelv1alpha1.DataSet, configMap *corev1.ConfigMap, exp *windtunnelv1alpha1.Experiment) error {
 	log := log.FromContext(ctx)
 	pod := loadgen.CreateCopyPod(dataset, configMap)
 	podName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
@@ -409,7 +467,7 @@ func (r *ExperimentReconciler) CopyConfiMap(ctx context.Context, dataset *windtu
 
 func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointName string) error {
 	log := log.FromContext(ctx)
-	testRunName := GetTestRunName(exp.Name, endpointName)
+	testRunName := utils.GetTestRunName(exp.Name, endpointName)
 	k6Name := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
 	k6 := &k6v1alpha1.K6{}
 	if err := r.Get(ctx, k6Name, k6); err == nil {
@@ -460,68 +518,6 @@ func (r *ExperimentReconciler) CreateK6WithDataSet(ctx context.Context, exp *win
 	return nil
 }
 
-func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint) error {
-	log := log.FromContext(ctx)
-
-	targetEndpointName := endpoint.Name
-	loadpatternConfig := FindLoadConfig(targetEndpointName, exp)
-	if loadpatternConfig == nil {
-		exp.Status.ExperimentState = "Error: No LoadPatternConfig found"
-		log.Info("Cannot find Load Configuration for endpoint: " + targetEndpointName)
-		return r.Status().Update(ctx, exp)
-	}
-	load := &windtunnelv1alpha1.LoadPattern{}
-
-	loadName := types.NamespacedName{
-		Namespace: GetLoadPatternNamespace(exp, &loadpatternConfig.LoadPatternRef),
-		Name:      loadpatternConfig.LoadPatternRef.Name,
-	}
-	if err := r.Get(ctx, loadName, load); err != nil {
-		exp.Status.ExperimentState = "Error: No LoadPattern found"
-		log.Error(err, "Cannot get LoadPattern: "+loadName.String())
-		return r.Status().Update(ctx, exp)
-	}
-
-	dataset := &windtunnelv1alpha1.DataSet{}
-	datasetName := types.NamespacedName{
-		Namespace: endpoint.HTTP.Body.DataSetRef.Namespace,
-		Name:      endpoint.HTTP.Body.DataSetRef.Name,
-	}
-	if err := r.Get(ctx, datasetName, dataset); err != nil {
-		exp.Status.ExperimentState = "Error: No DataSet found"
-		log.Error(err, "Cannot get DataSet: "+datasetName.String())
-		return r.Status().Update(ctx, exp)
-	}
-
-	if err := r.CreateConfigMapWithDataSet(ctx, exp, endpoint, load, dataset); err != nil {
-		exp.Status.ExperimentState = "Error: Failed to create configMap"
-		return r.Status().Update(ctx, exp)
-	}
-	// TODO: Fix the config map name
-	testRunName := GetTestRunName(exp.Name, targetEndpointName)
-	configMapName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
-	configMap := &corev1.ConfigMap{}
-	if err := r.Get(ctx, configMapName, configMap); err != nil {
-		log.Error(err, "Cannot get ConfigMap: "+configMapName.String())
-		return err
-	}
-
-	if err := r.CopyConfiMap(ctx, dataset, configMap, exp); err != nil {
-		return err
-	}
-	if err := r.CreateK6WithDataSet(ctx, exp, dataset, targetEndpointName); err != nil {
-		return err
-	}
-
-	if exp.Status.ExperimentState == ExperimentReady {
-		exp.Status.ExperimentState = ExperimentRunning
-		currTime := &metav1.Time{Time: time.Now()}
-		exp.Status.StartTime = currTime
-	}
-
-	return r.Status().Update(ctx, exp)
-}
-
 // Check if the test run is finished
 func (r *ExperimentReconciler) CheckFinished(ctx context.Context, exp *windtunnelv1alpha1.Experiment) error {
 	if exp.Status.ExperimentState != ExperimentRunning {
@@ -531,7 +527,7 @@ func (r *ExperimentReconciler) CheckFinished(ctx context.Context, exp *windtunne
 	successCounter := 0
 	for _, config := range exp.Spec.LoadPatterns {
 		testRun := &k6v1alpha1.K6{}
-		testRunName := types.NamespacedName{Namespace: exp.Namespace, Name: GetTestRunName(exp.Name, config.EndpointName)}
+		testRunName := types.NamespacedName{Namespace: exp.Namespace, Name: utils.GetTestRunName(exp.Name, config.EndpointName)}
 		if err := r.Get(ctx, testRunName, testRun); err != nil {
 			exp.Status.ExperimentState = "Error: Cannot get K6 TestRun"
 			log.Error(err, "Cannot get K6 TestRun: "+testRunName.String())

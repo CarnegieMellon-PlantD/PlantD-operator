@@ -21,3 +21,7 @@ func GetVolumeName(ownerName string) string {
 func GetNamespacedName(obj client.Object) string {
 	return fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())
 }
+
+func GetTestRunName(expName string, endpointName string) string {
+	return fmt.Sprintf("%s-%s", expName, endpointName)
+}
