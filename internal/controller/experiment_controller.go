@@ -574,5 +574,6 @@ func (r *ExperimentReconciler) UpdatePipeline(ctx context.Context, pipeline *win
 func (r *ExperimentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&windtunnelv1alpha1.Experiment{}).
+		Owns(&k6v1alpha1.K6{}).
 		Complete(r)
 }
