@@ -186,14 +186,10 @@ func (r *PipelineReconciler) Initialize(ctx context.Context, pipeline *windtunne
 	return nil
 }
 
-func GetMetricsServiceName(pipelineName string) string {
-	return pipelineName + "-plantd-metrics"
-}
-
 func (r *PipelineReconciler) InitializeExp(ctx context.Context, pipeline *windtunnelv1alpha1.Pipeline) error {
 	log := log.FromContext(ctx)
 	// Get the metrics service
-	serviceName := types.NamespacedName{Namespace: pipeline.Namespace, Name: GetMetricsServiceName(pipeline.Name)}
+	serviceName := types.NamespacedName{Namespace: pipeline.Namespace, Name: utils.GetMetricsServiceName(pipeline.Name)}
 	if pipeline.Spec.InCluster {
 		serviceName = types.NamespacedName{Namespace: pipeline.Spec.MetricsEndpoint.ServiceRef.Namespace, Name: pipeline.Spec.MetricsEndpoint.ServiceRef.Name}
 	}
@@ -233,8 +229,7 @@ func (r *PipelineReconciler) CreateService(ctx context.Context, pipeline *windtu
 	log := log.FromContext(ctx)
 	// Create externalName service and endpoint for pipeline endpoints.
 	for _, endpoint := range pipeline.Spec.PipelineEndpoints {
-		name := pipeline.Name + "-" + endpoint.Name
-		serivce, endpoints, err := monitor.CreateExternalNameService(name, pipeline.Namespace, &endpoint)
+		serivce, endpoints, err := monitor.CreateExternalNameService(pipeline.Namespace, pipeline.Name, &endpoint)
 		if err != nil {
 			log.Error(err, "Cannot create service manifests for outside-cluster Pipeline")
 			return err
@@ -256,8 +251,7 @@ func (r *PipelineReconciler) CreateService(ctx context.Context, pipeline *windtu
 	}
 
 	// Create externalName service and endpoint for the metrics endpoint.
-	name := GetMetricsServiceName(pipeline.Name)
-	serivce, endpoints, err := monitor.CreateExternalNameService(name, pipeline.Namespace, &pipeline.Spec.MetricsEndpoint)
+	serivce, endpoints, err := monitor.CreateExternalNameService(pipeline.Namespace, pipeline.Name, &pipeline.Spec.MetricsEndpoint)
 	if err != nil {
 		log.Error(err, "Cannot create service manifests for outside-cluster Pipeline")
 		return err

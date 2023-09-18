@@ -12,9 +12,9 @@ plantdCore:
   serviceAccountName: plantd-operator-controller-manager
   kubeProxy:
     image: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
-    label: 
+    label:
       app: plantd-proxy
-    selector: 
+    selector:
       key: app
       value: plantd-proxy
     containerName: plantd-proxy
@@ -25,9 +25,9 @@ plantdCore:
     targetPort: 5000
   studio:
     image: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
-    label: 
+    label:
       app: plantd-studio
-    selector: 
+    selector:
       key: app
       value: plantd-studio
     containerName: plantd-studio
@@ -210,7 +210,7 @@ k6:
 monitor:
   metricsService:
     labels:
-      key: plantd-pipeline
+      key: plantd-monitoring
   serviceMonitor:
     labels:
       component: plantd-metrics-endpoint

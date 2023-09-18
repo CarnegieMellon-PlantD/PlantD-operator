@@ -25,3 +25,11 @@ func GetNamespacedName(obj client.Object) string {
 func GetTestRunName(expName string, endpointName string) string {
 	return fmt.Sprintf("%s-%s", expName, endpointName)
 }
+
+func GetMetricsServiceName(pipelineName string) string {
+	return pipelineName + "-plantd-metrics"
+}
+
+func GetPipelineEndpointServiceName(pipelineName string, endpointName string) string {
+	return fmt.Sprintf("%s-%s", pipelineName, endpointName)
+}
