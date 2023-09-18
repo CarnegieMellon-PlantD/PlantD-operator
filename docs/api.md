@@ -1,6 +1,6 @@
 ---
 title: "API reference"
-description: "Online Programming Exercise Platform operator generated API reference docs"
+description: "PlantD API reference documentation"
 draft: false
 images: []
 menu: "operator"
@@ -2081,9 +2081,11 @@ PlantDCoreSpec
 <table>
 <tr>
 <td>
-<code>foo</code><br/>
+<code>prometheusConfiguration</code><br/>
 <em>
-string
+<a href="#windtunnel.plantd.org/v1alpha1.PlantDPrometheusSpec">
+PlantDPrometheusSpec
+</a>
 </em>
 </td>
 <td>
@@ -2125,9 +2127,11 @@ PlantDCoreStatus
 <tbody>
 <tr>
 <td>
-<code>foo</code><br/>
+<code>prometheusConfiguration</code><br/>
 <em>
-string
+<a href="#windtunnel.plantd.org/v1alpha1.PlantDPrometheusSpec">
+PlantDPrometheusSpec
+</a>
 </em>
 </td>
 <td>
@@ -2144,6 +2148,46 @@ string
 <div>
 <p>PlantDCoreStatus defines the observed state of PlantDCore</p>
 </div>
+<h3 id="windtunnel.plantd.org/v1alpha1.PlantDPrometheusSpec">PlantDPrometheusSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#windtunnel.plantd.org/v1alpha1.PlantDCoreSpec">PlantDCoreSpec</a>)
+</p>
+<div>
+</div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resourceMemory</code><br/>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#resourcerequirements-v1-core">
+Kubernetes core/v1.ResourceRequirements
+</a>
+</em>
+</td>
+<td>
+<p>MemorySize     int <code>json:&quot;,omitempty&quot;</code></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scrapeInterval</code><br/>
+<em>
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1.Duration
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="windtunnel.plantd.org/v1alpha1.Schema">Schema
 </h3>
 <div>

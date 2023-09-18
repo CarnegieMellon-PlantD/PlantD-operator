@@ -1,7 +1,7 @@
 {{ define "packages" }}
 ---
 title: "API reference"
-description: "Online Programming Exercise Platform operator generated API reference docs"
+description: "PlantD API reference documentation"
 draft: false
 images: []
 menu: "operator"
