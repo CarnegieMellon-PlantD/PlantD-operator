@@ -15,7 +15,7 @@ const (
 func GetHostname(serviceURL string) (string, error) {
 	u, err := url.Parse(serviceURL)
 	if err != nil {
-		return "", fmt.Errorf("Error parsing URL: %v\n", err)
+		return "", fmt.Errorf("error parsing URL: %v", err)
 	}
 	return u.Hostname(), nil
 }
@@ -23,7 +23,7 @@ func GetHostname(serviceURL string) (string, error) {
 func GetPort(serviceURL string) (int32, error) {
 	u, err := url.Parse(serviceURL)
 	if err != nil {
-		return -1, fmt.Errorf("Error parsing URL: %v\n", err)
+		return -1, fmt.Errorf("error parsing URL: %v", err)
 	}
 	if sPort := u.Port(); sPort != "" {
 		port, err := strconv.Atoi(sPort)
@@ -38,7 +38,7 @@ func GetPort(serviceURL string) (int32, error) {
 	case "https":
 		return 443, nil
 	default:
-		return -1, fmt.Errorf("Cannot get the default port of scheme %s", u.Scheme)
+		return -1, fmt.Errorf("cannot get the default port of scheme %s", u.Scheme)
 	}
 }
 
@@ -64,7 +64,7 @@ func CheckHTTPHealth(url string) (bool, error) {
 func GetHTTPPath(metricsURL string) (string, error) {
 	u, err := url.Parse(metricsURL)
 	if err != nil {
-		return "", fmt.Errorf("Error parsing URL: %v\n", err)
+		return "", fmt.Errorf("error parsing URL: %v", err)
 	}
 	return u.Path, nil
 }

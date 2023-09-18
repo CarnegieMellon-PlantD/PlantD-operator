@@ -64,7 +64,8 @@ func CreateServiceMonitor(pipeline *windtunnelv1alpha1.Pipeline) (*monitoringv1.
 	}, nil
 }
 
-func CreateExternalNameService(name string, namespace string, endpoint *windtunnelv1alpha1.Endpoint) (*corev1.Service, *corev1.Endpoints, error) {
+func CreateExternalNameService(namespace, pipelineName string, endpoint *windtunnelv1alpha1.Endpoint) (*corev1.Service, *corev1.Endpoints, error) {
+	name := utils.GetPipelineEndpointServiceName(pipelineName, endpoint.Name)
 	hostname, err := utils.GetHostname(endpoint.HTTP.URL)
 	if err != nil {
 		return nil, nil, err
@@ -87,8 +88,9 @@ func CreateExternalNameService(name string, namespace string, endpoint *windtunn
 	label := pipelineLabels
 	// Metrics Endpoint should not have an endpoint name
 	if portName == "" {
+		name = utils.GetMetricsServiceName(pipelineName)
 		portName = metricsPortName
-		label = map[string]string{metricsLabelKey: fmt.Sprintf("%s-%s", namespace, name)}
+		label = map[string]string{metricsLabelKey: fmt.Sprintf("%s-%s", namespace, pipelineName)}
 	}
 
 	service := &corev1.Service{
