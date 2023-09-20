@@ -1,4 +1,4 @@
-<img alt="Data Pipeline Wind Tunnel" src="./docs/img/plantd.png" width=200>
+<img alt="Data Pipeline Wind Tunnel" src="./docs/img/plantd-logo.png" width=200>
 
 
 ## Data Pipeline PlantD
