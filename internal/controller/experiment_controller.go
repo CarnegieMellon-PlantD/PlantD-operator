@@ -87,7 +87,7 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Get the pipeline object referred in the experiment object.
 	pipeline := &windtunnelv1alpha1.Pipeline{}
-	pipelineName := types.NamespacedName{Namespace: exp.Namespace, Name: exp.Spec.PipelineRef.Name}
+	pipelineName := types.NamespacedName{Namespace: exp.Spec.PipelineRef.Namespace, Name: exp.Spec.PipelineRef.Name}
 	if err := r.Get(ctx, pipelineName, pipeline); err != nil {
 		exp.Status.ExperimentState = "Error: No Pipeline found"
 		log.Error(err, "Cannot get Pipeline: "+pipelineName.String())
@@ -548,7 +548,7 @@ func (r *ExperimentReconciler) CheckFinished(ctx context.Context, exp *windtunne
 
 	if exp.Status.ExperimentState == ExperimentFinished {
 		pipeline := &windtunnelv1alpha1.Pipeline{}
-		pipelineName := types.NamespacedName{Namespace: exp.Namespace, Name: exp.Spec.PipelineRef.Name}
+		pipelineName := types.NamespacedName{Namespace: exp.Spec.PipelineRef.Namespace, Name: exp.Spec.PipelineRef.Name}
 		if err := r.Get(ctx, pipelineName, pipeline); err == nil {
 			return r.UpdatePipeline(ctx, pipeline, corev1.ObjectReference{})
 		}
