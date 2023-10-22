@@ -50,6 +50,19 @@ var (
 	prometheusMetricSpecSelector     map[string]string
 	prometheusServicePort            int32
 	prometheusServiceNodePort        int32
+
+	metricsScrapeInterval              string
+	metricsMonitorName                 string
+	metricsMonitorNamespace            string
+	metricsMonitorLabels               map[string]string
+	metricsBearerTokenFile             string
+	metricsHonorLabels                 bool
+	metricsPort                        string
+	metricsScheme                      string
+	metricsPath                        string
+	metricsJobLabel                    string
+	metricsNamespaceSelectorMatchNames []string
+	metricsSelectorMatchLabels         map[string]string
 )
 
 func init() {
@@ -89,6 +102,20 @@ func init() {
 	prometheusServiceNodePort = config.GetInt32("plantdCore.prometheus.service.nodePort")
 	prometheusClusterRoleName = config.GetString("plantdCore.prometheus.clusteRoleName")
 	prometheusClusterRoleBindingName = config.GetString("plantdCore.prometheus.clusterRoleBindingName")
+
+	metricsScrapeInterval = config.GetString("metrics.operator-system.interval")
+	metricsMonitorName = config.GetString("metrics.operator-system.monitor.name")
+	metricsMonitorNamespace = config.GetString("metrics.operator-system.monitor.namespace")
+	metricsMonitorLabels = config.GetStringMapString("metrics.operator-system.monitor.label")
+	metricsBearerTokenFile = config.GetString("metrics.operator-system.bearerTokenFile")
+	metricsHonorLabels = true
+	metricsPort = config.GetString("metrics.operator-system.port")
+	metricsScheme = config.GetString("metrics.operator-system.scheme")
+	metricsPath = config.GetString("metrics.operator-system.path")
+	metricsJobLabel = config.GetString("metrics.operator-system.jobLabel")
+	metricsNamespaceSelectorMatchNames = config.GetStringSlice("metrics.operator-system.namespaceSelector.matchNames")
+	metricsSelectorMatchLabels = config.GetStringMapString("metrics.operator-system.selector.matchLabels")
+
 }
 
 // SetupKubeProxyDeployment creates kube proxy deployment with Cluster IP
@@ -278,6 +305,53 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 	}
 
 	return prometheus, service
+}
+
+func SetupMetricsServiceMonitor(plantD *windtunnelv1alpha1.PlantDCore) *monitoringv1.ServiceMonitor {
+
+	scrapeInterval := monitoringv1.Duration(metricsScrapeInterval)
+
+	monitor := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metricsMonitorName,
+			Namespace: metricsMonitorNamespace,
+			Labels:    metricsMonitorLabels,
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					BearerTokenFile: metricsBearerTokenFile,
+					HonorLabels:     metricsHonorLabels,
+					Interval:        scrapeInterval,
+					Port:            metricsPort,
+					Scheme:          metricsScheme,
+					TLSConfig: &monitoringv1.TLSConfig{
+						SafeTLSConfig: monitoringv1.SafeTLSConfig{InsecureSkipVerify: true},
+					},
+				},
+				{
+					BearerTokenFile: metricsBearerTokenFile,
+					HonorLabels:     metricsHonorLabels,
+					Interval:        scrapeInterval,
+					Port:            metricsPort,
+					Scheme:          metricsScheme,
+					Path:            metricsPath,
+					TLSConfig: &monitoringv1.TLSConfig{
+						SafeTLSConfig: monitoringv1.SafeTLSConfig{InsecureSkipVerify: true},
+					},
+				},
+			},
+			JobLabel: metricsJobLabel,
+			NamespaceSelector: monitoringv1.NamespaceSelector{
+				MatchNames: metricsNamespaceSelectorMatchNames,
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: metricsSelectorMatchLabels,
+			},
+		},
+	}
+
+	return monitor
 }
 
 // SetupFrontendDeployment creates a PlantD Frontend deployment

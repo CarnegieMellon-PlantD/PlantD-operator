@@ -224,3 +224,21 @@ database:
   prometheus:
     url: http://prometheus.plantd-operator-system.svc.cluster.local:9090
     scrapeInterval: 15s
+metrics:
+  operator-system:
+    monitor: 
+      name: cadvisor-service-monitor
+      namespace: plantd-operator-system
+      label:
+        component: plantd-metrics-endpoint
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 30s
+    port: https-metrics
+    scheme: https
+    path: /metrics/cadvisor
+    namespaceSelector:
+      matchNames: 
+        - kube-system
+    selector:
+      matchLabels:
+        k8s-app: kubelet
