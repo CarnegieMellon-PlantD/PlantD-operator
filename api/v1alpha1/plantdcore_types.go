@@ -29,7 +29,6 @@ type PlantDPrometheusSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// MemorySize     int `json:",omitempty"`
 	ResourceMemory v1.ResourceRequirements `json:"resourceMemory,omitempty"`
 	ScrapeInterval monitoringv1.Duration   `json:"scrapeInterval,omitempty"`
 }
@@ -39,7 +38,6 @@ type PlantDCoreSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of PlantDCore. Edit plantdcore_types.go to remove/update
 	PrometheusConfiguration PlantDPrometheusSpec `json:"prometheusConfiguration,omitempty"`
 }
 
@@ -47,6 +45,13 @@ type PlantDCoreSpec struct {
 type PlantDCoreStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// KubeProxyStatus shows the status of the PlantD Kube Proxy
+	KubeProxyStatus string `json:"kubeProxyStatus,omitempty"`
+	// StudioStatus shows the status of the PlantD Studio
+	StudioStatus string `json:"studioStatus,omitempty"`
+	// PrometheusStatus shows the status of the Prometheus
+	PrometheusStatus string `json:"prometheusStatus,omitempty"`
 }
 
 //+kubebuilder:object:root=true
