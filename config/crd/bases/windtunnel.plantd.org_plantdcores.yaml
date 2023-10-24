@@ -35,11 +35,10 @@ spec:
             description: PlantDCoreSpec defines the desired state of PlantDCore
             properties:
               prometheusConfiguration:
-                description: Foo is an example field of PlantDCore. Edit plantdcore_types.go
-                  to remove/update
                 properties:
                   resourceMemory:
-                    description: MemorySize     int `json:",omitempty"`
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
                     properties:
                       claims:
                         description: "Claims lists the names of resources, defined
@@ -97,6 +96,16 @@ spec:
             type: object
           status:
             description: PlantDCoreStatus defines the observed state of PlantDCore
+            properties:
+              kubeProxyStatus:
+                description: KubeProxyStatus shows the status of the PlantD Kube Proxy
+                type: string
+              prometheusStatus:
+                description: PrometheusStatus shows the status of the Prometheus
+                type: string
+              studioStatus:
+                description: StudioStatus shows the status of the PlantD Studio
+                type: string
             type: object
         type: object
     served: true

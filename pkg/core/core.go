@@ -1,17 +1,16 @@
 package core
 
 import (
-	"log"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var (
@@ -91,16 +90,14 @@ func init() {
 	prometheusClusterRoleBindingName = config.GetString("plantdCore.prometheus.clusterRoleBindingName")
 }
 
-// SetupKubeProxyDeployment creates kube proxy deployment with Cluster IP
-func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deployment, *corev1.Service) {
+// GetKubeProxyResources returns resources of the kube proxy.
+// It contains a Deployment and a Service of the ClusterIP type.
+func GetKubeProxyResources(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deployment, *corev1.Service) {
 
-	numReplicas := int32(kubeProxyReplicas)
 	// Define the pod template
-
 	labels := map[string]string{
 		kubeProxySelectorKey: kubeProxySelectorValue,
 	}
-	log.Println(plantDCoreServiceAccountName)
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: labels,
@@ -118,6 +115,7 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 	}
 
 	// Define the Deployment
+	numReplicas := int32(kubeProxyReplicas)
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeProxyDeploymentName,
@@ -132,6 +130,7 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 		},
 	}
 
+	// Define the Service
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeProxyServiceName,
@@ -148,13 +147,15 @@ func SetupProxyDeployment(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deploy
 			},
 		},
 	}
+
 	return deployment, service
 }
 
-// SetupFrontendDeployment creates a PlantD Frontend deployment
-func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN string) (*appsv1.Deployment, *corev1.Service) {
+// GetFrontendResources returns resources of the frontend.
+// It contains a Deployment and a Service of the LoadBalancer type.
+func GetFrontendResources(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN string) (*appsv1.Deployment, *corev1.Service) {
 
-	numReplicas := int32(studioReplicas)
+	// Define the pod template
 	podTemplate := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: studioLabel,
@@ -177,6 +178,7 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 	}
 
 	// Define the Deployment
+	numReplicas := int32(studioReplicas)
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      studioDeploymentName,
@@ -214,14 +216,78 @@ func SetupFrontendDeployment(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN st
 	return deployment, service
 }
 
-// SetupFrontendDeployment creates a PlantD Frontend deployment
-func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1.Prometheus, *corev1.Service) {
+// GetPrometheusRoleBindings returns resources for the role binding of the Prometheus.
+// It contains a ServiceAccount, a ClusterRole, and a ClusterRoleBinding.
+func GetPrometheusRoleBindings(plantD *windtunnelv1alpha1.PlantDCore) (*corev1.ServiceAccount, *rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      prometheusServiceAccountName,
+			Namespace: plantD.Namespace,
+		},
+	}
+
+	clusterRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: prometheusClusterRoleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{
+					"nodes",
+					"nodes/metrics",
+					"services",
+					"endpoints",
+					"pods",
+				},
+				Verbs: []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"configmaps"},
+				Verbs:     []string{"get"},
+			},
+			{
+				APIGroups: []string{"networking.k8s.io"},
+				Resources: []string{"ingresses"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				NonResourceURLs: []string{"/metrics"},
+				Verbs:           []string{"get"},
+			},
+		},
+	}
+
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: prometheusClusterRoleBindingName,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     prometheusClusterRoleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      prometheusServiceAccountName,
+				Namespace: plantD.Namespace,
+			},
+		},
+	}
+	return sa, clusterRole, clusterRoleBinding
+}
+
+// GetPrometheusResources returns resources of the Prometheus.
+// It contains a Prometheus resource and a Service of the NodePort type.
+func GetPrometheusResources(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1.Prometheus, *corev1.Service) {
 	// Define the Prometheus resource
 	scrapeInterval := monitoringv1.Duration(prometheusScrapeInterval)
 	resourceMemory := resource.MustParse(prometheusResourceMemory)
 
 	if plantD.Spec.PrometheusConfiguration.ScrapeInterval != "" {
-		scrapeInterval = monitoringv1.Duration(plantD.Spec.PrometheusConfiguration.ScrapeInterval)
+		scrapeInterval = plantD.Spec.PrometheusConfiguration.ScrapeInterval
 	}
 
 	if plantD.Spec.PrometheusConfiguration.ResourceMemory.Limits != nil {
@@ -278,66 +344,4 @@ func SetupPrometheusObject(plantD *windtunnelv1alpha1.PlantDCore) (*monitoringv1
 	}
 
 	return prometheus, service
-}
-
-// SetupFrontendDeployment creates a PlantD Frontend deployment
-func SetupRoleBindingsForPrometheus(plantD *windtunnelv1alpha1.PlantDCore) (*corev1.ServiceAccount, *rbac.ClusterRole, *rbac.ClusterRoleBinding) {
-	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      prometheusServiceAccountName,
-			Namespace: plantD.Namespace,
-		},
-	}
-
-	clusterRole := &rbac.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: prometheusClusterRoleName,
-		},
-		Rules: []rbac.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{
-					"nodes",
-					"nodes/metrics",
-					"services",
-					"endpoints",
-					"pods",
-				},
-				Verbs: []string{"get", "list", "watch"},
-			},
-			{
-				APIGroups: []string{""},
-				Resources: []string{"configmaps"},
-				Verbs:     []string{"get"},
-			},
-			{
-				APIGroups: []string{"networking.k8s.io"},
-				Resources: []string{"ingresses"},
-				Verbs:     []string{"get", "list", "watch"},
-			},
-			{
-				NonResourceURLs: []string{"/metrics"},
-				Verbs:           []string{"get"},
-			},
-		},
-	}
-
-	clusterRoleBinding := &rbac.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: prometheusClusterRoleBindingName,
-		},
-		RoleRef: rbac.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     prometheusClusterRoleName,
-		},
-		Subjects: []rbac.Subject{
-			{
-				Kind:      rbac.ServiceAccountKind,
-				Name:      prometheusServiceAccountName,
-				Namespace: plantD.Namespace,
-			},
-		},
-	}
-	return sa, clusterRole, clusterRoleBinding
 }
