@@ -149,9 +149,6 @@ spec:
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
-    - jsonPath: .status.errorsString
-      name: Errors
-      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -2535,9 +2532,6 @@ spec:
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
-    - jsonPath: .status.errorsString
-      name: Errors
-      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
