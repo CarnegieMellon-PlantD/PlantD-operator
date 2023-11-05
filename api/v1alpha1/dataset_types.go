@@ -64,7 +64,6 @@ type DataSetStatus struct {
 // +kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
-// +kubebuilder:printcolumn:name="Errors",type="string",JSONPath=".status.errorsString"
 
 // DataSet is the Schema for the datasets API
 type DataSet struct {

@@ -46,8 +46,8 @@ type PlantDCoreStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// KubeProxyStatus shows the status of the PlantD Kube Proxy
-	KubeProxyStatus string `json:"kubeProxyStatus,omitempty"`
+	// ProxyStatus shows the status of the PlantD Proxy
+	ProxyStatus string `json:"kubeProxyStatus,omitempty"`
 	// StudioStatus shows the status of the PlantD Studio
 	StudioStatus string `json:"studioStatus,omitempty"`
 	// PrometheusStatus shows the status of the Prometheus
@@ -56,6 +56,9 @@ type PlantDCoreStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="KubeProxyStatus",type="string",JSONPath=".status.kubeProxyStatus"
+//+kubebuilder:printcolumn:name="StudioStatus",type="string",JSONPath=".status.studioStatus"
+//+kubebuilder:printcolumn:name="PrometheusStatus",type="string",JSONPath=".status.prometheusStatus"
 
 // PlantDCore is the Schema for the plantdcores API
 type PlantDCore struct {

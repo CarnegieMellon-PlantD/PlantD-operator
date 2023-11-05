@@ -149,9 +149,6 @@ spec:
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
-    - jsonPath: .status.errorsString
-      name: Errors
-      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -2176,7 +2173,17 @@ spec:
     singular: plantdcore
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.kubeProxyStatus
+      name: KubeProxyStatus
+      type: string
+    - jsonPath: .status.studioStatus
+      name: StudioStatus
+      type: string
+    - jsonPath: .status.prometheusStatus
+      name: PrometheusStatus
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: PlantDCore is the Schema for the plantdcores API
@@ -2260,7 +2267,7 @@ spec:
             description: PlantDCoreStatus defines the observed state of PlantDCore
             properties:
               kubeProxyStatus:
-                description: KubeProxyStatus shows the status of the PlantD Kube Proxy
+                description: ProxyStatus shows the status of the PlantD Proxy
                 type: string
               prometheusStatus:
                 description: PrometheusStatus shows the status of the Prometheus
@@ -2525,9 +2532,6 @@ spec:
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
-    - jsonPath: .status.errorsString
-      name: Errors
-      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -4552,7 +4556,17 @@ spec:
     singular: plantdcore
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.kubeProxyStatus
+      name: KubeProxyStatus
+      type: string
+    - jsonPath: .status.studioStatus
+      name: StudioStatus
+      type: string
+    - jsonPath: .status.prometheusStatus
+      name: PrometheusStatus
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: PlantDCore is the Schema for the plantdcores API
@@ -4636,7 +4650,7 @@ spec:
             description: PlantDCoreStatus defines the observed state of PlantDCore
             properties:
               kubeProxyStatus:
-                description: KubeProxyStatus shows the status of the PlantD Kube Proxy
+                description: ProxyStatus shows the status of the PlantD Proxy
                 type: string
               prometheusStatus:
                 description: PrometheusStatus shows the status of the Prometheus

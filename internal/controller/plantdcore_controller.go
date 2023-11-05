@@ -65,63 +65,63 @@ type PlantDCoreReconciler struct {
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch
 //+kubebuilder:rbac:urls=/metrics,verbs=get
 
-// reconcileKubeProxy reconciles the kube proxy module. It tries to create all necessary resources and return the status
-// of the kube proxy module and the error if any.
-func (r *PlantDCoreReconciler) reconcileKubeProxy(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) (string, error) {
+// reconcileProxy reconciles the proxy module. It tries to create all necessary resources and return the status
+// of the proxy module and the error if any.
+func (r *PlantDCoreReconciler) reconcileProxy(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) (string, error) {
 	logger := log.FromContext(ctx)
 
 	hasCreation := false
 
 	// Prepare resources
-	newProxyDeploy, newProxySvc := plantdcore.GetKubeProxyResources(plantDCore)
+	newProxyDeploy, newProxySvc := plantdcore.GetProxyResources(plantDCore)
 	if err := ctrl.SetControllerReference(plantDCore, newProxyDeploy, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for kube proxy Deployment")
+		logger.Error(err, "failed to set controller reference for proxy Deployment")
 		return "", err
 	}
 	if err := ctrl.SetControllerReference(plantDCore, newProxySvc, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for kube proxy Service")
+		logger.Error(err, "failed to set controller reference for proxy Service")
 		return "", err
 	}
 
-	// Find kube proxy Deployment and create if not exist
+	// Find proxy Deployment and create if not exist
 	curProxyDeploy := &appsv1.Deployment{}
 	proxyDeployKey := client.ObjectKey{
 		Name:      newProxyDeploy.Name,
 		Namespace: newProxyDeploy.Namespace,
 	}
 	if err := r.Get(ctx, proxyDeployKey, curProxyDeploy); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of kube proxy Deployment")
+		logger.Error(err, "failed to check existence of proxy Deployment")
 		return "", err
 	} else if errors.IsNotFound(err) {
 		if err := r.Create(ctx, newProxyDeploy); err != nil {
-			logger.Error(err, "failed to create kube proxy Deployment")
+			logger.Error(err, "failed to create proxy Deployment")
 			return "", err
 		}
-		logger.Info("created kube proxy Deployment")
+		logger.Info("created proxy Deployment")
 		hasCreation = true
 	}
 
-	// Find kube proxy Service and create if not exist
+	// Find proxy Service and create if not exist
 	curProxySvc := &corev1.Service{}
 	proxySvcKey := client.ObjectKey{
 		Name:      newProxySvc.Name,
 		Namespace: newProxySvc.Namespace,
 	}
 	if err := r.Get(ctx, proxySvcKey, curProxySvc); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of kube proxy Service")
+		logger.Error(err, "failed to check existence of proxy Service")
 	} else if errors.IsNotFound(err) {
 		if err := r.Create(ctx, newProxySvc); err != nil && !errors.IsAlreadyExists(err) {
-			logger.Error(err, "failed to create kube proxy Service")
+			logger.Error(err, "failed to create proxy Service")
 			return "", err
 		}
-		logger.Info("created kube proxy Service")
+		logger.Info("created proxy Service")
 		hasCreation = true
 	}
 
 	if hasCreation {
 		return ModuleCreated, nil
 	}
-	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curProxyDeploy.Status.AvailableReplicas, curProxyDeploy.Status.Replicas), nil
+	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curProxyDeploy.Status.AvailableReplicas, curProxyDeploy.Status.AvailableReplicas+curProxyDeploy.Status.UnavailableReplicas), nil
 }
 
 // reconcileStudio reconciles the studio module. It tries to create all necessary resources and return the status of the
@@ -132,9 +132,9 @@ func (r *PlantDCoreReconciler) reconcileStudio(ctx context.Context, plantDCore *
 	hasCreation := false
 
 	// Prepare resources
-	_, newProxySvc := plantdcore.GetKubeProxyResources(plantDCore)
+	_, newProxySvc := plantdcore.GetProxyResources(plantDCore)
 	proxySvcFQDN := fmt.Sprintf("http://%s.%s.svc.%s:5000", newProxySvc.Name, newProxySvc.Namespace, "cluster.local")
-	newStudioDeploy, newStudioSvc := plantdcore.GetFrontendResources(plantDCore, proxySvcFQDN)
+	newStudioDeploy, newStudioSvc := plantdcore.GetStudioResources(plantDCore, proxySvcFQDN)
 	if err := ctrl.SetControllerReference(plantDCore, newStudioDeploy, r.Scheme); err != nil {
 		logger.Error(err, "failed to set controller reference for studio Deployment")
 		return "", err
@@ -182,7 +182,7 @@ func (r *PlantDCoreReconciler) reconcileStudio(ctx context.Context, plantDCore *
 	if hasCreation {
 		return ModuleCreated, nil
 	}
-	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curStudioDeploy.Status.AvailableReplicas, curStudioDeploy.Status.Replicas), nil
+	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curStudioDeploy.Status.AvailableReplicas, curStudioDeploy.Status.AvailableReplicas+curStudioDeploy.Status.UnavailableReplicas), nil
 }
 
 // reconcilePrometheus reconciles the Prometheus module. It tried to create all necessary resources and return the
@@ -299,7 +299,7 @@ func (r *PlantDCoreReconciler) reconcilePrometheus(ctx context.Context, plantDCo
 	if hasCreation {
 		return ModuleCreated, nil
 	}
-	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curProm.Status.AvailableReplicas, curProm.Status.Replicas), nil
+	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curProm.Status.AvailableReplicas, curProm.Status.AvailableReplicas+curProm.Status.UnavailableReplicas), nil
 }
 
 // finalizePrometheus cleans up the Prometheus resources that cannot be deleted automatically.
@@ -374,13 +374,13 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	// Reconcile kube proxy
-	statusKubeProxy, err := r.reconcileKubeProxy(ctx, plantDCore)
+	// Reconcile proxy
+	statusKubeProxy, err := r.reconcileProxy(ctx, plantDCore)
 	if err != nil {
-		logger.Error(err, "failed to reconcile kube proxy")
+		logger.Error(err, "failed to reconcile proxy")
 		return ctrl.Result{}, err
 	}
-	plantDCore.Status.KubeProxyStatus = statusKubeProxy
+	plantDCore.Status.ProxyStatus = statusKubeProxy
 
 	// Reconcile studio
 	statusStudio, err := r.reconcileStudio(ctx, plantDCore)

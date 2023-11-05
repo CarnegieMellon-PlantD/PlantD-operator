@@ -17,17 +17,19 @@ limitations under the License.
 package controller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"time"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kbatch "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +43,8 @@ import (
 // DataSetReconciler reconciles a DataSet object
 type DataSetReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	K8SClient *kubernetes.Clientset
 }
 
 const (
@@ -243,7 +246,7 @@ func (r *DataSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	/*
 		### 4: Check if the job has completed
 	*/
-	ok, conditionType := IsJobFinished(indexedJob)
+	ok, conditionType := isJobFinished(indexedJob)
 	if ok {
 		switch conditionType {
 		case kbatch.JobComplete:
@@ -260,7 +263,9 @@ func (r *DataSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
 			} else {
 				// Set errorString to pod logs
-				r.updateErrors(dataSet, errorTypeLogPod, podLogs)
+				for _, logs := range podLogs {
+					r.updateErrors(dataSet, errorTypeLogPod, logs)
+				}
 			}
 		}
 		dataSet.Status.CompletionTime = indexedJob.Status.CompletionTime
@@ -303,7 +308,7 @@ func containsError(errors []string, err string) bool {
 	return false
 }
 
-func IsJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
+func isJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
 	for _, c := range job.Status.Conditions {
 		if (c.Type == kbatch.JobComplete || c.Type == kbatch.JobFailed) && c.Status == corev1.ConditionTrue {
 			return true, c.Type
@@ -312,12 +317,13 @@ func IsJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
 	return false, ""
 }
 
-func (r *DataSetReconciler) getPodLogs(ctx context.Context, job *kbatch.Job) (string, error) {
+func (r *DataSetReconciler) getPodLogs(ctx context.Context, job *kbatch.Job) ([]string, error) {
 	podList := &corev1.PodList{}
 	if err := r.List(ctx, podList, client.InNamespace(job.Namespace)); err != nil {
-		return "", fmt.Errorf("failed to list pods: %w", err)
+		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
+	result := make([]string, 0)
 	for _, pod := range podList.Items {
 		// Check if the pod belongs to the job
 		if metav1.IsControlledBy(&pod, job) {
@@ -329,45 +335,49 @@ func (r *DataSetReconciler) getPodLogs(ctx context.Context, job *kbatch.Job) (st
 			// Get the pod logs using the new context
 			logs, err := r.getPodLogsByPodName(podLogCtx, pod.Namespace, pod.Name)
 			if err != nil {
-				return "", fmt.Errorf("failed to get pod logs: %w", err)
+				return nil, fmt.Errorf("failed to get pod logs: %w", err)
 			}
-			return logs, nil
+
+			result = append(result, logs)
 		}
 	}
 
-	return "", fmt.Errorf("no pod found for job: %s/%s", job.Namespace, job.Name)
+	if len(result) > 0 {
+		return result, nil
+	} else {
+		return nil, fmt.Errorf("no pod found for job: %s/%s", job.Namespace, job.Name)
+	}
 }
 
 func (r *DataSetReconciler) getPodLogsByPodName(ctx context.Context, namespace, podName string) (string, error) {
-	// pod := &corev1.Pod{}
-	// err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: podName}, pod)
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to get pod: %w", err)
-	// }
+	pod := &corev1.Pod{}
+	err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: podName}, pod)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod: %w", err)
+	}
 
-	// if len(pod.Spec.Containers) == 0 {
-	// 	return "", fmt.Errorf("no containers found in pod")
-	// }
+	if len(pod.Spec.Containers) == 0 {
+		return "", fmt.Errorf("no containers found in pod")
+	}
 
-	// containerName := pod.Spec.Containers[0].Name
+	containerName := pod.Spec.Containers[0].Name
 
-	// podLogOpts := &corev1.PodLogOptions{
-	// 	Container: containerName,
-	// }
+	podLogOpts := &corev1.PodLogOptions{
+		Container: containerName,
+	}
 
-	// podLogRequest := r.K8sClient.CoreV1().Pods(namespace).GetLogs(podName, podLogOpts)
-	// podLogs, err := podLogRequest.Stream(ctx)
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to open log stream for pod: %w", err)
-	// }
-	// defer podLogs.Close()
+	podLogRequest := r.K8SClient.CoreV1().Pods(namespace).GetLogs(podName, podLogOpts)
+	podLogs, err := podLogRequest.Stream(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to open log stream for pod: %w", err)
+	}
+	defer podLogs.Close()
 
-	// buf := new(bytes.Buffer)
-	// _, err = io.Copy(buf, podLogs)
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to read pod logs: %w", err)
-	// }
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", fmt.Errorf("failed to read pod logs: %w", err)
+	}
 
-	// return buf.String(), nil
-	return "", nil
+	return buf.String(), nil
 }

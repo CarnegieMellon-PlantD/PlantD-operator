@@ -90,9 +90,9 @@ func init() {
 	prometheusClusterRoleBindingName = config.GetString("plantdCore.prometheus.clusterRoleBindingName")
 }
 
-// GetKubeProxyResources returns resources of the kube proxy.
+// GetProxyResources returns resources of the PlantD proxy.
 // It contains a Deployment and a Service of the ClusterIP type.
-func GetKubeProxyResources(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deployment, *corev1.Service) {
+func GetProxyResources(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deployment, *corev1.Service) {
 
 	// Define the pod template
 	labels := map[string]string{
@@ -151,9 +151,9 @@ func GetKubeProxyResources(plantD *windtunnelv1alpha1.PlantDCore) (*appsv1.Deplo
 	return deployment, service
 }
 
-// GetFrontendResources returns resources of the frontend.
+// GetStudioResources returns resources of the PlantD studio.
 // It contains a Deployment and a Service of the LoadBalancer type.
-func GetFrontendResources(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN string) (*appsv1.Deployment, *corev1.Service) {
+func GetStudioResources(plantD *windtunnelv1alpha1.PlantDCore, proxyFQDN string) (*appsv1.Deployment, *corev1.Service) {
 
 	// Define the pod template
 	podTemplate := corev1.PodTemplateSpec{
