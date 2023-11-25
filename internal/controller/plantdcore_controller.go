@@ -21,24 +21,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cisco-open/k8s-objectmatcher/patch"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
-	plantdcore "github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/core"
-	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/core"
 )
 
 const (
-	ModuleCreated string = "Created"
-	ModuleRunning string = "Running"
+	finalizerName = "plantdcore.windtunnel.plantd.org/finalizer"
 )
 
 // PlantDCoreReconciler reconciles a PlantDCore object
@@ -65,261 +66,149 @@ type PlantDCoreReconciler struct {
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch
 //+kubebuilder:rbac:urls=/metrics,verbs=get
 
-// reconcileProxy reconciles the proxy module. It tries to create all necessary resources and return the status
-// of the proxy module and the error if any.
-func (r *PlantDCoreReconciler) reconcileProxy(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) (string, error) {
-	logger := log.FromContext(ctx)
-
-	hasCreation := false
-
-	// Prepare resources
-	newProxyDeploy, newProxySvc := plantdcore.GetProxyResources(plantDCore)
-	if err := ctrl.SetControllerReference(plantDCore, newProxyDeploy, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for proxy Deployment")
-		return "", err
-	}
-	if err := ctrl.SetControllerReference(plantDCore, newProxySvc, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for proxy Service")
-		return "", err
-	}
-
-	// Find proxy Deployment and create if not exist
-	curProxyDeploy := &appsv1.Deployment{}
-	proxyDeployKey := client.ObjectKey{
-		Name:      newProxyDeploy.Name,
-		Namespace: newProxyDeploy.Namespace,
-	}
-	if err := r.Get(ctx, proxyDeployKey, curProxyDeploy); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of proxy Deployment")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newProxyDeploy); err != nil {
-			logger.Error(err, "failed to create proxy Deployment")
-			return "", err
+// reconcileObject ensures the actual state of the object matches the desired state. It creates the object if it does
+// not exist, and otherwise updates it if necessary. Also, controller reference is set to delete the object when the
+// owner object is deleted. Update behavior can be enabled or disabled. It returns a bool to show if any action is taken
+// and the error if any.
+func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore, curObj client.Object, desiredObj client.Object, allowUpdate bool) (bool, error) {
+	// Get current object
+	err := r.Get(ctx, types.NamespacedName{
+		Namespace: desiredObj.GetNamespace(),
+		Name:      desiredObj.GetName(),
+	}, curObj)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return false, fmt.Errorf("failed to get object: %s", err)
 		}
-		logger.Info("created proxy Deployment")
-		hasCreation = true
-	}
 
-	// Find proxy Service and create if not exist
-	curProxySvc := &corev1.Service{}
-	proxySvcKey := client.ObjectKey{
-		Name:      newProxySvc.Name,
-		Namespace: newProxySvc.Namespace,
-	}
-	if err := r.Get(ctx, proxySvcKey, curProxySvc); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of proxy Service")
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newProxySvc); err != nil && !errors.IsAlreadyExists(err) {
-			logger.Error(err, "failed to create proxy Service")
-			return "", err
+		// Object does not exist, create it
+		// Setting last applied annotation before setting controller reference since it excludes the
+		// "metadata.ownerReferences" from the annotation. Since a later comparison happens between the annotation
+		// and the "desired" object, both of them should not contain the controller reference.
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
+			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
 		}
-		logger.Info("created proxy Service")
-		hasCreation = true
+		if err = ctrl.SetControllerReference(plantDCore, desiredObj, r.Scheme); err != nil {
+			return false, fmt.Errorf("failed to set controller reference: %s", err)
+		}
+
+		if err = r.Create(ctx, desiredObj); err != nil {
+			return false, fmt.Errorf("failed to create object: %s", err)
+		}
+
+		return true, nil
 	}
 
-	if hasCreation {
-		return ModuleCreated, nil
+	if !allowUpdate {
+		return false, nil
 	}
-	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curProxyDeploy.Status.AvailableReplicas, curProxyDeploy.Status.AvailableReplicas+curProxyDeploy.Status.UnavailableReplicas), nil
+
+	// Object exists, compare and update if necessary
+	compareOpts := []patch.CalculateOption{
+		patch.IgnoreStatusFields(),
+	}
+	patchResult, err := patch.DefaultPatchMaker.Calculate(curObj, desiredObj, compareOpts...)
+	if err != nil {
+		return false, fmt.Errorf("failed to compare objects: %s", err)
+	}
+	if !patchResult.IsEmpty() {
+		// Setting last applied annotation before setting controller reference since it excludes the
+		// "metadata.ownerReferences" from the annotation. Since a later comparison happens between the annotation
+		// and the "desired" object, both of them should not contain the controller reference.
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
+			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
+		}
+		if err = ctrl.SetControllerReference(plantDCore, desiredObj, r.Scheme); err != nil {
+			return false, fmt.Errorf("failed to set controller reference: %s", err)
+		}
+
+		// Avoid "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update" error in some cases,
+		// see https://github.com/argoproj/argo-cd/issues/3657.
+		desiredObj.SetResourceVersion(curObj.GetResourceVersion())
+
+		if err = r.Update(ctx, desiredObj); err != nil {
+			return false, fmt.Errorf("failed to update object: %s", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }
 
-// reconcileStudio reconciles the studio module. It tries to create all necessary resources and return the status of the
-// studio module and the error if any.
-func (r *PlantDCoreReconciler) reconcileStudio(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) (string, error) {
-	logger := log.FromContext(ctx)
-
-	hasCreation := false
-
-	// Prepare resources
-	_, newProxySvc := plantdcore.GetProxyResources(plantDCore)
-	proxySvcFQDN := fmt.Sprintf("http://%s.%s.svc.%s:5000", newProxySvc.Name, newProxySvc.Namespace, "cluster.local")
-	newStudioDeploy, newStudioSvc := plantdcore.GetStudioResources(plantDCore, proxySvcFQDN)
-	if err := ctrl.SetControllerReference(plantDCore, newStudioDeploy, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for studio Deployment")
-		return "", err
-	}
-	if err := ctrl.SetControllerReference(plantDCore, newStudioSvc, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for studio Service")
-		return "", err
-	}
-
-	// Find studio Deployment and create if not exist
-	curStudioDeploy := &appsv1.Deployment{}
-	studioDeployKey := client.ObjectKey{
-		Name:      newStudioDeploy.Name,
-		Namespace: newStudioDeploy.Namespace,
-	}
-	if err := r.Get(ctx, studioDeployKey, curStudioDeploy); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of studio Deployment")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newStudioDeploy); err != nil {
-			logger.Error(err, "failed to create studio Deployment")
-			return "", err
+// reconcileClusterObject ensures the actual state of the cluster-level object matches the desired state. It creates the
+// object if it does not exist, and otherwise updates it if necessary. Update behavior can be enabled or disabled. It
+// returns a bool to show if any action is taken and the error if any.
+func (r *PlantDCoreReconciler) reconcileClusterObject(ctx context.Context, curObj client.Object, desiredObj client.Object, allowUpdate bool) (bool, error) {
+	// Get current object
+	err := r.Get(ctx, types.NamespacedName{
+		Name: desiredObj.GetName(),
+	}, curObj)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return false, fmt.Errorf("failed to get object: %s", err)
 		}
-		logger.Info("created studio Deployment")
-		hasCreation = true
-	}
 
-	// Find studio Service and create if not exist
-	curStudioSvc := &corev1.Service{}
-	studioSvcKey := client.ObjectKey{
-		Name:      newStudioSvc.Name,
-		Namespace: newStudioSvc.Namespace,
-	}
-	if err := r.Get(ctx, studioSvcKey, curStudioSvc); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of studio Service")
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newStudioSvc); err != nil {
-			logger.Error(err, "failed to create studio Service")
-			return "", err
+		// Object does not exist, create it
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
+			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
 		}
-		logger.Info("created studio Service")
-		hasCreation = true
+
+		if err = r.Create(ctx, desiredObj); err != nil {
+			return false, fmt.Errorf("failed to create object: %s", err)
+		}
+
+		return true, nil
 	}
 
-	if hasCreation {
-		return ModuleCreated, nil
+	if !allowUpdate {
+		return false, nil
 	}
-	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curStudioDeploy.Status.AvailableReplicas, curStudioDeploy.Status.AvailableReplicas+curStudioDeploy.Status.UnavailableReplicas), nil
+
+	// Object exists, compare and update if necessary
+	compareOpts := []patch.CalculateOption{
+		patch.IgnoreStatusFields(),
+	}
+	patchResult, err := patch.DefaultPatchMaker.Calculate(curObj, desiredObj, compareOpts...)
+	if err != nil {
+		return false, fmt.Errorf("failed to compare objects: %s", err)
+	}
+	if !patchResult.IsEmpty() {
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
+			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
+		}
+
+		// Avoid "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update" error in some cases,
+		// see https://github.com/argoproj/argo-cd/issues/3657.
+		desiredObj.SetResourceVersion(curObj.GetResourceVersion())
+
+		if err = r.Update(ctx, desiredObj); err != nil {
+			return false, fmt.Errorf("failed to update object: %s", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }
 
-// reconcilePrometheus reconciles the Prometheus module. It tried to create all necessary resources and return the
-// status of the Prometheus module and the error if any.
-func (r *PlantDCoreReconciler) reconcilePrometheus(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) (string, error) {
+// finalizeResources cleans up the resources before deletion. It returns the error if any.
+func (r *PlantDCoreReconciler) finalizeResources(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) error {
 	logger := log.FromContext(ctx)
 
-	hasCreation := false
+	_, clusterRole, clusterRoleBinding := core.GetPrometheusRBACResources(plantDCore)
 
-	// Prepare resources
-	newPromSA, newPromCR, newPromCRB := plantdcore.GetPrometheusRoleBindings(plantDCore)
-	newProm, newPromSvc := plantdcore.GetPrometheusResources(plantDCore)
-	if err := ctrl.SetControllerReference(plantDCore, newPromSA, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for prometheus ServiceAccount")
-		return "", err
-	}
-	if err := ctrl.SetControllerReference(plantDCore, newProm, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for Prometheus")
-		return "", err
-	}
-	if err := ctrl.SetControllerReference(plantDCore, newPromSvc, r.Scheme); err != nil {
-		logger.Error(err, "failed to set controller reference for prometheus Service")
-		return "", err
-	}
-
-	// Find prometheus ServiceAccount and create if not exist
-	curPromSA := &corev1.ServiceAccount{}
-	promSAKey := client.ObjectKey{
-		Name:      newPromSA.Name,
-		Namespace: newPromSA.Namespace,
-	}
-	if err := r.Get(ctx, promSAKey, curPromSA); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of prometheus ServiceAccount")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newPromSA); err != nil {
-			logger.Error(err, "failed to create prometheus ServiceAccount")
-			return "", err
-		}
-		logger.Info("created prometheus ServiceAccount")
-		hasCreation = true
-	}
-
-	// Find prometheus ClusterRole and create if not exist
-	curPromCR := &rbacv1.ClusterRole{}
-	promCRKey := client.ObjectKey{
-		Name: newPromCR.Name,
-	}
-	if err := r.Get(ctx, promCRKey, curPromCR); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of prometheus ClusterRole")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newPromCR); err != nil {
-			logger.Error(err, "failed to create prometheus ClusterRole")
-			return "", err
-		}
-		logger.Info("created prometheus ClusterRole")
-		hasCreation = true
-	}
-
-	// Find prometheus ClusterRoleBinding and create if not exist
-	curPromCRB := &rbacv1.ClusterRoleBinding{}
-	promCRBKey := client.ObjectKey{
-		Name: newPromCRB.Name,
-	}
-	if err := r.Get(ctx, promCRBKey, curPromCRB); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of prometheus ClusterRoleBinding")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newPromCRB); err != nil && !errors.IsAlreadyExists(err) {
-			logger.Error(err, "failed to create prometheus ClusterRoleBinding")
-			return "", err
-		}
-		logger.Info("created prometheus ClusterRoleBinding")
-		hasCreation = true
-	}
-
-	// Find Prometheus and create if not exist
-	curProm := &monitoringv1.Prometheus{}
-	promKey := client.ObjectKey{
-		Name:      newProm.Name,
-		Namespace: newProm.Namespace,
-	}
-	if err := r.Get(ctx, promKey, curProm); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of Prometheus")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newProm); err != nil {
-			logger.Error(err, "failed to create Prometheus")
-			return "", err
-		}
-		logger.Info("created Prometheus")
-		hasCreation = true
-	}
-
-	// Find prometheus Service and create if not exist
-	curPromSvc := &corev1.Service{}
-	promSvcKey := client.ObjectKey{
-		Name:      newPromSvc.Name,
-		Namespace: newPromSvc.Namespace,
-	}
-	if err := r.Get(ctx, promSvcKey, curPromSvc); err != nil && !errors.IsNotFound(err) {
-		logger.Error(err, "failed to check existence of prometheus Service")
-		return "", err
-	} else if errors.IsNotFound(err) {
-		if err := r.Create(ctx, newPromSvc); err != nil {
-			logger.Error(err, "failed to create prometheus Service")
-			return "", err
-		}
-		logger.Info("created prometheus Service")
-		hasCreation = true
-	}
-
-	if hasCreation {
-		return ModuleCreated, nil
-	}
-	return fmt.Sprintf("%s (%d/%d)", ModuleRunning, curProm.Status.AvailableReplicas, curProm.Status.AvailableReplicas+curProm.Status.UnavailableReplicas), nil
-}
-
-// finalizePrometheus cleans up the Prometheus resources that cannot be deleted automatically.
-func (r *PlantDCoreReconciler) finalizePrometheus(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore) error {
-	logger := log.FromContext(ctx)
-
-	// Prepare resources
-	_, clusterRole, clusterRoleBinding := plantdcore.GetPrometheusRoleBindings(plantDCore)
-
-	if err := r.Delete(ctx, clusterRole); err != nil {
-		logger.Error(err, "failed to delete prometheus ClusterRole")
+	if err := r.Delete(ctx, clusterRole); err != nil && !errors.IsNotFound(err) {
+		logger.Error(err, "failed to delete Prometheus ClusterRole")
 		return err
 	}
-	logger.Info("deleted prometheus ClusterRole")
+	logger.Info("deleted Prometheus ClusterRole")
 
-	if err := r.Delete(ctx, clusterRoleBinding); err != nil {
-		logger.Error(err, "failed to delete prometheus ClusterRoleBinding")
+	if err := r.Delete(ctx, clusterRoleBinding); err != nil && !errors.IsNotFound(err) {
+		logger.Error(err, "failed to delete Prometheus ClusterRoleBinding")
 		return err
 	}
-	logger.Info("deleted prometheus ClusterRoleBinding")
+	logger.Info("deleted Prometheus ClusterRoleBinding")
 
 	return nil
 }
@@ -331,7 +220,7 @@ func (r *PlantDCoreReconciler) finalizePrometheus(ctx context.Context, plantDCor
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
-// For more details, check Reconcile and its Result here:
+// For more details, check Reconcile and its Result here:ec
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -343,28 +232,27 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Finalizers
-	prometheusFinalizerName := "plantdcore.windtunnel.plantd.org/prometheusFinalizer"
+	// Finalizer
 	if plantDCore.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Object is not being deleted, add finalizer if not present
-		if !controllerutil.ContainsFinalizer(plantDCore, prometheusFinalizerName) {
-			controllerutil.AddFinalizer(plantDCore, prometheusFinalizerName)
+		if !controllerutil.ContainsFinalizer(plantDCore, finalizerName) {
+			controllerutil.AddFinalizer(plantDCore, finalizerName)
 			if err := r.Update(ctx, plantDCore); err != nil {
-				logger.Error(err, "failed to add prometheus finalizer")
+				logger.Error(err, "failed to add finalizer")
 				return ctrl.Result{}, err
 			}
 		}
 	} else {
 		// Object is being deleted
-		if controllerutil.ContainsFinalizer(plantDCore, prometheusFinalizerName) {
+		if controllerutil.ContainsFinalizer(plantDCore, finalizerName) {
 			// Finalizer presents
-			if err := r.finalizePrometheus(ctx, plantDCore); err != nil {
+			if err := r.finalizeResources(ctx, plantDCore); err != nil {
 				// Retry on errors
 				return ctrl.Result{}, err
 			}
 
 			// Remove finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(plantDCore, prometheusFinalizerName)
+			controllerutil.RemoveFinalizer(plantDCore, finalizerName)
 			if err := r.Update(ctx, plantDCore); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -374,39 +262,111 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	// Reconcile proxy
-	statusKubeProxy, err := r.reconcileProxy(ctx, plantDCore)
-	if err != nil {
-		logger.Error(err, "failed to reconcile proxy")
+	curKubeProxyDeployment := &appsv1.Deployment{}
+	curKubeProxyService := &corev1.Service{}
+	curStudioDeployment := &appsv1.Deployment{}
+	curStudioService := &corev1.Service{}
+	curPrometheusServiceAccount := &corev1.ServiceAccount{}
+	curPrometheusClusterRole := &rbacv1.ClusterRole{}
+	curPrometheusClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	curPrometheusObject := &monitoringv1.Prometheus{}
+	curPrometheusService := &corev1.Service{}
+	curRedisDeployment := &appsv1.Deployment{}
+	curRedisService := &corev1.Service{}
+
+	desiredKubeProxyDeployment := core.GetKubeProxyDeployment(plantDCore)
+	desiredKubeProxyService := core.GetKubeProxyService(plantDCore)
+	desiredStudioDeployment := core.GetStudioDeployment(plantDCore)
+	desiredStudioService := core.GetStudioService(plantDCore)
+	desiredPrometheusServiceAccount, desiredPrometheusClusterRole, desiredPrometheusClusterRoleBinding := core.GetPrometheusRBACResources(plantDCore)
+	desiredPrometheusObject := core.GetPrometheusObject(plantDCore)
+	desiredPrometheusService := core.GetPrometheusService(plantDCore)
+	desiredRedisDeployment := core.GetRedisDeployment(plantDCore)
+	desiredRedisService := core.GetRedisService(plantDCore)
+
+	hasModification := false
+
+	if modified, err := r.reconcileObject(ctx, plantDCore, curKubeProxyDeployment, desiredKubeProxyDeployment, true); err != nil {
+		logger.Error(err, "failed to reconcile Kube Proxy Deployment")
 		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created or updated Kube Proxy Deployment")
+		hasModification = true
 	}
-	plantDCore.Status.ProxyStatus = statusKubeProxy
-
-	// Reconcile studio
-	statusStudio, err := r.reconcileStudio(ctx, plantDCore)
-	if err != nil {
-		logger.Error(err, "failed to reconcile studio")
+	if modified, err := r.reconcileObject(ctx, plantDCore, curKubeProxyService, desiredKubeProxyService, false); err != nil {
+		logger.Error(err, "failed to reconcile Kube Proxy Service")
 		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Kube Proxy Service")
+		hasModification = true
 	}
-	plantDCore.Status.StudioStatus = statusStudio
-
-	// Reconcile prometheus
-	statusPrometheus, err := r.reconcilePrometheus(ctx, plantDCore)
-	if err != nil {
-		logger.Error(err, "failed to reconcile prometheus")
+	if modified, err := r.reconcileObject(ctx, plantDCore, curStudioDeployment, desiredStudioDeployment, true); err != nil {
+		logger.Error(err, "failed to reconcile Studio Deployment")
 		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created or updated Studio Deployment")
+		hasModification = true
 	}
-	plantDCore.Status.PrometheusStatus = statusPrometheus
-
-	// Update status
-	if err := r.Status().Update(ctx, plantDCore); err != nil {
-		logger.Error(err, "failed to update PlantDCore status")
+	if modified, err := r.reconcileObject(ctx, plantDCore, curStudioService, desiredStudioService, false); err != nil {
+		logger.Error(err, "failed to reconcile Studio Service")
 		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Studio Service")
+		hasModification = true
+	}
+	if modified, err := r.reconcileObject(ctx, plantDCore, curPrometheusServiceAccount, desiredPrometheusServiceAccount, false); err != nil {
+		logger.Error(err, "failed to reconcile Prometheus ServiceAccount")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Prometheus ServiceAccount")
+		hasModification = true
+	}
+	if modified, err := r.reconcileClusterObject(ctx, curPrometheusClusterRole, desiredPrometheusClusterRole, false); err != nil {
+		logger.Error(err, "failed to reconcile Prometheus ClusterRole")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Prometheus ClusterRole")
+		hasModification = true
+	}
+	if modified, err := r.reconcileClusterObject(ctx, curPrometheusClusterRoleBinding, desiredPrometheusClusterRoleBinding, false); err != nil {
+		logger.Error(err, "failed to reconcile Prometheus ClusterRoleBinding")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Prometheus ClusterRoleBinding")
+		hasModification = true
+	}
+	if modified, err := r.reconcileObject(ctx, plantDCore, curPrometheusObject, desiredPrometheusObject, true); err != nil {
+		logger.Error(err, "failed to reconcile Prometheus object")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created or updated Prometheus object")
+		hasModification = true
+	}
+	if modified, err := r.reconcileObject(ctx, plantDCore, curPrometheusService, desiredPrometheusService, false); err != nil {
+		logger.Error(err, "failed to reconcile Prometheus Service")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Prometheus Service")
+		hasModification = true
+	}
+	if modified, err := r.reconcileObject(ctx, plantDCore, curRedisDeployment, desiredRedisDeployment, true); err != nil {
+		logger.Error(err, "failed to reconcile Redis Deployment")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created or updated Redis Deployment")
+		hasModification = true
+	}
+	if modified, err := r.reconcileObject(ctx, plantDCore, curRedisService, desiredRedisService, false); err != nil {
+		logger.Error(err, "failed to reconcile Redis Service")
+		return ctrl.Result{}, err
+	} else if modified {
+		logger.Info("created Redis Service")
+		hasModification = true
 	}
 
-	// TODO: Deploy RedisStack
+	_ = hasModification
 
-	return ctrl.Result{RequeueAfter: time.Minute}, nil
+	return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

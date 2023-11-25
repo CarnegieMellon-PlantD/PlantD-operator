@@ -20,23 +20,22 @@ import (
 	"flag"
 	"os"
 
+	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/internal/controller"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	k6v1alpha1 "github.com/grafana/k6-operator/api/v1alpha1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
+	clientgo "k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	k6v1alpha1 "github.com/grafana/k6-operator/api/v1alpha1"
-	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-
-	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -95,7 +94,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	k8sClient, err := kubernetes.NewForConfig(cfg)
+	cgClient, err := clientgo.NewForConfig(cfg)
 	if err != nil {
 		setupLog.Error(err, "unable to create k8s client")
 	}
@@ -108,9 +107,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controller.DataSetReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		K8SClient: k8sClient,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		CGClient: cgClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DataSet")
 		os.Exit(1)

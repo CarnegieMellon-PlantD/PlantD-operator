@@ -13,19 +13,9 @@ func init() {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("/etc/plantd/")
 	viper.AddConfigPath("./config/plantd")
-	viper.AddConfigPath("../config/plantd")
-	viper.AddConfigPath("../../config/plantd")
-	viper.AddConfigPath("../../../config/plantd")
 	if err := viper.ReadInConfig(); err != nil {
 		zap.L().Error(fmt.Sprintf("Error reading config file: %s", err))
 	}
-}
-
-// GetKinds returns the list of kinds defined in the configuration.
-func GetKinds() []string {
-	// Replace this with your actual implementation to retrieve the list of kinds from the configuration.
-	kinds := []string{"schema", "dataset", "loadpattern", "pipeline", "experiment", "plantdcore"}
-	return kinds
 }
 
 // GetString returns the value associated with the key as a string.
@@ -81,6 +71,5 @@ func GetStringMapStringSlice(key string) map[string][]string {
 	return viper.GetStringMapStringSlice(key)
 }
 
-// GetSizeInBytes returns the size of the value associated with the given key
-// in bytes.
+// GetSizeInBytes returns the size of the value associated with the given key in bytes.
 func GetSizeInBytes(key string) uint { return viper.GetSizeInBytes(key) }

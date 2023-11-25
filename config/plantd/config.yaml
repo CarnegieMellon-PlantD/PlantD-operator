@@ -1,4 +1,4 @@
-name: plantd
+name: PlantD
 version: 1.0.0
 pvc.requests.storage: 10Gi
 dataGenerator:
@@ -8,50 +8,54 @@ dataGenerator:
   backoffLimit: 1
   requests.cpu: 1
   limits.cpu: 1
-plantdCore:
+plantDCore:
   serviceAccountName: plantd-operator-controller-manager
   kubeProxy:
-    image: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
-    label:
+    labels:
       app: plantd-proxy
-    selector:
-      key: app
-      value: plantd-proxy
     containerName: plantd-proxy
-    replicas: 1
+    image: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
     deploymentName: plantd-proxy-deployment
+    replicas: 1
     serviceName: plantd-proxy-service
     port: 5000
     targetPort: 5000
   studio:
-    image: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
-    label:
+    labels:
       app: plantd-studio
-    selector:
-      key: app
-      value: plantd-studio
     containerName: plantd-studio
-    replicas: 1
+    image: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
     deploymentName: plantd-studio-deployment
+    replicas: 1
     serviceName: plantd-studio-service
-    portName: http
     port: 80
     targetPort: 8080
   prometheus:
-    name: prometheus
-    serviceAccount: prometheus
-    resourceMemory: 1Gi
-    scrapeInterval: 15s
-    clusteRoleName: plantd-prometheus-role
-    clusterRoleBindingName: plantd-prometheus-role-binding
-    selector:
-      key: component
-      value: plantd-metrics-endpoint
-    service:
-      port: 9090
-      nodePort: 30900
-    specSelector:
+    labels:
       prometheus: prometheus
+    serviceMonitorSelector:
+      component: plantd-metrics-endpoint
+    serviceAccountName: prometheus
+    clusterRoleName: plantd-prometheus-role
+    clusterRoleBindingName: plantd-prometheus-role-binding
+    name: prometheus
+    scrapeInterval: 15s
+    replicas: 1
+    memoryLimit: 1Gi
+    serviceName: prometheus-service
+    port: 9090
+    targetPort: 9090
+    nodePort: 30900
+  redis:
+    labels:
+      app: redis
+    containerName: redis
+    image: redis/redis-stack-server:latest
+    deploymentName: redis-deployment
+    replicas: 1
+    serviceName: redis-service
+    port: 6379
+    targetPort: 6379
 k6:
   arguments: --out experimental-prometheus-rw
   remoteWriteURL:
