@@ -1,0 +1,12 @@
+apiVersion: windtunnel.plantd.org/v1alpha1
+kind: DigitalTwin
+metadata:
+  labels:
+    app.kubernetes.io/name: digitaltwin
+    app.kubernetes.io/instance: digitaltwin-sample
+    app.kubernetes.io/part-of: plantd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: plantd-operator
+  name: digitaltwin-sample
+spec:
+  # TODO(user): Add fields here

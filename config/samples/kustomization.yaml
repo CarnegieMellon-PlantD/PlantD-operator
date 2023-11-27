@@ -7,4 +7,5 @@ resources:
 - windtunnel_v1alpha1_pipeline.yaml
 - windtunnel_v1alpha1_experiment.yaml
 - windtunnel_v1alpha1_costexporter.yaml
+- windtunnel_v1alpha1_digitaltwin.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
