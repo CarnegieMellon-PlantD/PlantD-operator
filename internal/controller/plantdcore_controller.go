@@ -39,7 +39,26 @@ import (
 )
 
 const (
+	// Name of the finalizer
 	finalizerName = "plantdcore.windtunnel.plantd.org/finalizer"
+)
+
+// reconcilerResult is the type of reconciler result
+type reconcilerResult int8
+
+// Enums of reconciliation results
+const (
+	reconcilerFailed  reconcilerResult = iota // Reconciliation failed
+	reconcilerOK                              // No operation required
+	reconcilerCreated                         // Resource created
+	reconcilerUpdated                         // Resource updated
+)
+
+// Enums of status string
+const (
+	statusPending  = "Pending"   // Resource created or updated, and have no replica numbers
+	statusNotReady = "Not Ready" // Resource pending, not all replicas are ready
+	statusReady    = "Ready"     // Resource ready, all replicas are ready
 )
 
 // PlantDCoreReconciler reconciles a PlantDCore object
@@ -68,9 +87,8 @@ type PlantDCoreReconciler struct {
 
 // reconcileObject ensures the actual state of the object matches the desired state. It creates the object if it does
 // not exist, and otherwise updates it if necessary. Also, controller reference is set to delete the object when the
-// owner object is deleted. Update behavior can be enabled or disabled. It returns a bool to show if any action is taken
-// and the error if any.
-func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore, curObj client.Object, desiredObj client.Object, allowUpdate bool) (bool, error) {
+// owner object is deleted. Update behavior can be enabled or disabled. It returns the result and the error if any.
+func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore, curObj client.Object, desiredObj client.Object, allowUpdate bool) (reconcilerResult, error) {
 	// Get current object
 	err := r.Get(ctx, types.NamespacedName{
 		Namespace: desiredObj.GetNamespace(),
@@ -78,7 +96,7 @@ func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *
 	}, curObj)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			return false, fmt.Errorf("failed to get object: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to get object: %s", err)
 		}
 
 		// Object does not exist, create it
@@ -86,21 +104,21 @@ func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *
 		// "metadata.ownerReferences" from the annotation. Since a later comparison happens between the annotation
 		// and the "desired" object, both of them should not contain the controller reference.
 		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
-			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to set last applied annotation: %s", err)
 		}
 		if err = ctrl.SetControllerReference(plantDCore, desiredObj, r.Scheme); err != nil {
-			return false, fmt.Errorf("failed to set controller reference: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to set controller reference: %s", err)
 		}
 
 		if err = r.Create(ctx, desiredObj); err != nil {
-			return false, fmt.Errorf("failed to create object: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to create object: %s", err)
 		}
 
-		return true, nil
+		return reconcilerCreated, nil
 	}
 
 	if !allowUpdate {
-		return false, nil
+		return reconcilerOK, nil
 	}
 
 	// Object exists, compare and update if necessary
@@ -109,17 +127,17 @@ func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *
 	}
 	patchResult, err := patch.DefaultPatchMaker.Calculate(curObj, desiredObj, compareOpts...)
 	if err != nil {
-		return false, fmt.Errorf("failed to compare objects: %s", err)
+		return reconcilerFailed, fmt.Errorf("failed to compare objects: %s", err)
 	}
 	if !patchResult.IsEmpty() {
 		// Setting last applied annotation before setting controller reference since it excludes the
 		// "metadata.ownerReferences" from the annotation. Since a later comparison happens between the annotation
 		// and the "desired" object, both of them should not contain the controller reference.
 		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
-			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to set last applied annotation: %s", err)
 		}
 		if err = ctrl.SetControllerReference(plantDCore, desiredObj, r.Scheme); err != nil {
-			return false, fmt.Errorf("failed to set controller reference: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to set controller reference: %s", err)
 		}
 
 		// Avoid "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update" error in some cases,
@@ -127,42 +145,42 @@ func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *
 		desiredObj.SetResourceVersion(curObj.GetResourceVersion())
 
 		if err = r.Update(ctx, desiredObj); err != nil {
-			return false, fmt.Errorf("failed to update object: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to update object: %s", err)
 		}
 
-		return true, nil
+		return reconcilerUpdated, nil
 	}
 
-	return false, nil
+	return reconcilerOK, nil
 }
 
 // reconcileClusterObject ensures the actual state of the cluster-level object matches the desired state. It creates the
 // object if it does not exist, and otherwise updates it if necessary. Update behavior can be enabled or disabled. It
-// returns a bool to show if any action is taken and the error if any.
-func (r *PlantDCoreReconciler) reconcileClusterObject(ctx context.Context, curObj client.Object, desiredObj client.Object, allowUpdate bool) (bool, error) {
+// returns the result and the error if any.
+func (r *PlantDCoreReconciler) reconcileClusterObject(ctx context.Context, curObj client.Object, desiredObj client.Object, allowUpdate bool) (reconcilerResult, error) {
 	// Get current object
 	err := r.Get(ctx, types.NamespacedName{
 		Name: desiredObj.GetName(),
 	}, curObj)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			return false, fmt.Errorf("failed to get object: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to get object: %s", err)
 		}
 
 		// Object does not exist, create it
 		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
-			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to set last applied annotation: %s", err)
 		}
 
 		if err = r.Create(ctx, desiredObj); err != nil {
-			return false, fmt.Errorf("failed to create object: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to create object: %s", err)
 		}
 
-		return true, nil
+		return reconcilerCreated, nil
 	}
 
 	if !allowUpdate {
-		return false, nil
+		return reconcilerOK, nil
 	}
 
 	// Object exists, compare and update if necessary
@@ -171,11 +189,11 @@ func (r *PlantDCoreReconciler) reconcileClusterObject(ctx context.Context, curOb
 	}
 	patchResult, err := patch.DefaultPatchMaker.Calculate(curObj, desiredObj, compareOpts...)
 	if err != nil {
-		return false, fmt.Errorf("failed to compare objects: %s", err)
+		return reconcilerFailed, fmt.Errorf("failed to compare objects: %s", err)
 	}
 	if !patchResult.IsEmpty() {
 		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
-			return false, fmt.Errorf("failed to set last applied annotation: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to set last applied annotation: %s", err)
 		}
 
 		// Avoid "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update" error in some cases,
@@ -183,13 +201,32 @@ func (r *PlantDCoreReconciler) reconcileClusterObject(ctx context.Context, curOb
 		desiredObj.SetResourceVersion(curObj.GetResourceVersion())
 
 		if err = r.Update(ctx, desiredObj); err != nil {
-			return false, fmt.Errorf("failed to update object: %s", err)
+			return reconcilerFailed, fmt.Errorf("failed to update object: %s", err)
 		}
 
-		return true, nil
+		return reconcilerUpdated, nil
 	}
 
-	return false, nil
+	return reconcilerOK, nil
+}
+
+// getStatusFields accepts the reconciliation result and the number of available and unavailable replicas, and returns
+// the "Ready" and "Status" fields for object status.
+func (r *PlantDCoreReconciler) getStatusFields(result reconcilerResult, availableReplicas int32, unavailableReplicas int32) (bool, string) {
+	switch result {
+	case reconcilerFailed:
+		return false, ""
+	case reconcilerOK:
+		if availableReplicas > 0 && unavailableReplicas == 0 {
+			return true, fmt.Sprintf("%s (%d/%d)", statusReady, availableReplicas, availableReplicas+unavailableReplicas)
+		}
+		return false, fmt.Sprintf("%s (%d/%d)", statusNotReady, availableReplicas, availableReplicas+unavailableReplicas)
+	case reconcilerCreated:
+		return false, statusPending
+	case reconcilerUpdated:
+		return false, statusPending
+	}
+	return false, ""
 }
 
 // finalizeResources cleans up the resources before deletion. It returns the error if any.
@@ -284,89 +321,143 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	desiredRedisDeployment := core.GetRedisDeployment(plantDCore)
 	desiredRedisService := core.GetRedisService(plantDCore)
 
-	hasModification := false
+	isAllReady := true
 
-	if modified, err := r.reconcileObject(ctx, plantDCore, curKubeProxyDeployment, desiredKubeProxyDeployment, true); err != nil {
+	if result, err := r.reconcileObject(ctx, plantDCore, curKubeProxyDeployment, desiredKubeProxyDeployment, true); err != nil {
 		logger.Error(err, "failed to reconcile Kube Proxy Deployment")
 		return ctrl.Result{}, err
-	} else if modified {
-		logger.Info("created or updated Kube Proxy Deployment")
-		hasModification = true
+	} else {
+		if result == reconcilerCreated {
+			logger.Info("created Kube Proxy Deployment")
+		} else if result == reconcilerUpdated {
+			logger.Info("updated Kube Proxy Deployment")
+		}
+		ready, status := r.getStatusFields(result, curKubeProxyDeployment.Status.AvailableReplicas, curKubeProxyDeployment.Status.UnavailableReplicas)
+		if !ready {
+			isAllReady = false
+		}
+		plantDCore.Status.KubeProxyReady = ready
+		plantDCore.Status.KubeProxyStatus = status
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curKubeProxyService, desiredKubeProxyService, false); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curKubeProxyService, desiredKubeProxyService, false); err != nil {
 		logger.Error(err, "failed to reconcile Kube Proxy Service")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Kube Proxy Service")
-		hasModification = true
+		isAllReady = false
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curStudioDeployment, desiredStudioDeployment, true); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curStudioDeployment, desiredStudioDeployment, true); err != nil {
 		logger.Error(err, "failed to reconcile Studio Deployment")
 		return ctrl.Result{}, err
-	} else if modified {
-		logger.Info("created or updated Studio Deployment")
-		hasModification = true
+	} else {
+		if result == reconcilerCreated {
+			logger.Info("created Studio Deployment")
+		} else if result == reconcilerUpdated {
+			logger.Info("updated Studio Deployment")
+		}
+		ready, status := r.getStatusFields(result, curStudioDeployment.Status.AvailableReplicas, curStudioDeployment.Status.UnavailableReplicas)
+		if !ready {
+			isAllReady = false
+		}
+		plantDCore.Status.StudioReady = ready
+		plantDCore.Status.StudioStatus = status
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curStudioService, desiredStudioService, false); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curStudioService, desiredStudioService, false); err != nil {
 		logger.Error(err, "failed to reconcile Studio Service")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Studio Service")
-		hasModification = true
+		isAllReady = false
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curPrometheusServiceAccount, desiredPrometheusServiceAccount, false); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curPrometheusServiceAccount, desiredPrometheusServiceAccount, false); err != nil {
 		logger.Error(err, "failed to reconcile Prometheus ServiceAccount")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Prometheus ServiceAccount")
-		hasModification = true
+		isAllReady = false
 	}
-	if modified, err := r.reconcileClusterObject(ctx, curPrometheusClusterRole, desiredPrometheusClusterRole, false); err != nil {
+
+	if result, err := r.reconcileClusterObject(ctx, curPrometheusClusterRole, desiredPrometheusClusterRole, false); err != nil {
 		logger.Error(err, "failed to reconcile Prometheus ClusterRole")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Prometheus ClusterRole")
-		hasModification = true
+		isAllReady = false
 	}
-	if modified, err := r.reconcileClusterObject(ctx, curPrometheusClusterRoleBinding, desiredPrometheusClusterRoleBinding, false); err != nil {
+
+	if result, err := r.reconcileClusterObject(ctx, curPrometheusClusterRoleBinding, desiredPrometheusClusterRoleBinding, false); err != nil {
 		logger.Error(err, "failed to reconcile Prometheus ClusterRoleBinding")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Prometheus ClusterRoleBinding")
-		hasModification = true
+		isAllReady = false
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curPrometheusObject, desiredPrometheusObject, true); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curPrometheusObject, desiredPrometheusObject, true); err != nil {
 		logger.Error(err, "failed to reconcile Prometheus object")
 		return ctrl.Result{}, err
-	} else if modified {
-		logger.Info("created or updated Prometheus object")
-		hasModification = true
+	} else {
+		if result == reconcilerCreated {
+			logger.Info("created Prometheus object")
+		} else if result == reconcilerUpdated {
+			logger.Info("updated Prometheus object")
+		}
+		ready, status := r.getStatusFields(result, curPrometheusObject.Status.AvailableReplicas, curPrometheusObject.Status.UnavailableReplicas)
+		if !ready {
+			isAllReady = false
+		}
+		plantDCore.Status.PrometheusReady = ready
+		plantDCore.Status.PrometheusStatus = status
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curPrometheusService, desiredPrometheusService, false); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curPrometheusService, desiredPrometheusService, false); err != nil {
 		logger.Error(err, "failed to reconcile Prometheus Service")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Prometheus Service")
-		hasModification = true
+		isAllReady = false
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curRedisDeployment, desiredRedisDeployment, true); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curRedisDeployment, desiredRedisDeployment, true); err != nil {
 		logger.Error(err, "failed to reconcile Redis Deployment")
 		return ctrl.Result{}, err
-	} else if modified {
-		logger.Info("created or updated Redis Deployment")
-		hasModification = true
+	} else {
+		if result == reconcilerCreated {
+			logger.Info("created Redis Deployment")
+		} else if result == reconcilerUpdated {
+			logger.Info("updated Redis Deployment")
+		}
+		ready, status := r.getStatusFields(result, curRedisDeployment.Status.AvailableReplicas, curRedisDeployment.Status.UnavailableReplicas)
+		if !ready {
+			isAllReady = false
+		}
+		plantDCore.Status.RedisReady = ready
+		plantDCore.Status.RedisStatus = status
 	}
-	if modified, err := r.reconcileObject(ctx, plantDCore, curRedisService, desiredRedisService, false); err != nil {
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curRedisService, desiredRedisService, false); err != nil {
 		logger.Error(err, "failed to reconcile Redis Service")
 		return ctrl.Result{}, err
-	} else if modified {
+	} else if result == reconcilerCreated {
 		logger.Info("created Redis Service")
-		hasModification = true
+		isAllReady = false
 	}
 
-	_ = hasModification
+	// Update object status
+	if err := r.Status().Update(ctx, plantDCore); err != nil {
+		logger.Error(err, "failed to update status")
+		return ctrl.Result{}, err
+	}
 
-	return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	if isAllReady {
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
+	return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

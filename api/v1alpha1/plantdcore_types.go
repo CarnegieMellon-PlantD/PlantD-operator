@@ -64,12 +64,22 @@ type PlantDCoreStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// ProxyStatus shows the status of the PlantD Proxy
-	ProxyStatus string `json:"kubeProxyStatus,omitempty"`
+	// KubeProxyReady shows if the PlantD Kube Proxy is ready
+	KubeProxyReady bool `json:"kubeProxyReady,omitempty"`
+	// StudioReady shows if the PlantD Studio is ready
+	StudioReady bool `json:"studioReady,omitempty"`
+	// PrometheusReady shows if the Prometheus is ready
+	PrometheusReady bool `json:"PrometheusReady,omitempty"`
+	// RedisReady shows if the Redis is ready
+	RedisReady bool `json:"redisReady,omitempty"`
+	// KubeProxyStatus shows the status of the PlantD Proxy
+	KubeProxyStatus string `json:"kubeProxyStatus,omitempty"`
 	// StudioStatus shows the status of the PlantD Studio
 	StudioStatus string `json:"studioStatus,omitempty"`
 	// PrometheusStatus shows the status of the Prometheus
 	PrometheusStatus string `json:"prometheusStatus,omitempty"`
+	// RedisStatus shows the status of the Redis
+	RedisStatus string `json:"redisStatus,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -77,6 +87,7 @@ type PlantDCoreStatus struct {
 //+kubebuilder:printcolumn:name="KubeProxyStatus",type="string",JSONPath=".status.kubeProxyStatus"
 //+kubebuilder:printcolumn:name="StudioStatus",type="string",JSONPath=".status.studioStatus"
 //+kubebuilder:printcolumn:name="PrometheusStatus",type="string",JSONPath=".status.prometheusStatus"
+//+kubebuilder:printcolumn:name="RedisStatus",type="string",JSONPath=".status.redisStatus"
 
 // PlantDCore is the Schema for the plantdcores API
 type PlantDCore struct {

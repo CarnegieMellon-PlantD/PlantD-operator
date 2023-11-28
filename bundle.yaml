@@ -2196,6 +2196,9 @@ spec:
     - jsonPath: .status.prometheusStatus
       name: PrometheusStatus
       type: string
+    - jsonPath: .status.redisStatus
+      name: RedisStatus
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -2464,12 +2467,27 @@ spec:
           status:
             description: PlantDCoreStatus defines the observed state of PlantDCore
             properties:
+              PrometheusReady:
+                description: PrometheusReady shows if the Prometheus is ready
+                type: boolean
+              kubeProxyReady:
+                description: KubeProxyReady shows if the PlantD Kube Proxy is ready
+                type: boolean
               kubeProxyStatus:
-                description: ProxyStatus shows the status of the PlantD Proxy
+                description: KubeProxyStatus shows the status of the PlantD Proxy
                 type: string
               prometheusStatus:
                 description: PrometheusStatus shows the status of the Prometheus
                 type: string
+              redisReady:
+                description: RedisReady shows if the Redis is ready
+                type: boolean
+              redisStatus:
+                description: RedisStatus shows the status of the Redis
+                type: string
+              studioReady:
+                description: StudioReady shows if the PlantD Studio is ready
+                type: boolean
               studioStatus:
                 description: StudioStatus shows the status of the PlantD Studio
                 type: string
@@ -8723,3 +8741,5 @@ metadata:
   namespace: plantd-operator-system
 spec:
   # TODO(user): Add fields here
+  studio:
+    replicas: 2
