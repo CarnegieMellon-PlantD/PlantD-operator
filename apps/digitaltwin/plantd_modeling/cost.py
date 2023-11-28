@@ -22,8 +22,8 @@ def get_cost(source, experiment_name, pipeline_namespace, start_time, end_time, 
     
     # Get endpoints from environment variables
     # load_dotenv(".env")   # read from .env file for local testing only
-    prometheus_endpoint = os.environ.get("PROMETHEUS_ENDPOINT", "http://localhost:9990/api/v1/query")
-    opencost_endpoint = os.environ.get("OPENCOST_ENDPOINT", "http://localhost:9003/allocation")
+    prometheus_endpoint = os.environ.get("PROMETHEUS_ENDPOINT", "http://ae8a8d6350c0c49d49cf02032f3ba1f3-1860716982.us-east-1.elb.amazonaws.com:9090")
+    opencost_endpoint = os.environ.get("OPENCOST_ENDPOINT", "http://a849015f9e0584ae9ad66a83cab4e57a-359225929.us-east-1.elb.amazonaws.com:9003")
     
     # Get experiment tag and start and end times from environment variables
     pipeline_label_key = os.environ.get("PIPELINE_LABEL_KEY", "app")
@@ -94,7 +94,7 @@ def get_cost_data(opencost_endpoint, pipeline_label_key, pipeline_label_value,
     print("Calling: ", opencost_endpoint, " with params: ", params)
 
     # make API request
-    response = requests.get(opencost_endpoint, params=params)
+    response = requests.get(opencost_endpoint + "/allocation", params=params)
     if response.status_code != 200:
         print("Error querying OpenCost API: ", response.status_code)
         print("Exiting...")
@@ -149,7 +149,7 @@ def get_prometheus_data(prometheus_endpoint):
     for metric in ["kubecost_cluster_management_cost", "node_cpu_hourly_cost", 
                     "node_ram_hourly_cost"]:
         params["query"] = metric
-        response = requests.get(prometheus_endpoint, params=params)
+        response = requests.get(prometheus_endpoint + "/api/v1/query", params=params)
         if response.status_code != 200:
             print("Error querying Prometheus API: ", response.status_code)
             print("Exiting...")

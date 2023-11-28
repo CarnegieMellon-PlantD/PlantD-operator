@@ -27,9 +27,9 @@ import (
 type DigitalTwinSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ModelType string `json:"modelType,omitempty"`
+	ModelType        string `json:"modelType,omitempty"`
 	LoadPatternNames string `json:"loadPatternNames,omitempty"`
-	ExperimentNames string `json:"experimentNames,omitempty"`
+	ExperimentNames  string `json:"experimentNames,omitempty"`
 }
 
 // DigitalTwinStatus defines the observed state of DigitalTwin

@@ -1,7 +1,7 @@
 from cost.factory.cost_exporter_factory import CostExporterFactory
 import os
 
-CLOUD_SERVICE_PROVIDER = os.environ.get('CLOUD_SERVICE_PROVIDER', '')
+CLOUD_SERVICE_PROVIDER = os.environ.get('CLOUD_SERVICE_PROVIDER', 'aws')
 
 
 def collect_cost_logs():

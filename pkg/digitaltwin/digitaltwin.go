@@ -2,8 +2,6 @@ package digitaltwin
 
 import (
 	"context"
-	"strconv"
-	"time"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
@@ -21,7 +19,7 @@ func init() {
 // CreateJobByDigitalTwin creates a Kubernetes Job based on the Digital Twinconfiguration.
 func CreateJobByDigitalTwin(ctx context.Context, jobName string, digitalTwin *windtunnelv1alpha1.DigitalTwin,
 	experimentListJson string, loadPatternListJson string) (*corev1.Pod, error) {
-	
+
 	// Create the Kubernetes Job object
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -40,6 +38,10 @@ func CreateJobByDigitalTwin(ctx context.Context, jobName string, digitalTwin *wi
 					ImagePullPolicy: corev1.PullAlways,
 					Env: []corev1.EnvVar{
 						{
+							Name:  "TWIN_NAME",
+							Value: digitalTwin.Name,
+						},
+						{
 							Name:  "MODEL_TYPE",
 							Value: string(digitalTwin.Spec.ModelType),
 						},
@@ -53,7 +55,12 @@ func CreateJobByDigitalTwin(ctx context.Context, jobName string, digitalTwin *wi
 						},
 						{
 							Name:  "PROMETHEUS_HOST",
-							Value: "prometheus.plantd-operator-system.svc.cluster.local",
+							Value: "http://prometheus.plantd-operator-system.svc.cluster.local:9090",
+						},
+
+						{
+							Name:  "OPENCOST_ENDPOINT",
+							Value: "http://opencost.opencost.svc.cluster.local:9003",
 						},
 						{
 							Name:  "PROMETHEUS_PASSWORD",
@@ -69,11 +76,11 @@ func CreateJobByDigitalTwin(ctx context.Context, jobName string, digitalTwin *wi
 						},
 						{
 							Name:  "LOAD_PATTERN_METADATA",
-							Value: string(loadPatternListJson),
+							Value: loadPatternListJson,
 						},
 						{
 							Name:  "EXPERIMENT_METADATA",
-							Value: string(experimentListJson),
+							Value: experimentListJson,
 						},
 					},
 				},

@@ -18,7 +18,12 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
+	"strings"
+	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,16 +79,16 @@ func (r *DigitalTwinReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// List experiments required for digital twin
 	experimentsList := &windtunnelv1alpha1.ExperimentList{}
 	for _, experiment := range experiments.Items {
-		experimentNameCheck = experiment.Namespace + "." + experiment.Name
-		if string.Contains(digitalTwin.Spec.ExperimentNames, experimentNameCheck) {
+		experimentNameCheck := experiment.Namespace + "." + experiment.Name
+		if strings.Contains(digitalTwin.Spec.ExperimentNames, experimentNameCheck) {
 			experimentsList.Items = append(experimentsList.Items, experiment)
 		}
 	}
 
 	loadPatterns := &windtunnelv1alpha1.LoadPatternList{}
 
-	err := r.List(ctx, loadPatterns)
-	if err != nil {
+	err1 := r.List(ctx, loadPatterns)
+	if err1 != nil {
 		log.Error(err, "Unable to list load patterns when running digital twin")
 		return ctrl.Result{}, err
 	}
@@ -91,8 +96,8 @@ func (r *DigitalTwinReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// List experiments required for digital twin
 	loadPatternList := &windtunnelv1alpha1.LoadPatternList{}
 	for _, loadPattern := range loadPatterns.Items {
-		loadPatternNameCheck = loadPattern.Namespace + "." + loadPattern.Name
-		if string.Contains(digitalTwin.Spec.LoadPatternNames, loadPatternNameCheck) {
+		loadPatternNameCheck := loadPattern.Namespace + "." + loadPattern.Name
+		if strings.Contains(digitalTwin.Spec.LoadPatternNames, loadPatternNameCheck) {
 			loadPatternList.Items = append(loadPatternList.Items, loadPattern)
 		}
 	}
@@ -108,7 +113,19 @@ func (r *DigitalTwinReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	pod, _ := digitaltwin.CreateJobByDigitalTwin(ctx, digitalTwin.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), digitalTwin, experimentListJSON, loadPatternListJSON)
+	pod, _ := digitaltwin.CreateJobByDigitalTwin(ctx, digitalTwin.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), digitalTwin, string(experimentListJSON), string(loadPatternListJSON))
+
+	if err := ctrl.SetControllerReference(digitalTwin, pod, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Create(ctx, pod); err != nil {
+		log.Error(err, "Cannot create digital twin job.")
+	}
+
+	if err := r.Status().Update(ctx, digitalTwin); err != nil {
+		log.Error(err, "Cannot update the status of Digital Twin after creation.")
+	}
 	return ctrl.Result{}, nil
 }
 
