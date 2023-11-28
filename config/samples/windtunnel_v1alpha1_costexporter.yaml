@@ -9,4 +9,8 @@ metadata:
     app.kubernetes.io/created-by: plantd-operator
   name: costexporter-sample
 spec:
-  # TODO(user): Add fields here
+  s3Bucket: cost-logging
+  cloudServiceProvider: aws
+  secretRef:
+    name: csp-credentials
+    namespace: default

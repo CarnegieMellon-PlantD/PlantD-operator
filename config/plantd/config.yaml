@@ -2,11 +2,11 @@ name: plantd
 version: 1.0.0
 pvc.requests.storage: 10Gi
 costService:
-  image: docker.io/datawindtunnel/aws-cost-service:v0.0.3
+  image: docker.io/datawindtunnel/aws-cost-service:v0.0.4
   requests.cpu: 300m
   limits.cpu: 500m
 digitalTwin:
-  image: docker.io/datawindtunnel/aws-cost-service:v0.0.3
+  image: docker.io/datawindtunnel/digitaltwin:latest
   requests.cpu: 300m
   limits.cpu: 500m
 dataGenerator:

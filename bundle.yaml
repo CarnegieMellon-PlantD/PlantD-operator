@@ -280,6 +280,59 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
+  name: digitaltwins.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: DigitalTwin
+    listKind: DigitalTwinList
+    plural: digitaltwins
+    singular: digitaltwin
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DigitalTwin is the Schema for the digitaltwins API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DigitalTwinSpec defines the desired state of DigitalTwin
+            properties:
+              experimentNames:
+                type: string
+              loadPatternNames:
+                type: string
+              modelType:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            type: object
+          status:
+            description: DigitalTwinStatus defines the observed state of DigitalTwin
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
   name: experiments.windtunnel.plantd.org
 spec:
   group: windtunnel.plantd.org
@@ -2651,6 +2704,59 @@ spec:
                   job.
                 format: date-time
                 type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: digitaltwins.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: DigitalTwin
+    listKind: DigitalTwinList
+    plural: digitaltwins
+    singular: digitaltwin
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DigitalTwin is the Schema for the digitaltwins API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DigitalTwinSpec defines the desired state of DigitalTwin
+            properties:
+              experimentNames:
+                type: string
+              loadPatternNames:
+                type: string
+              modelType:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            type: object
+          status:
+            description: DigitalTwinStatus defines the observed state of DigitalTwin
             type: object
         type: object
     served: true
@@ -5069,6 +5175,32 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
+  - digitaltwins
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
   - experiments
   verbs:
   - create
@@ -5349,7 +5481,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/carnegiemellon-plantd/plantd-controller:latest
+        image: docker.io/datawindtunnel/plantd-controller:digitaltwin
         livenessProbe:
           httpGet:
             path: /healthz

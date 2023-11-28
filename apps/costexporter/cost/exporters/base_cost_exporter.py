@@ -64,8 +64,10 @@ class CostExporter(ABC):
       )
     except redis.RedisError as e:
       print("Error: Failed to write to Redis.", e)
+      raise e
     except Exception as e:
       print("Error: Unexpected error occurred while writing records to Redis.", e)
+      raise e
 
   @abstractmethod
   def get_cost_logs(self):

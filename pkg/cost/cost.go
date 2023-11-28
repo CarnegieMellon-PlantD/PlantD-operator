@@ -49,7 +49,7 @@ func CreateJobByCostServie(ctx context.Context, jobName string, costService *win
 						},
 						{
 							Name:  "REDIS_HOST",
-							Value: "redis",
+							Value: "redis.plantd-operator-system.svc.cluster.local",
 						},
 						{
 							Name:  "REDIS_PORT",
