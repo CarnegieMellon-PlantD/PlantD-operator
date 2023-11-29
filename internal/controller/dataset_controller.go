@@ -29,8 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-
+	clientgo "k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -43,8 +42,8 @@ import (
 // DataSetReconciler reconciles a DataSet object
 type DataSetReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	K8SClient *kubernetes.Clientset
+	Scheme   *runtime.Scheme
+	CGClient *clientgo.Clientset
 }
 
 const (
@@ -366,7 +365,7 @@ func (r *DataSetReconciler) getPodLogsByPodName(ctx context.Context, namespace, 
 		Container: containerName,
 	}
 
-	podLogRequest := r.K8SClient.CoreV1().Pods(namespace).GetLogs(podName, podLogOpts)
+	podLogRequest := r.CGClient.CoreV1().Pods(namespace).GetLogs(podName, podLogOpts)
 	podLogs, err := podLogRequest.Stream(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to open log stream for pod: %w", err)

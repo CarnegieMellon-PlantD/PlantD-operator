@@ -15,10 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ErrorResponse struct {
-	Message string `json:"message,omitempty"`
-}
-
 // healthCheck is a handler function for the health check endpoint.
 // It responds an HTTP 200 status with the response body "Healthy".
 func healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -26,12 +22,12 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Healthy"))
 }
 
-// getSampleDataSet returns an HTTP handler function for retrieving a sample dataset.
+// getSampleDataSetHandler returns an HTTP handler function for retrieving a sample dataset.
 // It takes a client object of type client.Client for interacting with the Kubernetes API.
 // The handler function retrieves the sample dataset based on the provided namespace and dataset name.
 // It calls the proxy.GetSampleDataSet function and writes the dataset to the response.
 // If there is an error during the retrieval process, it responds an HTTP 500 status with an error message.
-func getSampleDataSet(client client.Client) http.HandlerFunc {
+func getSampleDataSetHandler(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
@@ -51,29 +47,25 @@ func getSampleDataSet(client client.Client) http.HandlerFunc {
 	}
 }
 
-type CheckHTTPHealthRequest struct {
-	URL string `json:"url,omitempty"`
-}
-
-// checkHTTPHealth returns an HTTP handler function for checking health status of a URL using HTTP protocol.
+// checkHTTPHealthHandler returns an HTTP handler function for checking health status of a URL using HTTP protocol.
 // The handler function retrieves the sample dataset based on the provided namespace and dataset name.
 // It calls utils.CheckHTTPHealth to make a request to the designated URL. Upon receiving an HTTP non-200 response,
 // it responds an HTTP 500 status with an ErrorResponse in JSON.
-func checkHTTPHealth() http.HandlerFunc {
+func checkHTTPHealthHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
-		data := &CheckHTTPHealthRequest{}
+		data := &proxy.CheckHTTPHealthRequest{}
 		err = json.Unmarshal(body, data)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
 
@@ -81,40 +73,40 @@ func checkHTTPHealth() http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 	}
 }
 
-// importResources return an HTTP handler function for importing custom resource definitions from YAML files.
+// importResourcesHandler return an HTTP handler function for importing custom resource definitions from YAML files.
 // The handler function reads the ZIP file content from the `file` field of the request body, which is a form.
 // It calls proxy.ImportResources to extract the ZIP file and import each YAML file.
 // If it completes successfully or with minor errors, it responds an HTTP 200 status code with a
 // proxy.ImportResourcesStatistics in JSON.
 // If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in JSON.
-func importResources(client client.Client) http.HandlerFunc {
+func importResourcesHandler(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		file, _, err := r.FormFile("file")
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request form: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while reading request form: " + err.Error()})
 			return
 		}
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, file); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading file content: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while reading file content: " + err.Error()})
 			return
 		}
 		if stat, err := proxy.ImportResources(ctx, client, buf); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -123,12 +115,13 @@ func importResources(client client.Client) http.HandlerFunc {
 	}
 }
 
-// exportResources return an HTTP handler function for exporting custom resource definitions to YAML files.
-// The handler function gets an array of proxy.ResourceInfo objects from the `info` field of the request body, which is a form.
+// exportResourcesHandler return an HTTP handler function for exporting custom resource definitions to YAML files.
+// The handler function gets an array of proxy.ExportResourceInfo objects from the `info` field of the request body, which is a form.
 // It calls proxy.ExportResources to export all the specified objects to YAML files, and return a ZIP file that contains them.
 // If successful, it responds an HTTP 200 status code.
-// If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in JSON.
-func exportResources(client client.Client) http.HandlerFunc {
+// If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in plain text, as the
+// client browser is expected to access this endpoint via a separate window instead of an AJAX request.
+func exportResourcesHandler(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		info := r.FormValue("info")
@@ -138,7 +131,7 @@ func exportResources(client client.Client) http.HandlerFunc {
 			w.Write([]byte("Error: Request form does not contain `info` field"))
 			return
 		}
-		var data []proxy.ResourceInfo
+		var data []proxy.ExportResourceInfo
 		if err := json.Unmarshal([]byte(info), &data); err != nil {
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusBadRequest)

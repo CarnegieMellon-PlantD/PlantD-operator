@@ -3,6 +3,7 @@ module github.com/CarnegieMellon-PlantD/PlantD-operator
 go 1.20
 
 require (
+	github.com/cisco-open/k8s-objectmatcher v1.9.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
@@ -12,7 +13,11 @@ require (
 )
 
 require (
+	emperror.dev/errors v0.8.1 // indirect
+	github.com/RedisTimeSeries/redistimeseries-go v1.4.4 // indirect
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/fatih/color v1.15.0 // indirect
+	github.com/gomodule/redigo v1.8.2 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

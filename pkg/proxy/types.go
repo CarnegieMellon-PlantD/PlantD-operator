@@ -4,76 +4,102 @@ import (
 	"encoding/json"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-// NamespaceInfo represents information about a namespace.
-type NamespaceInfo struct {
-	Name      string `json:"name,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
+// ErrorResponse defines the response to send when error occurs.
+type ErrorResponse struct {
+	Message string `json:"message,omitempty"`
 }
 
-// CustomResourceMeta represents metadata information for a custom resource.
-type CustomResourceMeta struct {
-	Namespace string `json:"namespace,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Kind      string `json:"kind,omitempty"`
+// CheckHTTPHealthRequest defines the request to check health of a URL using HTTP protocol.
+type CheckHTTPHealthRequest struct {
+	URL string `json:"url,omitempty"`
 }
 
-// ExportResourcesInfo represents information about custom resources to be exported.
-type ExportResourcesInfo struct {
-	Metadata []CustomResourceMeta `json:"metadata,omitempty"`
+// ImportResourcesStatistics contains the result of importing resources.
+type ImportResourcesStatistics struct {
+	// NumSucceeded is the number of resources that are successfully imported
+	NumSucceeded int `json:"numSucceeded"`
+	// NumFailed is the number of resources that failed to be imported
+	NumFailed int `json:"numFailed"`
+	// ErrorMessages contains the error messages if any
+	ErrorMessages []string `json:"errors"`
 }
 
-// CustomResourceWrapper is a wrapper for a custom resource that implements the client.Object interface.
-type CustomResourceWrapper struct {
-	client.Object
+// ExportResourceInfo contains the kind, namespace, and name that are necessary to locate a unique resource to
+// export. Note that the group and version are fixed across all resources and are thus omitted.
+type ExportResourceInfo struct {
+	Kind string
+	types.NamespacedName
 }
 
-// HealthCheckMeta represents metadata for health check information.
-type HealthCheckMeta struct {
-	URL                 string `json:"url,omitempty"`
-	HealthCheckEndpoint string `json:"healthCheckEndpoint,omitempty"`
-}
+// SourceType is the type of data source
+type SourceType int8
 
+const (
+	Prometheus SourceType = iota
+	RedisTimeSeries
+)
+
+// ChanType is the type of channel number per data point in response data
+type ChanType int8
+
+const (
+	BiChan ChanType = iota
+	TriChan
+)
+
+// UnixTimestamp is the Unix timestamp in second.
 type UnixTimestamp struct {
 	time.Time
 }
 
-func (ts *UnixTimestamp) UnmarshalJSON(b []byte) (err error) {
+func (ts *UnixTimestamp) UnmarshalJSON(b []byte) error {
 	var timestamp int64
-	if err = json.Unmarshal(b, &timestamp); err != nil {
+	if err := json.Unmarshal(b, &timestamp); err != nil {
 		return err
 	}
 	ts.Time = time.Unix(timestamp, 0)
-	return
+	return nil
 }
 
-type QueryParam struct {
+// PromRequest contains the parameters for making a "Query" or "QueryRange" request to Prometheus.
+type PromRequest struct {
 	Query          string        `json:"query,omitempty"`
 	StartTimestamp UnixTimestamp `json:"start,omitempty"`
 	EndTimestamp   UnixTimestamp `json:"end,omitempty"`
 	Step           int64         `json:"step,omitempty"`
 	LabelSelector  []string      `json:"labelSelector,omitempty"`
-	Keys           []string      `json:"keys,omitempty"`
 }
 
-type QueryRequest struct {
-	Source string     `json:"source"`
-	Param  QueryParam `json:"params"`
+// RedisTSRequest contains the parameters for making a "MultiGet" or "MultiRange" request to Redis Time Series.
+type RedisTSRequest struct {
+	Filters        []string      `json:"filters,omitempty"`
+	StartTimestamp UnixTimestamp `json:"start,omitempty"`
+	EndTimestamp   UnixTimestamp `json:"end,omitempty"`
+	LabelSelector  []string      `json:"labelSelector,omitempty"`
 }
 
-type ResultPoint struct {
-	Series string   `json:"series"`
-	ValueY *float64 `json:"y"`
-	ValueX *float64 `json:"x"`
+// BiChanDataPoint defines the data point in bi-channel data.
+type BiChanDataPoint struct {
+	Series string  `json:"series"`
+	ValueY float64 `json:"y"`
 }
 
-type QueryResult struct {
-	Result []ResultPoint `json:"result"`
+// BiChanResponse defines the response to send for bi-channel data.
+type BiChanResponse struct {
+	Result []*BiChanDataPoint `json:"result"`
 }
 
-const (
-	DATA_SOURCE_PROM  = "prometheus"
-	DATA_SOURCE_REDIS = "redis"
-)
+// TriChanDataPoint defines the data point in tri-channel data.
+type TriChanDataPoint struct {
+	Series string  `json:"series"`
+	ValueY float64 `json:"y"`
+	ValueX float64 `json:"x"`
+}
+
+// TriChanResponse defines the response to send for tri-channel data.
+type TriChanResponse struct {
+	Result []*TriChanDataPoint `json:"result"`
+}

@@ -50,11 +50,21 @@ func DeleteNamespace(ctx context.Context, client client.Client, namespaceName st
 	}
 
 	// Wait until the namespace is completely deleted
-	for {
-		err := client.Get(ctx, types.NamespacedName{Name: namespaceName}, nsToDelete)
-		if err != nil {
-			return nil
+	resultCh := make(chan struct{})
+	go func() {
+		for {
+			err := client.Get(ctx, types.NamespacedName{Name: namespaceName}, nsToDelete)
+			if err != nil {
+				resultCh <- struct{}{}
+				break
+			}
+			time.Sleep(time.Second)
 		}
-		time.Sleep(time.Second)
+	}()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-resultCh:
+		return nil
 	}
 }

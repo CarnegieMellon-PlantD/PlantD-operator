@@ -263,12 +263,6 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 	}
 }
 
-type ImportResourcesStatistics struct {
-	NumSucceeded  int      `json:"numSucceeded"`
-	NumFailed     int      `json:"numFailed"`
-	ErrorMessages []string `json:"errors"`
-}
-
 func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*ImportResourcesStatistics, error) {
 	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if err != nil {
@@ -314,12 +308,7 @@ func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*
 	return result, nil
 }
 
-type ResourceInfo struct {
-	Kind string
-	types.NamespacedName
-}
-
-func ExportResources(ctx context.Context, c client.Client, resInfoList []ResourceInfo) (*bytes.Buffer, error) {
+func ExportResources(ctx context.Context, c client.Client, resInfoList []ExportResourceInfo) (*bytes.Buffer, error) {
 	buf := &bytes.Buffer{}
 	zw := zip.NewWriter(buf)
 

@@ -3,164 +3,238 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 
+	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
 var (
-	step time.Duration
+	promUrl   string
+	promStep  time.Duration
+	redisHost string
 )
 
 func init() {
-	scrapeInterval := config.GetString("database.prometheus.scrapeInterval")
-	interval, err := time.ParseDuration(scrapeInterval)
+	promUrl = config.GetString("database.prometheus.url")
+	promInterval, err := time.ParseDuration(config.GetString("database.prometheus.scrapeInterval"))
 	if err != nil {
 		panic(err)
 	}
-	step = 2 * interval
-}
-
-type QueryClient interface {
-	QueryBiChann(ctx context.Context, req *QueryRequest) (*QueryResult, error)
-	QueryTriChann(ctx context.Context, req *QueryRequest) (*QueryResult, error)
+	promStep = 2 * promInterval
+	redisHost = config.GetString("database.redis.host")
 }
 
 type QueryAgent struct {
-	PromAPI prometheusv1.API
+	PromAPI       prometheusv1.API
+	RedisTSClient *redistimeseries.Client
+}
+
+func NewQueryAgent() (*QueryAgent, error) {
+	promClient, err := api.NewClient(api.Config{
+		Address: promUrl,
+	})
+	if err != nil {
+		return nil, err
+	}
+	promApi := prometheusv1.NewAPI(promClient)
+	redisTSClient := redistimeseries.NewClient(redisHost, "redis-ts-client", nil)
+	return &QueryAgent{
+		PromAPI:       promApi,
+		RedisTSClient: redisTSClient,
+	}, nil
 }
 
 type LabelSelector struct {
 	TargetLabels []string
+	pastSeries   map[string]struct{}
 }
 
 func NewLabelSelector(labels []string) *LabelSelector {
 	return &LabelSelector{
 		TargetLabels: labels,
+		pastSeries:   make(map[string]struct{}),
 	}
 }
 
-func (s *LabelSelector) GetSeriesFromMetric(labelSet model.Metric) string {
-	values := make([]string, len(s.TargetLabels))
-	for i, v := range s.TargetLabels {
-		values[i] = string(labelSet[model.LabelName(v)])
+func (ls *LabelSelector) GetSeriesFromPromMetric(m model.Metric) (string, error) {
+	labelValues := make([]string, len(ls.TargetLabels))
+	for i, v := range ls.TargetLabels {
+		if labelValue, ok := m[model.LabelName(v)]; ok {
+			labelValues[i] = string(labelValue)
+		}
 	}
-	return strings.Join(values, "/")
+	result := strings.Join(labelValues, "/")
+	if _, ok := ls.pastSeries[result]; ok {
+		return "", fmt.Errorf("duplicated series")
+	}
+	ls.pastSeries[result] = struct{}{}
+	return result, nil
 }
 
-func NewQueryAgent(url string) (*QueryAgent, error) {
-	promClient, err := api.NewClient(api.Config{
-		Address: url,
-	})
+func (ls *LabelSelector) GetSeriesFromRedisRange(r redistimeseries.Range) (string, error) {
+	labelValues := make([]string, len(ls.TargetLabels))
+	for i, v := range ls.TargetLabels {
+		if labelValue, ok := r.Labels[v]; ok {
+			labelValues[i] = labelValue
+		}
+	}
+	result := strings.Join(labelValues, "/")
+	if _, ok := ls.pastSeries[result]; ok {
+		return "", fmt.Errorf("duplicated series")
+	}
+	ls.pastSeries[result] = struct{}{}
+	return result, nil
+}
+
+func (qa *QueryAgent) PromQuery(ctx context.Context, req *PromRequest) (*BiChanResponse, error) {
+	result, _, err := qa.PromAPI.Query(ctx, req.Query, req.EndTimestamp.Time)
 	if err != nil {
 		return nil, err
 	}
-	v1api := prometheusv1.NewAPI(promClient)
-	return &QueryAgent{
-		PromAPI: v1api,
-	}, nil
-}
-
-func (c *QueryAgent) QueryBiChann(ctx context.Context, req *QueryRequest) (*QueryResult, error) {
-	switch req.Source {
-	case DATA_SOURCE_PROM:
-		return c.QueryBiChannProm(ctx, req)
-	case DATA_SOURCE_REDIS:
-		return c.QueryBiChannRedis(ctx, req)
-	}
-
-	return nil, fmt.Errorf("data source: %s not supported", req.Source)
-}
-
-func (c *QueryAgent) QueryTriChann(ctx context.Context, req *QueryRequest) (*QueryResult, error) {
-	switch req.Source {
-	case DATA_SOURCE_PROM:
-		return c.QueryTriChannProm(ctx, req)
-	case DATA_SOURCE_REDIS:
-		return c.QueryTriChannRedis(ctx, req)
-	}
-
-	return nil, fmt.Errorf("data source: %s not supported", req.Source)
-}
-
-func SampleValueToFloatPointer(v model.SampleValue) *float64 {
-	value := float64(v)
-	if math.IsNaN(value) {
-		return nil
-	}
-	return &value
-}
-
-func (c *QueryAgent) QueryBiChannProm(ctx context.Context, req *QueryRequest) (*QueryResult, error) {
-	result, _, err := c.PromAPI.Query(ctx, req.Param.Query, req.Param.EndTimestamp.Time)
-	if err != nil {
-		return nil, err
-	}
-	labelSelector := NewLabelSelector(req.Param.LabelSelector)
+	labelSelector := NewLabelSelector(req.LabelSelector)
 	if vectorVal, ok := result.(model.Vector); ok {
-		n := len(vectorVal)
-		res := make([]ResultPoint, n)
-		for i, item := range vectorVal {
-			res[i] = ResultPoint{
-				Series: labelSelector.GetSeriesFromMetric(item.Metric),
-				ValueY: SampleValueToFloatPointer(item.Value),
+		res := make([]*BiChanDataPoint, len(vectorVal))
+		for i, sampleVal := range vectorVal {
+			series, err := labelSelector.GetSeriesFromPromMetric(sampleVal.Metric)
+			if err != nil {
+				return nil, err
+			}
+			res[i] = &BiChanDataPoint{
+				Series: series,
+				ValueY: float64(sampleVal.Value),
 			}
 		}
-		return &QueryResult{
+		return &BiChanResponse{
 			Result: res,
 		}, nil
 	}
 	return nil, fmt.Errorf("cannot convert data to desired format")
 }
 
-func (c *QueryAgent) QueryTriChannProm(ctx context.Context, req *QueryRequest) (*QueryResult, error) {
-	promStep := step
-	if req.Param.Step > 0 {
-		promStep = time.Duration(req.Param.Step) * time.Second
+func (qa *QueryAgent) PromQueryRange(ctx context.Context, req *PromRequest) (*TriChanResponse, error) {
+	promStep := promStep
+	if req.Step > 0 {
+		promStep = time.Duration(req.Step) * time.Second
 	}
 
-	r := prometheusv1.Range{
-		Start: req.Param.StartTimestamp.Time,
-		End:   req.Param.EndTimestamp.Time,
+	timeRange := prometheusv1.Range{
+		Start: req.StartTimestamp.Time,
+		End:   req.EndTimestamp.Time,
 		Step:  promStep,
 	}
-	result, _, err := c.PromAPI.QueryRange(ctx, req.Param.Query, r)
+	result, _, err := qa.PromAPI.QueryRange(ctx, req.Query, timeRange)
 	if err != nil {
 		return nil, err
 	}
-	labelSelector := NewLabelSelector(req.Param.LabelSelector)
+	labelSelector := NewLabelSelector(req.LabelSelector)
 	if matrixVal, ok := result.(model.Matrix); ok {
-		res := []ResultPoint{}
-		for _, series := range matrixVal {
-			s := labelSelector.GetSeriesFromMetric(series.Metric)
-			for _, point := range series.Values {
-				ts := float64(point.Timestamp.Time().Unix())
-				res = append(res, ResultPoint{
-					Series: s,
-					ValueY: SampleValueToFloatPointer(point.Value),
-					ValueX: &ts,
+		res := make([]*TriChanDataPoint, 0)
+		for _, streamVal := range matrixVal {
+			series, err := labelSelector.GetSeriesFromPromMetric(streamVal.Metric)
+			if err != nil {
+				return nil, err
+			}
+			for _, sampleVal := range streamVal.Values {
+				res = append(res, &TriChanDataPoint{
+					Series: series,
+					ValueY: float64(sampleVal.Value),
+					ValueX: float64(sampleVal.Timestamp.Time().Unix()),
 				})
 			}
 		}
-		return &QueryResult{
+		return &TriChanResponse{
 			Result: res,
 		}, nil
 	}
 	return nil, fmt.Errorf("cannot convert data to desired format")
 }
 
-func (c *QueryAgent) QueryBiChannRedis(ctx context.Context, req *QueryRequest) (*QueryResult, error) {
-
-	return nil, nil
+func (qa *QueryAgent) RedisTSMultiGet(ctx context.Context, req *RedisTSRequest) (*BiChanResponse, error) {
+	resultCh := make(chan *BiChanResponse)
+	errorCh := make(chan error)
+	go func() {
+		opts := redistimeseries.NewMultiGetOptions()
+		opts.WithLabels = true
+		rangesVal, err := qa.RedisTSClient.MultiGetWithOptions(*opts, req.Filters...)
+		if err != nil {
+			errorCh <- err
+			return
+		}
+		labelSelector := NewLabelSelector(req.LabelSelector)
+		res := make([]*BiChanDataPoint, len(rangesVal))
+		for i, rangeVal := range rangesVal {
+			series, err := labelSelector.GetSeriesFromRedisRange(rangeVal)
+			if err != nil {
+				errorCh <- err
+				return
+			}
+			if len(rangeVal.DataPoints) != 1 {
+				errorCh <- fmt.Errorf("expect 1 data point per range but got %d", len(rangeVal.DataPoints))
+				return
+			}
+			res[i] = &BiChanDataPoint{
+				Series: series,
+				ValueY: rangeVal.DataPoints[0].Value,
+			}
+		}
+		resultCh <- &BiChanResponse{
+			Result: res,
+		}
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case result := <-resultCh:
+		return result, nil
+	case err := <-errorCh:
+		return nil, err
+	}
 }
 
-func (c *QueryAgent) QueryTriChannRedis(ctx context.Context, req *QueryRequest) (*QueryResult, error) {
-
-	return nil, nil
+func (qa *QueryAgent) RedisTSMultiRange(ctx context.Context, req *RedisTSRequest) (*TriChanResponse, error) {
+	resultCh := make(chan *TriChanResponse)
+	errorCh := make(chan error)
+	go func() {
+		opts := redistimeseries.NewMultiRangeOptions()
+		opts.WithLabels = true
+		rangesVal, err := qa.RedisTSClient.MultiRangeWithOptions(req.StartTimestamp.UnixMilli(), req.EndTimestamp.UnixMilli(), *opts, req.Filters...)
+		if err != nil {
+			errorCh <- err
+			return
+		}
+		labelSelector := NewLabelSelector(req.LabelSelector)
+		res := make([]*TriChanDataPoint, 0)
+		for _, rangeVal := range rangesVal {
+			series, err := labelSelector.GetSeriesFromRedisRange(rangeVal)
+			if err != nil {
+				errorCh <- err
+				return
+			}
+			for _, dataPointVal := range rangeVal.DataPoints {
+				res = append(res, &TriChanDataPoint{
+					Series: series,
+					ValueY: dataPointVal.Value,
+					// Redis uses Unix timestamp in milliseconds, convert it to Unix timestamp in seconds
+					ValueX: float64(dataPointVal.Timestamp) / 1000,
+				})
+			}
+		}
+		resultCh <- &TriChanResponse{
+			Result: res,
+		}
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case result := <-resultCh:
+		return result, nil
+	case err := <-errorCh:
+		return nil, err
+	}
 }

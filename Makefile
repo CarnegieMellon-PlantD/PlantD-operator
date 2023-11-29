@@ -39,10 +39,8 @@ all: build
 # http://linuxcommand.org/lc3_adv_awk.php
 .PHONY: bundle
 bundle: manifests kustomize ## Create bundle.yaml for all resources.
-	$(KUSTOMIZE) build config/crd > bundle.yaml
-	echo "---" >> bundle.yaml
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default >> bundle.yaml
+	$(KUSTOMIZE) build config/default > bundle.yaml
 	cat config/external/cert-manager-bundle.yaml >> bundle.yaml
 	cat config/samples/windtunnel_v1alpha1_plantdcore.yaml >> bundle.yaml
 

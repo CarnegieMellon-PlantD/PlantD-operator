@@ -11,12 +11,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// getObjectList retrieves a list of objects of a specified kind.
+// getObjectListHandler retrieves a list of objects of a specified kind.
 // It returns an HTTP handler function that handles requests to fetch the object list.
 // It calls the proxy.GetObjectList function to fetch the object list using the provided client and kind.
 // If successful, it responds an HTTP 200 status code with an object list in JSON.
 // If an error occurs, it responds an HTTP 500 status code with an ErrorResponse in JSON.
-func getObjectList(client client.Client, kind string) http.HandlerFunc {
+func getObjectListHandler(client client.Client, kind string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -24,7 +24,7 @@ func getObjectList(client client.Client, kind string) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -33,13 +33,13 @@ func getObjectList(client client.Client, kind string) http.HandlerFunc {
 	}
 }
 
-// getObject retrieves a single object of a specified kind, namespace, and name.
+// getObjectHandler retrieves a single object of a specified kind, namespace, and name.
 // It returns an HTTP handler function that handles requests to fetch the object.
 // The handler function reads the namespace and name parameters from the request URL.
 // It calls the proxy.GetObject function to fetch the object using the provided client, kind, namespace, and name.
 // If successful, it responds an HTTP 200 status code with an object in JSON.
 // If an error occurs, it responds an HTTP 500 status code with an ErrorResponse in JSON.
-func getObject(client client.Client, kind string) http.HandlerFunc {
+func getObjectHandler(client client.Client, kind string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
@@ -49,7 +49,7 @@ func getObject(client client.Client, kind string) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -58,7 +58,7 @@ func getObject(client client.Client, kind string) http.HandlerFunc {
 	}
 }
 
-// createObject creates a new object of a specified kind, namespace, and name.
+// createObjectHandler creates a new object of a specified kind, namespace, and name.
 // It returns an HTTP handler function that handles requests to create the object.
 // The handler function reads the namespace and name parameters from the request URL.
 // It reads the request body and unmarshals it into an object of the specified kind.
@@ -67,7 +67,7 @@ func getObject(client client.Client, kind string) http.HandlerFunc {
 // If an error occurs while creating the object of the specified kind, reading or unmarshalling the request body,
 // it responds an HTTP 400 status code with an ErrorResponse in JSON.
 // If an error occurs in other stages, it responds an HTTP 500 status code with an ErrorResponse in JSON.
-func createObject(client client.Client, kind string) http.HandlerFunc {
+func createObjectHandler(client client.Client, kind string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
@@ -81,35 +81,35 @@ func createObject(client client.Client, kind string) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 			return
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
 		err = json.Unmarshal(body, obj)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
 
 		if err := proxy.CreateObject(ctx, client, kind, namespace, name, obj); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 		} else {
 			w.WriteHeader(http.StatusCreated)
 		}
 	}
 }
 
-// updateObject updates an existing object of a specified kind, namespace, and name.
+// updateObjectHandler updates an existing object of a specified kind, namespace, and name.
 // It returns an HTTP handler function that handles requests to update the object.
 // The handler function reads the namespace and name parameters from the request URL.
 // It reads the request body and unmarshals it into an object of the specified kind.
@@ -118,7 +118,7 @@ func createObject(client client.Client, kind string) http.HandlerFunc {
 // If an error occurs while creating the object of the specified kind, reading or unmarshalling the request body,
 // it responds an HTTP 400 status code with an ErrorResponse in JSON.
 // If an error occurs in other stages, it responds an HTTP 500 status code with an ErrorResponse in JSON.
-func updateObject(client client.Client, kind string) http.HandlerFunc {
+func updateObjectHandler(client client.Client, kind string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
@@ -132,41 +132,41 @@ func updateObject(client client.Client, kind string) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 			return
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while reading request body: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while reading request body: " + err.Error()})
 			return
 		}
 		err = json.Unmarshal(body, obj)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while unmarshalling request body: " + err.Error()})
 			return
 		}
 
 		if err := proxy.UpdateObject(ctx, client, kind, namespace, name, obj); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
 	}
 }
 
-// deleteObject deletes an existing object of a specified kind, namespace, and name.
+// deleteObjectHandler deletes an existing object of a specified kind, namespace, and name.
 // It returns an HTTP handler function that handles requests to delete the object.
 // The handler function reads the namespace and name parameters from the request URL.
 // It calls the proxy.DeleteObject function to delete the object using the provided client, kind, namespace, and name.
 // If successful, it responds an HTTP 200 status code.
 // If an error occurs, it responds an HTTP 500 status code with an ErrorResponse in JSON.
-func deleteObject(client client.Client, kind string) http.HandlerFunc {
+func deleteObjectHandler(client client.Client, kind string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
@@ -175,7 +175,7 @@ func deleteObject(client client.Client, kind string) http.HandlerFunc {
 		if err := proxy.DeleteObject(ctx, client, kind, namespace, name); err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}

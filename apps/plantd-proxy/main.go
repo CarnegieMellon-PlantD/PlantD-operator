@@ -6,7 +6,6 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/apps/plantd-proxy/routes"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/proxy"
 
 	"github.com/go-chi/chi/v5"
@@ -60,9 +59,10 @@ func main() {
 		panic(err)
 	}
 
-	agent, err := proxy.NewQueryAgent(config.GetString("database.prometheus.url"))
+	queryAgent, err := proxy.NewQueryAgent()
 	if err != nil {
 		panic(err)
 	}
-	routes.Run(r, client, agent)
+
+	routes.Run(r, client, queryAgent)
 }

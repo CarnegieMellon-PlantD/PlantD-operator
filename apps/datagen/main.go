@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
-
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
