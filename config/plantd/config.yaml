@@ -232,3 +232,6 @@ database:
     # Ensure Prometheus service name, namespace, and port are correct
     url: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090
     scrapeInterval: 15s
+  redis:
+    # Ensure Redis service name, namespace, and port are correct
+    host: redis-service.plantd-operator-system.svc.cluster.local:6379
