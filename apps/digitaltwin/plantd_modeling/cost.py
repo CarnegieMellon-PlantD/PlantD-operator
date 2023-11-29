@@ -22,8 +22,8 @@ def get_cost(source, experiment_name, pipeline_namespace, start_time, end_time, 
     
     # Get endpoints from environment variables
     # load_dotenv(".env")   # read from .env file for local testing only
-    prometheus_endpoint = os.environ.get("PROMETHEUS_ENDPOINT", "http://ae8a8d6350c0c49d49cf02032f3ba1f3-1860716982.us-east-1.elb.amazonaws.com:9090")
-    opencost_endpoint = os.environ.get("OPENCOST_ENDPOINT", "http://a849015f9e0584ae9ad66a83cab4e57a-359225929.us-east-1.elb.amazonaws.com:9003")
+    prometheus_endpoint = os.environ.get("PROMETHEUS_HOST", "http://localhost:9090")
+    opencost_endpoint = os.environ.get("OPENCOST_ENDPOINT", "http://localhost:9003")
     
     # Get experiment tag and start and end times from environment variables
     pipeline_label_key = os.environ.get("PIPELINE_LABEL_KEY", "app")
@@ -32,7 +32,7 @@ def get_cost(source, experiment_name, pipeline_namespace, start_time, end_time, 
     # Get experiment tag and start and end times from environment variables
     pipeline_label_key = os.environ.get("PIPELINE_LABEL_KEY", None)
     pipepline_label_value = os.environ.get("PIPELINE_LABEL_VALUE", None)
-    #pipeline_namespace = os.environ.get("PIPELINE_NAMESPACE", "ubi")
+    pipeline_namespace = os.environ.get("PIPELINE_NAMESPACE", "ubi")
     #start_time = os.environ.get("START_TIME", "2023-11-16T22:50:00Z")
     #end_time = os.environ.get("END_TIME", "2023-11-17T00:40:00Z")
 

@@ -42,6 +42,10 @@ func CreateJobByDigitalTwin(ctx context.Context, jobName string, digitalTwin *wi
 							Value: digitalTwin.Name,
 						},
 						{
+							Name:  "PIPELINE_NAMESPACE",
+							Value: "plantd-operator-system",
+						},
+						{
 							Name:  "MODEL_TYPE",
 							Value: string(digitalTwin.Spec.ModelType),
 						},
