@@ -69,7 +69,7 @@ type PlantDCoreStatus struct {
 	// StudioReady shows if the PlantD Studio is ready
 	StudioReady bool `json:"studioReady,omitempty"`
 	// PrometheusReady shows if the Prometheus is ready
-	PrometheusReady bool `json:"PrometheusReady,omitempty"`
+	PrometheusReady bool `json:"prometheusReady,omitempty"`
 	// RedisReady shows if the Redis is ready
 	RedisReady bool `json:"redisReady,omitempty"`
 	// KubeProxyStatus shows the status of the PlantD Proxy
