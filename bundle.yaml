@@ -294,6 +294,307 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
   name: digitaltwins.windtunnel.plantd.org
+<<<<<<< HEAD
+=======
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: DigitalTwin
+    listKind: DigitalTwinList
+    plural: digitaltwins
+    singular: digitaltwin
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DigitalTwin is the Schema for the digitaltwins API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DigitalTwinSpec defines the desired state of DigitalTwin
+            properties:
+              experimentNames:
+                type: string
+              loadPatternNames:
+                type: string
+              modelType:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            type: object
+          status:
+            description: DigitalTwinStatus defines the observed state of DigitalTwin
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: experiments.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: Experiment
+    listKind: ExperimentList
+    plural: experiments
+    singular: experiment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.experimentState
+      name: ExperimentState
+      type: string
+    - jsonPath: .status.duration
+      name: Duration
+      type: string
+    - jsonPath: .status.startTime
+      name: StartTime
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Experiment is the Schema for the experiments API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the specifications of the Experiment.
+            properties:
+              loadPatterns:
+                description: LoadPatterns defines a list of configuration of name
+                  of endpoints and LoadPatterns.
+                items:
+                  description: LoadPatternConfig defines the configuration of the
+                    load pattern in the experiment.
+                  properties:
+                    endpointName:
+                      description: EndpointName defines the name of endpoint where
+                        to send the requests. It should match the name of endpoint
+                        declared in the specification of the pipeline.
+                      type: string
+                    loadPatternRef:
+                      description: LoadPatternRef defines s reference of the LoadPattern
+                        object.
+                      properties:
+                        apiVersion:
+                          description: API version of the referent.
+                          type: string
+                        fieldPath:
+                          description: 'If referring to a piece of an object instead
+                            of an entire object, this string should contain a valid
+                            JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                            For example, if the object reference is to a container
+                            within a pod, this would take on a value like: "spec.containers{name}"
+                            (where "name" refers to the name of the container that
+                            triggered the event) or if no container name is specified
+                            "spec.containers[2]" (container with index 2 in this pod).
+                            This syntax is chosen only to have some well-defined way
+                            of referencing a part of an object. TODO: this design
+                            is not final and this field is subject to change in the
+                            future.'
+                          type: string
+                        kind:
+                          description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                          type: string
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                          type: string
+                        namespace:
+                          description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                          type: string
+                        resourceVersion:
+                          description: 'Specific resourceVersion to which this reference
+                            is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                          type: string
+                        uid:
+                          description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  required:
+                  - endpointName
+                  - loadPatternRef
+                  type: object
+                type: array
+              pipelineRef:
+                description: PipelineRef defines s reference of the Pipeline object.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              scheduledTime:
+                description: ScheduledTime defines the scheduled time for the Experiment.
+                format: date-time
+                type: string
+            required:
+            - loadPatterns
+            - pipelineRef
+            type: object
+          status:
+            description: Status defines the status of the Experiment.
+            properties:
+              cloudVendor:
+                description: CloudVendor defines the cloud service provider which
+                  the pipeline-under-test is deployed.
+                type: string
+              duration:
+                additionalProperties:
+                  type: string
+                description: Duration defines the duration of the K6 load generator.
+                type: object
+              enableCostCalculation:
+                description: EnableCostCalculation defines teh flag of cost calculation.
+                type: boolean
+              endTime:
+                description: 'EndTime defines the end of the Experiment. TODO: Add
+                  microservice to calculate the end time of the experiment.'
+                format: date-time
+                type: string
+              experimentState:
+                description: ExperimentState defines the state of the Experiment.
+                type: string
+              protocols:
+                additionalProperties:
+                  type: string
+                description: Protocols defines a map of name of endpoint (key) to
+                  request protocol (value).
+                type: object
+              startTime:
+                description: StartTime defines the start of the K6 load generator.
+                format: date-time
+                type: string
+              tags:
+                additionalProperties:
+                  type: string
+                description: Tags defines the a map of key-value pair that use for
+                  tagging cloud resources.
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: loadpatterns.windtunnel.plantd.org
+>>>>>>> 9a0d83d99d99434f0fffa709a45427ac6bca0890
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: DigitalTwin
+    listKind: DigitalTwinList
+    plural: digitaltwins
+    singular: digitaltwin
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DigitalTwin is the Schema for the digitaltwins API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DigitalTwinSpec defines the desired state of DigitalTwin
+            properties:
+              experimentNames:
+                type: string
+              loadPatternNames:
+                type: string
+              modelType:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            type: object
+          status:
+            description: DigitalTwinStatus defines the observed state of DigitalTwin
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: digitaltwins.windtunnel.plantd.org
 spec:
   group: windtunnel.plantd.org
   names:
@@ -3001,6 +3302,32 @@ rules:
   - windtunnel.plantd.org
   resources:
   - datasets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins/status
   verbs:
   - get
   - patch
