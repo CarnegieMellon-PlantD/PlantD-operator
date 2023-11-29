@@ -295,15 +295,15 @@ spec:
           status:
             description: PlantDCoreStatus defines the observed state of PlantDCore
             properties:
-              PrometheusReady:
-                description: PrometheusReady shows if the Prometheus is ready
-                type: boolean
               kubeProxyReady:
                 description: KubeProxyReady shows if the PlantD Kube Proxy is ready
                 type: boolean
               kubeProxyStatus:
                 description: KubeProxyStatus shows the status of the PlantD Proxy
                 type: string
+              prometheusReady:
+                description: PrometheusReady shows if the Prometheus is ready
+                type: boolean
               prometheusStatus:
                 description: PrometheusStatus shows the status of the Prometheus
                 type: string
