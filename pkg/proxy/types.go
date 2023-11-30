@@ -82,9 +82,10 @@ type RedisTSRequest struct {
 }
 
 // BiChanDataPoint defines the data point in bi-channel data.
+// Using `*float64` instead of `float64` to avoid getting empty result from JSON marshaling.
 type BiChanDataPoint struct {
-	Series string  `json:"series"`
-	ValueY float64 `json:"y"`
+	Series string   `json:"series"`
+	ValueY *float64 `json:"y"`
 }
 
 // BiChanResponse defines the response to send for bi-channel data.
@@ -93,10 +94,11 @@ type BiChanResponse struct {
 }
 
 // TriChanDataPoint defines the data point in tri-channel data.
+// Using `*float64` instead of `float64` to avoid getting empty result from JSON marshaling.
 type TriChanDataPoint struct {
-	Series string  `json:"series"`
-	ValueY float64 `json:"y"`
-	ValueX float64 `json:"x"`
+	Series string   `json:"series"`
+	ValueY *float64 `json:"y"`
+	ValueX *float64 `json:"x"`
 }
 
 // TriChanResponse defines the response to send for tri-channel data.
