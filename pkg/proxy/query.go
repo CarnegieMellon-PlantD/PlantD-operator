@@ -17,17 +17,11 @@ import (
 
 var (
 	promUrl   string
-	promStep  time.Duration
 	redisHost string
 )
 
 func init() {
 	promUrl = config.GetString("database.prometheus.url")
-	promInterval, err := time.ParseDuration(config.GetString("database.prometheus.scrapeInterval"))
-	if err != nil {
-		panic(err)
-	}
-	promStep = 2 * promInterval
 	redisHost = config.GetString("database.redis.host")
 }
 
@@ -126,15 +120,10 @@ func (qa *QueryAgent) PromQuery(ctx context.Context, req *PromRequest) (*BiChanR
 }
 
 func (qa *QueryAgent) PromQueryRange(ctx context.Context, req *PromRequest) (*TriChanResponse, error) {
-	promStep := promStep
-	if req.Step > 0 {
-		promStep = time.Duration(req.Step) * time.Second
-	}
-
 	timeRange := prometheusv1.Range{
 		Start: req.StartTimestamp.Time,
 		End:   req.EndTimestamp.Time,
-		Step:  promStep,
+		Step:  time.Duration(req.Step) * time.Second,
 	}
 	result, _, err := qa.PromAPI.QueryRange(ctx, req.Query, timeRange)
 	if err != nil {
