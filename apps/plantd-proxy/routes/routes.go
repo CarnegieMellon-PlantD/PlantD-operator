@@ -70,11 +70,14 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Get("/plantdcores/{namespace}/{name}", getObjectHandler(client, proxy.PlantDCoreKind))
 		r.Put("/plantdcores/{namespace}/{name}", updateObjectHandler(client, proxy.PlantDCoreKind))
 
-		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataSetHandler(client))
-		r.Get("/healthcheck/http", checkHTTPHealthHandler())
-		r.Post("/import", importResourcesHandler(client))
-		// We are violating RESTful API design principles and using POST instead of GET here, because we want to accept a request body.
-		r.Post("/export", exportResourcesHandler(client))
+		r.Get("/datasets/sample/{namespace}/{name}", getSampleDataSetHandler(client))
+		r.Get("/health/http", checkHTTPHealthHandler())
+		r.Get("/kinds", listKindsHandler())
+		r.Get("/resources", listResourcesHandler(client))
+		r.Post("/resources/import", importResourcesHandler(client))
+		// We are violating RESTful API design principles and using POST instead of GET here,
+		// because we want to accept a request body.
+		r.Post("/resources/export", exportResourcesHandler(client))
 	})
 
 	router.Route("/data", func(r chi.Router) {

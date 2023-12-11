@@ -3,8 +3,6 @@ package proxy
 import (
 	"encoding/json"
 	"time"
-
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // ErrorResponse defines the response to send when error occurs.
@@ -17,8 +15,8 @@ type CheckHTTPHealthRequest struct {
 	URL string `json:"url,omitempty"`
 }
 
-// ImportResourcesStatistics contains the result of importing resources.
-type ImportResourcesStatistics struct {
+// ImportStatistics contains the statistical result of importing resources.
+type ImportStatistics struct {
 	// NumSucceeded is the number of resources that are successfully imported
 	NumSucceeded int `json:"numSucceeded"`
 	// NumFailed is the number of resources that failed to be imported
@@ -27,11 +25,12 @@ type ImportResourcesStatistics struct {
 	ErrorMessages []string `json:"errors"`
 }
 
-// ExportResourceInfo contains the kind, namespace, and name that are necessary to locate a unique resource to
+// ResourceLocator contains the kind, namespace, and name that are necessary to locate a unique resource to
 // export. Note that the group and version are fixed across all resources and are thus omitted.
-type ExportResourceInfo struct {
-	Kind string
-	types.NamespacedName
+type ResourceLocator struct {
+	Kind      string `json:"kind,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
 }
 
 // SourceType is the type of data source
