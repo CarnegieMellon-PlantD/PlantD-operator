@@ -13,8 +13,8 @@ env:
   IMAGE_NAME_DATA_GENERATOR: ${{ github.repository_owner }}/datagenerator
   IMAGE_NAME_COST_EXPORTER: ${{ github.repository_owner }}/costexporter
   DOCKER_IMAGE_TAGS: |
-    type=raw,value=latest
     type=semver,pattern={{version}}
+    type=sha,prefix=,suffix=,format=short
   DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
