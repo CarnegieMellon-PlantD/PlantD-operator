@@ -10,6 +10,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
+	github.com/redis/go-redis/v9 v9.3.0
 	k8s.io/apimachinery v0.28.4
 	k8s.io/client-go v0.28.4
 	sigs.k8s.io/controller-runtime v0.16.3
@@ -18,6 +19,7 @@ require (
 require (
 	emperror.dev/errors v0.8.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

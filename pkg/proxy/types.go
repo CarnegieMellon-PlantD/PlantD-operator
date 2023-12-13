@@ -38,6 +38,7 @@ type SourceType int8
 
 const (
 	Prometheus SourceType = iota
+	Redis
 	RedisTimeSeries
 )
 
@@ -72,12 +73,23 @@ type PromRequest struct {
 	LabelSelector  []string      `json:"labelSelector,omitempty"`
 }
 
-// RedisTSRequest contains the parameters for making a "MultiGet" or "MultiRange" request to Redis Time Series.
+// RedisRequest contains the parameters for executing a "Get" command on Redis.
+type RedisRequest struct {
+	Key string `json:"key,omitempty"`
+}
+
+// RedisTSRequest contains the parameters for executing a "MultiGet" or "MultiRange" command to Redis Time Series.
 type RedisTSRequest struct {
 	Filters        []string      `json:"filters,omitempty"`
 	StartTimestamp UnixTimestamp `json:"start,omitempty"`
 	EndTimestamp   UnixTimestamp `json:"end,omitempty"`
 	LabelSelector  []string      `json:"labelSelector,omitempty"`
+}
+
+// RawResponse defines the response to send for raw data.
+type RawResponse struct {
+	// Result is a string
+	Result string `json:"result"`
 }
 
 // BiChanDataPoint defines the data point in bi-channel data.
@@ -89,6 +101,7 @@ type BiChanDataPoint struct {
 
 // BiChanResponse defines the response to send for bi-channel data.
 type BiChanResponse struct {
+	// Result is a list of BiChanDataPoint
 	Result []*BiChanDataPoint `json:"result"`
 }
 
@@ -102,5 +115,6 @@ type TriChanDataPoint struct {
 
 // TriChanResponse defines the response to send for tri-channel data.
 type TriChanResponse struct {
+	// Result is a list of TriChanDataPoint
 	Result []*TriChanDataPoint `json:"result"`
 }

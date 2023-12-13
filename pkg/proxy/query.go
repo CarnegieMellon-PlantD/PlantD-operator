@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -27,6 +28,7 @@ func init() {
 
 type QueryAgent struct {
 	PromAPI       prometheusv1.API
+	RedisClient   *redis.Client
 	RedisTSClient *redistimeseries.Client
 }
 
@@ -38,9 +40,16 @@ func NewQueryAgent() (*QueryAgent, error) {
 		return nil, err
 	}
 	promApi := prometheusv1.NewAPI(promClient)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     redisHost,
+		Password: "",
+		DB:       0,
+	})
 	redisTSClient := redistimeseries.NewClient(redisHost, "redis-ts-client", nil)
+
 	return &QueryAgent{
 		PromAPI:       promApi,
+		RedisClient:   redisClient,
 		RedisTSClient: redisTSClient,
 	}, nil
 }
@@ -150,6 +159,16 @@ func (qa *QueryAgent) PromQueryRange(ctx context.Context, req *PromRequest) (*Tr
 		}, nil
 	}
 	return nil, fmt.Errorf("cannot convert data to desired format")
+}
+
+func (qa *QueryAgent) RedisGet(ctx context.Context, req *RedisRequest) (*RawResponse, error) {
+	val, err := qa.RedisClient.Get(ctx, req.Key).Result()
+	if err != nil {
+		return nil, err
+	}
+	return &RawResponse{
+		Result: val,
+	}, nil
 }
 
 func (qa *QueryAgent) RedisTSMultiGet(ctx context.Context, req *RedisTSRequest) (*BiChanResponse, error) {

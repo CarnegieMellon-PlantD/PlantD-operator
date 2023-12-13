@@ -81,10 +81,12 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 	})
 
 	router.Route("/data", func(r chi.Router) {
-		r.Get("/bi-channel/prometheus", queryHandler(queryAgent, proxy.Prometheus, proxy.BiChan))
-		r.Get("/tri-channel/prometheus", queryHandler(queryAgent, proxy.Prometheus, proxy.TriChan))
+		r.Get("/raw/redis", queryRawHandler(queryAgent, proxy.Redis))
 
-		r.Get("/bi-channel/redis-ts", queryHandler(queryAgent, proxy.RedisTimeSeries, proxy.BiChan))
-		r.Get("/tri-channel/redis-ts", queryHandler(queryAgent, proxy.RedisTimeSeries, proxy.TriChan))
+		r.Get("/bi-channel/prometheus", queryHandler(queryAgent, proxy.BiChan, proxy.Prometheus))
+		r.Get("/bi-channel/redis-ts", queryHandler(queryAgent, proxy.BiChan, proxy.RedisTimeSeries))
+
+		r.Get("/tri-channel/prometheus", queryHandler(queryAgent, proxy.TriChan, proxy.Prometheus))
+		r.Get("/tri-channel/redis-ts", queryHandler(queryAgent, proxy.TriChan, proxy.RedisTimeSeries))
 	})
 }
