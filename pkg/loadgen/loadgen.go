@@ -19,7 +19,7 @@ func CreateTestRunManifest(namespace, name, endpointName string) *k6v1alpha1.K6 
 			Name:      utils.GetTestRunName(name, endpointName),
 			Namespace: namespace,
 		},
-		Spec: k6v1alpha1.K6Spec{
+		Spec: k6v1alpha1.TestRunSpec{
 			Parallelism: 1,
 			Arguments: config.GetString("k6.arguments") +
 				fmt.Sprintf(" --tag experiment=%s/%s --tag endpoint=%s", namespace, name, endpointName),

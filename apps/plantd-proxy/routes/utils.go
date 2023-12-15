@@ -80,11 +80,39 @@ func checkHTTPHealthHandler() http.HandlerFunc {
 	}
 }
 
-// importResourcesHandler return an HTTP handler function for importing custom resource definitions from YAML files.
+// listKindsHandler returns an HTTP handler function for listing all available kinds in custom resource definitions.
+// If succeeded, it returns an array of string in JSON format.
+func listKindsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(proxy.ListKinds())
+	}
+}
+
+// listResourcesHandler returns an HTTP handler function for listing all custom resource definitions.
+// If succeeded, it returns an array of proxy.ResourceLocator in JSON format.
+func listResourcesHandler(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		resources, err := proxy.ListResources(ctx, client)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: "while listing resources: " + err.Error()})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resources)
+	}
+}
+
+// importResourcesHandler returns an HTTP handler function for importing custom resource definitions from YAML files.
 // The handler function reads the ZIP file content from the `file` field of the request body, which is a form.
 // It calls proxy.ImportResources to extract the ZIP file and import each YAML file.
 // If it completes successfully or with minor errors, it responds an HTTP 200 status code with a
-// proxy.ImportResourcesStatistics in JSON.
+// proxy.ImportStatistics in JSON format.
 // If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in JSON.
 func importResourcesHandler(client client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +144,7 @@ func importResourcesHandler(client client.Client) http.HandlerFunc {
 }
 
 // exportResourcesHandler return an HTTP handler function for exporting custom resource definitions to YAML files.
-// The handler function gets an array of proxy.ExportResourceInfo objects from the `info` field of the request body, which is a form.
+// The handler function gets an array of proxy.ResourceLocator objects from the `info` field of the request body, which is a form.
 // It calls proxy.ExportResources to export all the specified objects to YAML files, and return a ZIP file that contains them.
 // If successful, it responds an HTTP 200 status code.
 // If a fundamental error occurs, it responds a corresponding HTTP status code with a ErrorResponse in plain text, as the
@@ -131,7 +159,7 @@ func exportResourcesHandler(client client.Client) http.HandlerFunc {
 			w.Write([]byte("Error: Request form does not contain `info` field"))
 			return
 		}
-		var data []proxy.ExportResourceInfo
+		var data []*proxy.ResourceLocator
 		if err := json.Unmarshal([]byte(info), &data); err != nil {
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusBadRequest)

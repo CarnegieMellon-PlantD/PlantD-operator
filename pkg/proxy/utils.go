@@ -263,13 +263,42 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 	}
 }
 
-func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*ImportResourcesStatistics, error) {
+func ListKinds() []string {
+	return windtunnelv1alpha1.AllKinds
+}
+
+func ListResources(ctx context.Context, c client.Client) ([]*ResourceLocator, error) {
+	result := make([]*ResourceLocator, 0)
+	for _, kind := range windtunnelv1alpha1.AllKinds {
+		objList := &unstructured.UnstructuredList{}
+		objList.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   windtunnelv1alpha1.GroupVersion.Group,
+			Version: windtunnelv1alpha1.GroupVersion.Version,
+			Kind:    kind,
+		})
+
+		if err := c.List(ctx, objList); err != nil {
+			return nil, err
+		}
+
+		for _, item := range objList.Items {
+			result = append(result, &ResourceLocator{
+				Kind:      kind,
+				Namespace: item.GetNamespace(),
+				Name:      item.GetName(),
+			})
+		}
+	}
+	return result, nil
+}
+
+func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*ImportStatistics, error) {
 	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if err != nil {
 		return nil, fmt.Errorf("while opening zip file: %s", err.Error())
 	}
 
-	result := &ImportResourcesStatistics{
+	result := &ImportStatistics{
 		NumSucceeded:  0,
 		NumFailed:     0,
 		ErrorMessages: []string{},
@@ -308,7 +337,7 @@ func ImportResources(ctx context.Context, c client.Client, buf *bytes.Buffer) (*
 	return result, nil
 }
 
-func ExportResources(ctx context.Context, c client.Client, resInfoList []ExportResourceInfo) (*bytes.Buffer, error) {
+func ExportResources(ctx context.Context, c client.Client, resInfoList []*ResourceLocator) (*bytes.Buffer, error) {
 	buf := &bytes.Buffer{}
 	zw := zip.NewWriter(buf)
 
