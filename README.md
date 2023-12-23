@@ -1,5 +1,6 @@
 # PlantD Operator
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/CarnegieMellon-PlantD/PlantD-operator)](https://goreportcard.com/report/github.com/CarnegieMellon-PlantD/PlantD-operator)
 [![Release Docker images to GitHub Container Registry](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/release-ghcr.yaml/badge.svg)](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/release-ghcr.yaml)
 ![GitHub License](https://img.shields.io/github/license/CarnegieMellon-PlantD/PlantD-operator?label=License)
 
@@ -96,11 +97,15 @@ before undeploying the operator, since the undeploying command will remove Plant
 
 ### Release
 
-We use GitHub Actions as our CI/CD pipeline and to release Docker images to GitHub Container Registry. See [`.github/workflows/release-ghcr.yaml`](.github/workflows/release-ghcr.yaml) for more details.
+This project uses GitHub Actions as our CI/CD pipeline and to release Docker images to GitHub Container Registry. See [`.github/workflows/release-ghcr.yaml`](.github/workflows/release-ghcr.yaml) for more details.
 
 To release a new version, create a new git tag with the version number prefixed with `v`, e.g., `v1.2.3`. See [semantic versioning](https://semver.org/) for more details about version numbers. Then, push the git tag and the workflow will be triggered automatically. The output Docker image will be tagged with the same version number as the git tag.
 
 You can also manually trigger the workflow to release an unversioned Docker image with a tag of the git commit hash. To do so, go to the [workflow page](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/release-ghcr.yaml).
+
+### References
+
+- [Kubebuilder Book](https://book.kubebuilder.io/)
 
 ## Contributing
 
