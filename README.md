@@ -74,7 +74,7 @@ kubectl delete plantdcore -n plantd-operator-system plantdcore-core
 
 before undeploying the operator, since the undeploying command will remove PlantD controllers before removing the `PlantDCore` resource, and the `PlantDCore` resource has a finalizer that will prevent the entire process from completing given the operator is removed before.
 
-#### Generate CRD API Reference
+#### Generate CRD API reference
 
 1. Install [`crd-ref-docs`](https://github.com/elastic/crd-ref-docs)
 
@@ -92,7 +92,7 @@ before undeploying the operator, since the undeploying command will remove Plant
     --renderer=markdown
     ```
 
-    This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md).
+    This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md). Remember to run this command after modifying the CRD.
 
 ## Contributing
 
