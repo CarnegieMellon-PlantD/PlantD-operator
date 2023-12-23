@@ -94,6 +94,14 @@ before undeploying the operator, since the undeploying command will remove Plant
 
     This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md). Remember to run this command after modifying the CRD.
 
+### Release
+
+We use GitHub Actions as our CI/CD pipeline and to release Docker images to GitHub Container Registry. See [`.github/workflows/release-ghcr.yaml`](.github/workflows/release-ghcr.yaml) for more details.
+
+To release a new version, create a new git tag with the version number prefixed with `v`, e.g., `v1.2.3`. See [semantic versioning](https://semver.org/) for more details about version numbers. Then, push the git tag and the workflow will be triggered automatically. The output Docker image will be tagged with the same version number as the git tag.
+
+You can also manually trigger the workflow to release an unversioned Docker image with a tag of the git commit hash. To do so, go to the [workflow page](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/release-ghcr.yaml).
+
 ## Contributing
 
 We welcome contributions from the open-source community, from bug fixes to new features and improvements. See [CONTRIBUTING.md](CONTRIBUTING.md) for more information on how to contribute.
