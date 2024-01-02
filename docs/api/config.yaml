@@ -1,0 +1,34 @@
+processor:
+  # RE2 regular expressions describing types that should be excluded from the generated documentation.
+  ignoreTypes:
+  # RE2 regular expressions describing type fields that should be excluded from the generated documentation.
+  ignoreFields:
+    - "status$"
+    - "TypeMeta$"
+
+render:
+  # Version of Kubernetes to use when generating links to Kubernetes API documentation.
+  kubernetesVersion: 1.24
+  # Generate better link for known types
+  knownTypes:
+    - name: IntOrString
+      package: k8s.io/apimachinery/pkg/util/intstr
+      link: https://pkg.go.dev/k8s.io/apimachinery/pkg/util/intstr#IntOrString
+    - name: Duration
+      package: github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+      link: https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration
+    - name: TLSConfig
+      package: github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+      link: https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#TLSConfig
+    - name: SafeAuthorization
+      package: github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+      link: https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#SafeAuthorization
+    - name: BasicAuth
+      package: github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+      link: https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#BasicAuth
+    - name: OAuth2
+      package: github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+      link: https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#OAuth2
+    - name: RelabelConfig
+      package: github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+      link: https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#RelabelConfig
