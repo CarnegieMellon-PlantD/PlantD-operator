@@ -95,10 +95,13 @@ def get_cost_data(opencost_endpoint, pipeline_label_key, pipeline_label_value,
 
     # make API request
     response = requests.get(opencost_endpoint + "/allocation", params=params)
-    if response.status_code != 200:
+    if response.status_code >= 500:
         print("Error querying OpenCost API: ", response.status_code)
         print("Exiting...")
         exit(1)
+    elif response.status_code >= 400 and response.status.code < 500:
+        print("Error querying OpenCost API: ", response.status_code)
+        print("Ignoring...")
 
     # load required records into dict and return 
     try: 

@@ -52,7 +52,11 @@ class CostExporter(ABC):
     :return: None
     """
     try:
-      self.db.add(str(time.time()), values.get("timestamp"), values.get("cost"), labels={"experiment": values.get("key"), "tag": values.get("tag"), "resource": values.get("resource")})
+      
+      cost_key = values.get("key") + "-" + values.get("tag") +  values.get("resource")
+      print("writing cost key " + cost_key + " to redis")
+      print({"experiment": values.get("key"), "tag": values.get("tag"), "resource": values.get("resource")})
+      self.db.add(cost_key.encode(), values.get("timestamp"), values.get("cost"), labels={"experiment": values.get("key"), "tag": values.get("tag"), "resource": values.get("resource")}, duplicate_policy="last")
     except redis.RedisError as e:
       print("Error: Failed to write to Redis.", e)
       raise e

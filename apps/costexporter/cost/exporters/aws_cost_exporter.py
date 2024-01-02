@@ -9,6 +9,7 @@ import datetime
 import pandas as pd
 from boto3 import client
 import json
+import time
 
 pd.set_option('display.max_columns', None)
 
@@ -142,7 +143,7 @@ class AWSCostExporter(CostExporter):
               }
               # print(values)
               self._write_to_db(values)
-
+    time.sleep(20)
   def _filter_dataframe(self, df):
     """
     Filter a DataFrame of cost logs based on specified tags.

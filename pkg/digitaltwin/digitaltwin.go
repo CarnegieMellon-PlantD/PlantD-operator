@@ -55,11 +55,11 @@ func CreateJobByDigitalTwin(ctx context.Context, jobName string, digitalTwin *wi
 						},
 						{
 							Name:  "REDIS_HOST",
-							Value: "redis.plantd-operator-system.svc.cluster.local",
+							Value: config.GetString("database.redis.host"),
 						},
 						{
 							Name:  "PROMETHEUS_HOST",
-							Value: "http://prometheus.plantd-operator-system.svc.cluster.local:9090",
+							Value: config.GetString("database.prometheus.url"),
 						},
 
 						{

@@ -11,4 +11,4 @@ metadata:
 spec:
   modelType: "quickscaling"
   loadPatternNames: "ubi-chris-test.loadpattern"
-  experimentNames: "ubi-chris-test.experiment-good-test-002"
+  experimentNames: "ubi-chris-test.exp-test-3"

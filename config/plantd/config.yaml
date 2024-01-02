@@ -2,11 +2,11 @@ name: PlantD
 version: 1.0.0
 pvc.requests.storage: 10Gi
 costService:
-  image: docker.io/datawindtunnel/aws-cost-service:v0.0.4
+  image: ghcr.io/carnegiemellon-plantd/aws-cost-service:v0.0.4
   requests.cpu: 300m
   limits.cpu: 500m
 digitalTwin:
-  image: docker.io/datawindtunnel/digitaltwin:latest
+  image: ghcr.io/carnegiemellon-plantd/digitaltwin:v0.0.1
   requests.cpu: 300m
   limits.cpu: 500m
 dataGenerator:
@@ -242,4 +242,5 @@ database:
     scrapeInterval: 15s
   redis:
     # Ensure Redis service name, namespace, and port are correct
-    host: redis-service.plantd-operator-system.svc.cluster.local:6379
+    host: redis-service.plantd-operator-system.svc.cluster.local
+    port: 6379
