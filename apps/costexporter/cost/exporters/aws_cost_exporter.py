@@ -9,6 +9,7 @@ import datetime
 import pandas as pd
 from boto3 import client
 import json
+import time
 
 pd.set_option('display.max_columns', None)
 
@@ -142,7 +143,7 @@ class AWSCostExporter(CostExporter):
               }
               # print(values)
               self._write_to_db(values)
-
+    time.sleep(20)
   def _filter_dataframe(self, df):
     """
     Filter a DataFrame of cost logs based on specified tags.
@@ -164,15 +165,15 @@ class AWSCostExporter(CostExporter):
 
     for experiment_data in self.cost_tags:
       # Extract the experiment name
-      experiment_name = experiment_data['Name']
+      experiment_name = experiment_data['name']
 
       # Extract tag_key_list and tag_value_list
       tag_key_list = []
       tag_value_list = []
 
-      for tag_item in experiment_data['Tags']:
-        tag_key = tag_item['Key']
-        tag_value = tag_item['Value']
+      for tag_item in experiment_data['tags']:
+        tag_key = tag_item['key']
+        tag_value = tag_item['value']
         tag_key_list.append(tag_key)
         tag_value_list.append(tag_value)
 
