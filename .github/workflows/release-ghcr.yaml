@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - v*
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -13,8 +14,8 @@ env:
   IMAGE_NAME_COST_EXPORTER: ${{ github.repository_owner }}/costexporter
   IMAGE_NAME_DIGITAL_TWIN: ${{ github.repository_owner }}/digitaltwin
   DOCKER_IMAGE_TAGS: |
-    type=raw,value=latest
     type=semver,pattern={{version}}
+    type=sha,prefix=,suffix=,format=short
   DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
 jobs:

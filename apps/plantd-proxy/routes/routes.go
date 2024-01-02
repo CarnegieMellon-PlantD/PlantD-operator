@@ -70,18 +70,23 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Get("/plantdcores/{namespace}/{name}", getObjectHandler(client, proxy.PlantDCoreKind))
 		r.Put("/plantdcores/{namespace}/{name}", updateObjectHandler(client, proxy.PlantDCoreKind))
 
-		r.Get("/datasets/{namespace}/{name}/sample", getSampleDataSetHandler(client))
-		r.Get("/healthcheck/http", checkHTTPHealthHandler())
-		r.Post("/import", importResourcesHandler(client))
-		// We are violating RESTful API design principles and using POST instead of GET here, because we want to accept a request body.
-		r.Post("/export", exportResourcesHandler(client))
+		r.Get("/datasets/sample/{namespace}/{name}", getSampleDataSetHandler(client))
+		r.Get("/health/http", checkHTTPHealthHandler())
+		r.Get("/kinds", listKindsHandler())
+		r.Get("/resources", listResourcesHandler(client))
+		r.Post("/resources/import", importResourcesHandler(client))
+		// We are violating RESTful API design principles and using POST instead of GET here,
+		// because we want to accept a request body.
+		r.Post("/resources/export", exportResourcesHandler(client))
 	})
 
 	router.Route("/data", func(r chi.Router) {
-		r.Get("/bi-channel/prometheus", queryHandler(queryAgent, proxy.Prometheus, proxy.BiChan))
-		r.Get("/tri-channel/prometheus", queryHandler(queryAgent, proxy.Prometheus, proxy.TriChan))
+		r.Get("/raw/redis", queryRawHandler(queryAgent, proxy.Redis))
 
-		r.Get("/bi-channel/redis-ts", queryHandler(queryAgent, proxy.RedisTimeSeries, proxy.BiChan))
-		r.Get("/tri-channel/redis-ts", queryHandler(queryAgent, proxy.RedisTimeSeries, proxy.TriChan))
+		r.Get("/bi-channel/prometheus", queryHandler(queryAgent, proxy.BiChan, proxy.Prometheus))
+		r.Get("/bi-channel/redis-ts", queryHandler(queryAgent, proxy.BiChan, proxy.RedisTimeSeries))
+
+		r.Get("/tri-channel/prometheus", queryHandler(queryAgent, proxy.TriChan, proxy.Prometheus))
+		r.Get("/tri-channel/redis-ts", queryHandler(queryAgent, proxy.TriChan, proxy.RedisTimeSeries))
 	})
 }

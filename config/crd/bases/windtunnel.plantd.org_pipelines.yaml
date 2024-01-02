@@ -157,7 +157,9 @@ spec:
                 description: Endpoints for metrics.
                 properties:
                   authorization:
-                    description: Authorization section for this endpoint
+                    description: "`authorization` configures the Authorization header
+                      credentials to use when scraping the target. \n Cannot be set
+                      at the same time as `basicAuth`, or `oauth2`."
                     properties:
                       credentials:
                         description: Selects a key of a Secret in the namespace that
@@ -186,12 +188,13 @@ spec:
                         type: string
                     type: object
                   basicAuth:
-                    description: 'BasicAuth allow an endpoint to authenticate over
-                      basic authentication More info: https://prometheus.io/docs/operating/configuration/#endpoints'
+                    description: "`basicAuth` configures the Basic Authentication
+                      credentials to use when scraping the target. \n Cannot be set
+                      at the same time as `authorization`, or `oauth2`."
                     properties:
                       password:
-                        description: The secret in the service monitor namespace that
-                          contains the password for authentication.
+                        description: '`password` specifies a key of a Secret containing
+                          the password for authentication.'
                         properties:
                           key:
                             description: The key of the secret to select from.  Must
@@ -210,8 +213,8 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       username:
-                        description: The secret in the service monitor namespace that
-                          contains the username for authentication.
+                        description: '`username` specifies a key of a Secret containing
+                          the username for authentication.'
                         properties:
                           key:
                             description: The key of the secret to select from.  Must
@@ -231,12 +234,15 @@ spec:
                         x-kubernetes-map-type: atomic
                     type: object
                   bearerTokenFile:
-                    description: File to read bearer token for scraping targets.
+                    description: "File to read bearer token for scraping the target.
+                      \n Deprecated: use `authorization` instead."
                     type: string
                   bearerTokenSecret:
-                    description: Secret to mount to read bearer token for scraping
-                      targets. The secret needs to be in the same namespace as the
-                      service monitor and accessible by the Prometheus Operator.
+                    description: "`bearerTokenSecret` specifies a key of a Secret
+                      containing the bearer token for scraping targets. The secret
+                      needs to be in the same namespace as the ServiceMonitor object
+                      and readable by the Prometheus Operator. \n Deprecated: use
+                      `authorization` instead."
                     properties:
                       key:
                         description: The key of the secret to select from.  Must be
@@ -255,15 +261,18 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   enableHttp2:
-                    description: Whether to enable HTTP2.
+                    description: '`enableHttp2` can be used to disable HTTP2 when
+                      scraping the target.'
                     type: boolean
                   filterRunning:
-                    description: 'Drop pods that are not running. (Failed, Succeeded).
-                      Enabled by default. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase'
+                    description: "When true, the pods which are not running (e.g.
+                      either in Failed or Succeeded state) are dropped during the
+                      target discovery. \n If unset, the filtering is enabled. \n
+                      More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase"
                     type: boolean
                   followRedirects:
-                    description: FollowRedirects configures whether scrape requests
-                      follow HTTP 3xx redirects.
+                    description: '`followRedirects` defines whether the scrape requests
+                      should follow HTTP 3xx redirects.'
                     type: boolean
                   grpc:
                     description: GRPC defines the configuration of the gRPC request.
@@ -292,12 +301,12 @@ spec:
                         type: string
                     type: object
                   honorLabels:
-                    description: HonorLabels chooses the metric's labels on collisions
-                      with target labels.
+                    description: When true, `honorLabels` preserves the metric's labels
+                      when they collide with the target's labels.
                     type: boolean
                   honorTimestamps:
-                    description: HonorTimestamps controls whether Prometheus respects
-                      the timestamps present in scraped data.
+                    description: '`honorTimestamps` controls whether Prometheus preserves
+                      the timestamps when exposed by the target.'
                     type: boolean
                   http:
                     description: HTTP defines the configuration of the HTTP request.
@@ -391,12 +400,14 @@ spec:
                         type: string
                     type: object
                   interval:
-                    description: Interval at which metrics should be scraped If not
-                      specified Prometheus' global scrape interval is used.
+                    description: "Interval at which Prometheus scrapes the metrics
+                      from the target. \n If empty, Prometheus uses the global scrape
+                      interval."
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   metricRelabelings:
-                    description: MetricRelabelConfigs to apply to samples before ingestion.
+                    description: '`metricRelabelings` configures the relabeling rules
+                      to apply to the samples before ingestion.'
                     items:
                       description: "RelabelConfig allows dynamic rewriting of the
                         label set for targets, alerts, scraped samples and remote
@@ -474,12 +485,13 @@ spec:
                       when it's for pipeline endpoint.
                     type: string
                   oauth2:
-                    description: OAuth2 for the URL. Only valid in Prometheus versions
-                      2.27.0 and newer.
+                    description: "`oauth2` configures the OAuth2 settings to use when
+                      scraping the target. \n It requires Prometheus >= 2.27.0. \n
+                      Cannot be set at the same time as `authorization`, or `basicAuth`."
                     properties:
                       clientId:
-                        description: The secret or configmap containing the OAuth2
-                          client id
+                        description: '`clientId` specifies a key of a Secret or ConfigMap
+                          containing the OAuth2 client''s ID.'
                         properties:
                           configMap:
                             description: ConfigMap containing data to use for the
@@ -523,7 +535,8 @@ spec:
                             x-kubernetes-map-type: atomic
                         type: object
                       clientSecret:
-                        description: The secret containing the OAuth2 client secret
+                        description: '`clientSecret` specifies a key of a Secret containing
+                          the OAuth2 client''s secret.'
                         properties:
                           key:
                             description: The key of the secret to select from.  Must
@@ -544,15 +557,18 @@ spec:
                       endpointParams:
                         additionalProperties:
                           type: string
-                        description: Parameters to append to the token URL
+                        description: '`endpointParams` configures the HTTP parameters
+                          to append to the token URL.'
                         type: object
                       scopes:
-                        description: OAuth2 scopes used for the token request
+                        description: '`scopes` defines the OAuth2 scopes used for
+                          the token request.'
                         items:
                           type: string
                         type: array
                       tokenUrl:
-                        description: The URL to fetch the token from
+                        description: '`tokenURL` configures the URL to fetch the token
+                          from.'
                         minLength: 1
                         type: string
                     required:
@@ -565,26 +581,26 @@ spec:
                       items:
                         type: string
                       type: array
-                    description: Optional HTTP URL parameters
+                    description: params define optional HTTP URL parameters.
                     type: object
                   path:
-                    description: HTTP path to scrape for metrics. If empty, Prometheus
-                      uses the default value (e.g. `/metrics`).
+                    description: "HTTP path from which to scrape for metrics. \n If
+                      empty, Prometheus uses the default value (e.g. `/metrics`)."
                     type: string
                   port:
-                    description: Name of the service port this endpoint refers to.
-                      Mutually exclusive with targetPort.
+                    description: "Name of the Service port which this endpoint refers
+                      to. \n It takes precedence over `targetPort`."
                     type: string
                   proxyUrl:
-                    description: ProxyURL eg http://proxyserver:2195 Directs scrapes
-                      to proxy through this endpoint.
+                    description: '`proxyURL` configures the HTTP Proxy URL (e.g. "http://proxyserver:2195")
+                      to go through when scraping the target.'
                     type: string
                   relabelings:
-                    description: 'RelabelConfigs to apply to samples before scraping.
-                      Prometheus Operator automatically adds relabelings for a few
-                      standard Kubernetes fields. The original scrape job''s name
-                      is available via the `__tmp_prometheus_job_name` label. More
-                      info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config'
+                    description: "`relabelings` configures the relabeling rules to
+                      apply the target's metadata labels. \n The Operator automatically
+                      adds relabelings for a few standard Kubernetes fields. \n The
+                      original scrape job's name is available via the `__tmp_prometheus_job_name`
+                      label. \n More info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config"
                     items:
                       description: "RelabelConfig allows dynamic rewriting of the
                         label set for targets, alerts, scraped samples and remote
@@ -658,18 +674,19 @@ spec:
                       type: object
                     type: array
                   scheme:
-                    description: HTTP scheme to use for scraping. `http` and `https`
+                    description: "HTTP scheme to use for scraping. \n `http` and `https`
                       are the expected values unless you rewrite the `__scheme__`
-                      label via relabeling. If empty, Prometheus uses the default
-                      value `http`.
+                      label via relabeling. \n If empty, Prometheus uses the default
+                      value `http`."
                     enum:
                     - http
                     - https
                     type: string
                   scrapeTimeout:
-                    description: Timeout after which the scrape is ended If not specified,
-                      the Prometheus global scrape timeout is used unless it is less
-                      than `Interval` in which the latter is used.
+                    description: "Timeout after which Prometheus considers the scrape
+                      to be failed. \n If empty, Prometheus uses the global scrape
+                      timeout unless it is less than the target's scrape interval
+                      value in which the latter is used."
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                   serviceRef:
@@ -714,12 +731,12 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: Name or number of the target port of the Pod behind
-                      the Service, the port must be specified with container port
-                      property. Mutually exclusive with port.
+                    description: "Name or number of the target port of the `Pod` object
+                      behind the Service, the port must be specified with container
+                      port property. \n Deprecated: use `port` instead."
                     x-kubernetes-int-or-string: true
                   tlsConfig:
-                    description: TLS configuration to use when scraping the endpoint
+                    description: TLS configuration to use when scraping the target.
                     properties:
                       ca:
                         description: Certificate authority used when verifying server
@@ -849,6 +866,12 @@ spec:
                         description: Used to verify the hostname for the targets.
                         type: string
                     type: object
+                  trackTimestampsStaleness:
+                    description: "`trackTimestampsStaleness` defines whether Prometheus
+                      tracks staleness of the metrics that have an explicit timestamp
+                      present in scraped data. Has no effect if `honorTimestamps`
+                      is false. \n It requires Prometheus >= v2.48.0."
+                    type: boolean
                   websocket:
                     description: WebSocket defines the configuration of the WebSocket
                       connection. It's mutually exclusive with HTTP and GRPC.
@@ -872,7 +895,9 @@ spec:
                   description: Endpoint defines the configuration of the endpoint.
                   properties:
                     authorization:
-                      description: Authorization section for this endpoint
+                      description: "`authorization` configures the Authorization header
+                        credentials to use when scraping the target. \n Cannot be
+                        set at the same time as `basicAuth`, or `oauth2`."
                       properties:
                         credentials:
                           description: Selects a key of a Secret in the namespace
@@ -901,12 +926,13 @@ spec:
                           type: string
                       type: object
                     basicAuth:
-                      description: 'BasicAuth allow an endpoint to authenticate over
-                        basic authentication More info: https://prometheus.io/docs/operating/configuration/#endpoints'
+                      description: "`basicAuth` configures the Basic Authentication
+                        credentials to use when scraping the target. \n Cannot be
+                        set at the same time as `authorization`, or `oauth2`."
                       properties:
                         password:
-                          description: The secret in the service monitor namespace
-                            that contains the password for authentication.
+                          description: '`password` specifies a key of a Secret containing
+                            the password for authentication.'
                           properties:
                             key:
                               description: The key of the secret to select from.  Must
@@ -925,8 +951,8 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         username:
-                          description: The secret in the service monitor namespace
-                            that contains the username for authentication.
+                          description: '`username` specifies a key of a Secret containing
+                            the username for authentication.'
                           properties:
                             key:
                               description: The key of the secret to select from.  Must
@@ -946,12 +972,15 @@ spec:
                           x-kubernetes-map-type: atomic
                       type: object
                     bearerTokenFile:
-                      description: File to read bearer token for scraping targets.
+                      description: "File to read bearer token for scraping the target.
+                        \n Deprecated: use `authorization` instead."
                       type: string
                     bearerTokenSecret:
-                      description: Secret to mount to read bearer token for scraping
-                        targets. The secret needs to be in the same namespace as the
-                        service monitor and accessible by the Prometheus Operator.
+                      description: "`bearerTokenSecret` specifies a key of a Secret
+                        containing the bearer token for scraping targets. The secret
+                        needs to be in the same namespace as the ServiceMonitor object
+                        and readable by the Prometheus Operator. \n Deprecated: use
+                        `authorization` instead."
                       properties:
                         key:
                           description: The key of the secret to select from.  Must
@@ -970,15 +999,18 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     enableHttp2:
-                      description: Whether to enable HTTP2.
+                      description: '`enableHttp2` can be used to disable HTTP2 when
+                        scraping the target.'
                       type: boolean
                     filterRunning:
-                      description: 'Drop pods that are not running. (Failed, Succeeded).
-                        Enabled by default. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase'
+                      description: "When true, the pods which are not running (e.g.
+                        either in Failed or Succeeded state) are dropped during the
+                        target discovery. \n If unset, the filtering is enabled. \n
+                        More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase"
                       type: boolean
                     followRedirects:
-                      description: FollowRedirects configures whether scrape requests
-                        follow HTTP 3xx redirects.
+                      description: '`followRedirects` defines whether the scrape requests
+                        should follow HTTP 3xx redirects.'
                       type: boolean
                     grpc:
                       description: GRPC defines the configuration of the gRPC request.
@@ -1007,12 +1039,12 @@ spec:
                           type: string
                       type: object
                     honorLabels:
-                      description: HonorLabels chooses the metric's labels on collisions
-                        with target labels.
+                      description: When true, `honorLabels` preserves the metric's
+                        labels when they collide with the target's labels.
                       type: boolean
                     honorTimestamps:
-                      description: HonorTimestamps controls whether Prometheus respects
-                        the timestamps present in scraped data.
+                      description: '`honorTimestamps` controls whether Prometheus
+                        preserves the timestamps when exposed by the target.'
                       type: boolean
                     http:
                       description: HTTP defines the configuration of the HTTP request.
@@ -1110,13 +1142,14 @@ spec:
                           type: string
                       type: object
                     interval:
-                      description: Interval at which metrics should be scraped If
-                        not specified Prometheus' global scrape interval is used.
+                      description: "Interval at which Prometheus scrapes the metrics
+                        from the target. \n If empty, Prometheus uses the global scrape
+                        interval."
                       pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                       type: string
                     metricRelabelings:
-                      description: MetricRelabelConfigs to apply to samples before
-                        ingestion.
+                      description: '`metricRelabelings` configures the relabeling
+                        rules to apply to the samples before ingestion.'
                       items:
                         description: "RelabelConfig allows dynamic rewriting of the
                           label set for targets, alerts, scraped samples and remote
@@ -1196,12 +1229,13 @@ spec:
                         when it's for pipeline endpoint.
                       type: string
                     oauth2:
-                      description: OAuth2 for the URL. Only valid in Prometheus versions
-                        2.27.0 and newer.
+                      description: "`oauth2` configures the OAuth2 settings to use
+                        when scraping the target. \n It requires Prometheus >= 2.27.0.
+                        \n Cannot be set at the same time as `authorization`, or `basicAuth`."
                       properties:
                         clientId:
-                          description: The secret or configmap containing the OAuth2
-                            client id
+                          description: '`clientId` specifies a key of a Secret or
+                            ConfigMap containing the OAuth2 client''s ID.'
                           properties:
                             configMap:
                               description: ConfigMap containing data to use for the
@@ -1245,7 +1279,8 @@ spec:
                               x-kubernetes-map-type: atomic
                           type: object
                         clientSecret:
-                          description: The secret containing the OAuth2 client secret
+                          description: '`clientSecret` specifies a key of a Secret
+                            containing the OAuth2 client''s secret.'
                           properties:
                             key:
                               description: The key of the secret to select from.  Must
@@ -1266,15 +1301,18 @@ spec:
                         endpointParams:
                           additionalProperties:
                             type: string
-                          description: Parameters to append to the token URL
+                          description: '`endpointParams` configures the HTTP parameters
+                            to append to the token URL.'
                           type: object
                         scopes:
-                          description: OAuth2 scopes used for the token request
+                          description: '`scopes` defines the OAuth2 scopes used for
+                            the token request.'
                           items:
                             type: string
                           type: array
                         tokenUrl:
-                          description: The URL to fetch the token from
+                          description: '`tokenURL` configures the URL to fetch the
+                            token from.'
                           minLength: 1
                           type: string
                       required:
@@ -1287,26 +1325,27 @@ spec:
                         items:
                           type: string
                         type: array
-                      description: Optional HTTP URL parameters
+                      description: params define optional HTTP URL parameters.
                       type: object
                     path:
-                      description: HTTP path to scrape for metrics. If empty, Prometheus
-                        uses the default value (e.g. `/metrics`).
+                      description: "HTTP path from which to scrape for metrics. \n
+                        If empty, Prometheus uses the default value (e.g. `/metrics`)."
                       type: string
                     port:
-                      description: Name of the service port this endpoint refers to.
-                        Mutually exclusive with targetPort.
+                      description: "Name of the Service port which this endpoint refers
+                        to. \n It takes precedence over `targetPort`."
                       type: string
                     proxyUrl:
-                      description: ProxyURL eg http://proxyserver:2195 Directs scrapes
-                        to proxy through this endpoint.
+                      description: '`proxyURL` configures the HTTP Proxy URL (e.g.
+                        "http://proxyserver:2195") to go through when scraping the
+                        target.'
                       type: string
                     relabelings:
-                      description: 'RelabelConfigs to apply to samples before scraping.
-                        Prometheus Operator automatically adds relabelings for a few
-                        standard Kubernetes fields. The original scrape job''s name
-                        is available via the `__tmp_prometheus_job_name` label. More
-                        info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config'
+                      description: "`relabelings` configures the relabeling rules
+                        to apply the target's metadata labels. \n The Operator automatically
+                        adds relabelings for a few standard Kubernetes fields. \n
+                        The original scrape job's name is available via the `__tmp_prometheus_job_name`
+                        label. \n More info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config"
                       items:
                         description: "RelabelConfig allows dynamic rewriting of the
                           label set for targets, alerts, scraped samples and remote
@@ -1382,18 +1421,19 @@ spec:
                         type: object
                       type: array
                     scheme:
-                      description: HTTP scheme to use for scraping. `http` and `https`
-                        are the expected values unless you rewrite the `__scheme__`
-                        label via relabeling. If empty, Prometheus uses the default
-                        value `http`.
+                      description: "HTTP scheme to use for scraping. \n `http` and
+                        `https` are the expected values unless you rewrite the `__scheme__`
+                        label via relabeling. \n If empty, Prometheus uses the default
+                        value `http`."
                       enum:
                       - http
                       - https
                       type: string
                     scrapeTimeout:
-                      description: Timeout after which the scrape is ended If not
-                        specified, the Prometheus global scrape timeout is used unless
-                        it is less than `Interval` in which the latter is used.
+                      description: "Timeout after which Prometheus considers the scrape
+                        to be failed. \n If empty, Prometheus uses the global scrape
+                        timeout unless it is less than the target's scrape interval
+                        value in which the latter is used."
                       pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                       type: string
                     serviceRef:
@@ -1439,12 +1479,12 @@ spec:
                       anyOf:
                       - type: integer
                       - type: string
-                      description: Name or number of the target port of the Pod behind
-                        the Service, the port must be specified with container port
-                        property. Mutually exclusive with port.
+                      description: "Name or number of the target port of the `Pod`
+                        object behind the Service, the port must be specified with
+                        container port property. \n Deprecated: use `port` instead."
                       x-kubernetes-int-or-string: true
                     tlsConfig:
-                      description: TLS configuration to use when scraping the endpoint
+                      description: TLS configuration to use when scraping the target.
                       properties:
                         ca:
                           description: Certificate authority used when verifying server
@@ -1574,6 +1614,12 @@ spec:
                           description: Used to verify the hostname for the targets.
                           type: string
                       type: object
+                    trackTimestampsStaleness:
+                      description: "`trackTimestampsStaleness` defines whether Prometheus
+                        tracks staleness of the metrics that have an explicit timestamp
+                        present in scraped data. Has no effect if `honorTimestamps`
+                        is false. \n It requires Prometheus >= v2.48.0."
+                      type: boolean
                     websocket:
                       description: WebSocket defines the configuration of the WebSocket
                         connection. It's mutually exclusive with HTTP and GRPC.

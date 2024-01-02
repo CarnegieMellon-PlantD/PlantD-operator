@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -12,26 +13,22 @@ import (
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
 	promUrl   string
-	promStep  time.Duration
 	redisHost string
 )
 
 func init() {
 	promUrl = config.GetString("database.prometheus.url")
-	promInterval, err := time.ParseDuration(config.GetString("database.prometheus.scrapeInterval"))
-	if err != nil {
-		panic(err)
-	}
-	promStep = 2 * promInterval
 	redisHost = config.GetString("database.redis.host")
 }
 
 type QueryAgent struct {
 	PromAPI       prometheusv1.API
+	RedisClient   *redis.Client
 	RedisTSClient *redistimeseries.Client
 }
 
@@ -43,9 +40,16 @@ func NewQueryAgent() (*QueryAgent, error) {
 		return nil, err
 	}
 	promApi := prometheusv1.NewAPI(promClient)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     redisHost,
+		Password: "",
+		DB:       0,
+	})
 	redisTSClient := redistimeseries.NewClient(redisHost, "redis-ts-client", nil)
+
 	return &QueryAgent{
 		PromAPI:       promApi,
+		RedisClient:   redisClient,
 		RedisTSClient: redisTSClient,
 	}, nil
 }
@@ -92,6 +96,13 @@ func (ls *LabelSelector) GetSeriesFromRedisRange(r redistimeseries.Range) (strin
 	return result, nil
 }
 
+func getFloat64PtrFromFloat64(n float64) *float64 {
+	if math.IsNaN(n) {
+		return nil
+	}
+	return &n
+}
+
 func (qa *QueryAgent) PromQuery(ctx context.Context, req *PromRequest) (*BiChanResponse, error) {
 	result, _, err := qa.PromAPI.Query(ctx, req.Query, req.EndTimestamp.Time)
 	if err != nil {
@@ -107,7 +118,7 @@ func (qa *QueryAgent) PromQuery(ctx context.Context, req *PromRequest) (*BiChanR
 			}
 			res[i] = &BiChanDataPoint{
 				Series: series,
-				ValueY: float64(sampleVal.Value),
+				ValueY: getFloat64PtrFromFloat64(float64(sampleVal.Value)),
 			}
 		}
 		return &BiChanResponse{
@@ -118,15 +129,10 @@ func (qa *QueryAgent) PromQuery(ctx context.Context, req *PromRequest) (*BiChanR
 }
 
 func (qa *QueryAgent) PromQueryRange(ctx context.Context, req *PromRequest) (*TriChanResponse, error) {
-	promStep := promStep
-	if req.Step > 0 {
-		promStep = time.Duration(req.Step) * time.Second
-	}
-
 	timeRange := prometheusv1.Range{
 		Start: req.StartTimestamp.Time,
 		End:   req.EndTimestamp.Time,
-		Step:  promStep,
+		Step:  time.Duration(req.Step) * time.Second,
 	}
 	result, _, err := qa.PromAPI.QueryRange(ctx, req.Query, timeRange)
 	if err != nil {
@@ -143,8 +149,8 @@ func (qa *QueryAgent) PromQueryRange(ctx context.Context, req *PromRequest) (*Tr
 			for _, sampleVal := range streamVal.Values {
 				res = append(res, &TriChanDataPoint{
 					Series: series,
-					ValueY: float64(sampleVal.Value),
-					ValueX: float64(sampleVal.Timestamp.Time().Unix()),
+					ValueY: getFloat64PtrFromFloat64(float64(sampleVal.Value)),
+					ValueX: getFloat64PtrFromFloat64(float64(sampleVal.Timestamp.Time().Unix())),
 				})
 			}
 		}
@@ -153,6 +159,16 @@ func (qa *QueryAgent) PromQueryRange(ctx context.Context, req *PromRequest) (*Tr
 		}, nil
 	}
 	return nil, fmt.Errorf("cannot convert data to desired format")
+}
+
+func (qa *QueryAgent) RedisGet(ctx context.Context, req *RedisRequest) (*RawResponse, error) {
+	val, err := qa.RedisClient.Get(ctx, req.Key).Result()
+	if err != nil {
+		return nil, err
+	}
+	return &RawResponse{
+		Result: val,
+	}, nil
 }
 
 func (qa *QueryAgent) RedisTSMultiGet(ctx context.Context, req *RedisTSRequest) (*BiChanResponse, error) {
@@ -180,7 +196,7 @@ func (qa *QueryAgent) RedisTSMultiGet(ctx context.Context, req *RedisTSRequest) 
 			}
 			res[i] = &BiChanDataPoint{
 				Series: series,
-				ValueY: rangeVal.DataPoints[0].Value,
+				ValueY: getFloat64PtrFromFloat64(rangeVal.DataPoints[0].Value),
 			}
 		}
 		resultCh <- &BiChanResponse{
@@ -219,9 +235,9 @@ func (qa *QueryAgent) RedisTSMultiRange(ctx context.Context, req *RedisTSRequest
 			for _, dataPointVal := range rangeVal.DataPoints {
 				res = append(res, &TriChanDataPoint{
 					Series: series,
-					ValueY: dataPointVal.Value,
+					ValueY: getFloat64PtrFromFloat64(dataPointVal.Value),
 					// Redis uses Unix timestamp in milliseconds, convert it to Unix timestamp in seconds
-					ValueX: float64(dataPointVal.Timestamp) / 1000,
+					ValueX: getFloat64PtrFromFloat64(float64(dataPointVal.Timestamp) / 1000),
 				})
 			}
 		}
