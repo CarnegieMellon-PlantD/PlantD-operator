@@ -293,7 +293,7 @@ def simulate(twin, traffic):
     queue = traffic.calculate_queue(twin)
 
     #traffic.traffic.to_csv(f"fakeredis/simulation_{sim_name}.csv")
-    metrics.redis.save_str("simulation_traffic", sim_name, traffic.traffic.to_csv(index=True))
+    metrics.redis.save_str("simulation_traffic", sim_name, traffic.traffic.to_json(orient="split", date_format="iso"))
     
     sla_check = traffic.sla_check({"latency_sla_percent": 99.0, "latency_sla_limit": 70.0})
 

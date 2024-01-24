@@ -9,7 +9,6 @@ from typing import Any, List, Dict
 from pandas import DataFrame
 import pandas as pd
 import io
-import shlex
 
 
 def parse_duration(s : str) -> timedelta:
@@ -113,7 +112,7 @@ class Experiment:
             "pipeline_name": str(self.pipeline_name),
             "load_patterns": { lp: self.load_patterns[lp].serialize() for lp in self.load_patterns },
             "pipeline": self.pipeline.serialize() if self.pipeline else None,
-            "metrics": self.metrics.to_csv()
+            "metrics": self.metrics.to_json(orient="split", date_format="iso")
         }
     
     @classmethod
@@ -128,7 +127,8 @@ class Experiment:
         exp.pipeline_name = KubernetesName(json_rec["pipeline_name"])
         exp.load_patterns = {lp : LoadPattern.deserialize(json_rec["load_patterns"][lp]) for lp in json_rec["load_patterns"]}
         exp.pipeline = Pipeline.deserialize(json_rec["pipeline"]) if json_rec["pipeline"] else None
-        exp.metrics = reconstructed_df = pd.read_csv(io.StringIO(json_rec["metrics"]), index_col=0, parse_dates=True)
+        #exp.metrics = pd.read_csv(io.StringIO(json_rec["metrics"]), index_col=0, parse_dates=True)
+        pd.read_json(io.StringIO(json_rec["metrics"]),orient='split', convert_dates=True)
         return exp
     
     def save_file(self, fname):
@@ -202,7 +202,7 @@ class ConfigurationConnectionKubernetes:
         self.raw_experiments = {}
         self.raw_load_patterns = []
 
-    def get_experiment_metadata(self, experiment_names: List[KubernetesName] = []):
+    def get_experiment_metadata(self, experiment_names: List[KubernetesName] = [], from_cached=False):
         # Get start and end times of experiments
         experiment_metadata  = {}
         query_url = f"{self.kubernetes_service_address}/apis/{self.group}/{self.controller_version}/experiments"

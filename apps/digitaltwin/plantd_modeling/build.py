@@ -90,14 +90,14 @@ def build_twin(model_type, from_cached=False):
         else:
             raise Exception("Unknown pipeline resource namespace")
 
-        cost_info = cost.get_cost("opencost",
-            experiment_name,
-            pipeline_resource_namespace,
-            config.experiments[experiment_name].start_time, config.experiments[experiment_name].end_time,
-            from_cached=from_cached)
+        # cost_info = cost.get_cost("opencost",
+        #     experiment_name,
+        #     pipeline_resource_namespace,
+        #     config.experiments[experiment_name].start_time, config.experiments[experiment_name].end_time,
+        #     from_cached=from_cached)
         
         #import pdb; pdb.set_trace()
-        total_cost = sum([cost_info[phase]["total_cost"] for phase in cost_info])
+        total_cost = 0.0 #sum([cost_info[phase]["total_cost"] for phase in cost_info])
 
         # I can't reconcile the counts here for a few reasons:
         #   - each phase may process a variable number of records (in UBI, its 10x as many in phases 2 and 3)

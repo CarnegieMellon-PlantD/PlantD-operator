@@ -10,6 +10,8 @@ resources:
 - bases/windtunnel.plantd.org_experiments.yaml
 - bases/windtunnel.plantd.org_costexporters.yaml
 - bases/windtunnel.plantd.org_digitaltwins.yaml
+- bases/windtunnel.plantd.org_simulations.yaml
+- bases/windtunnel.plantd.org_trafficmodels.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -23,6 +25,9 @@ patches:
 #- path: patches/webhook_in_experiments.yaml
 #- path: patches/webhook_in_costexporters.yaml
 #- patches/webhook_in_digitaltwins.yaml
+#- patches/webhook_in_trafficpatterns.yaml
+#- patches/webhook_in_simulations.yaml
+#- patches/webhook_in_trafficmodels.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
@@ -35,6 +40,9 @@ patches:
 #- path: patches/cainjection_in_experiments.yaml
 #- path: patches/cainjection_in_costexporters.yaml
 #- patches/cainjection_in_digitaltwins.yaml
+#- patches/cainjection_in_trafficpatterns.yaml
+#- patches/cainjection_in_simulations.yaml
+#- patches/cainjection_in_trafficmodels.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

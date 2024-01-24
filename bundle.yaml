@@ -2683,6 +2683,204 @@ spec:
     subresources:
       status: {}
 ---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: simulations.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: Simulation
+    listKind: SimulationList
+    plural: simulations
+    singular: simulation
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.digitaltwinState
+      name: DigitalTwinState
+      type: string
+    - jsonPath: .status.trafficmodalState
+      name: TrafficModelState
+      type: string
+    - jsonPath: .status.podName
+      name: PodName
+      type: string
+    - jsonPath: .status.jobStatus
+      name: JobStatus
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Simulation is the Schema for the simulations API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ExperimentSpec defines the desired state of Experiment
+            properties:
+              digitalTwinRef:
+                description: LoadPatterns defines a list of configuration of name
+                  of endpoints and LoadPatterns.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              scheduledTime:
+                description: ScheduledTime defines the scheduled time for the Experiment.
+                format: date-time
+                type: string
+              trafficModelRef:
+                description: PipelineRef defines s reference of the Pipeline object.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - digitalTwinRef
+            - trafficModelRef
+            type: object
+          status:
+            description: SimulationStatus defines the observed state of Simulation
+            properties:
+              digitaltwinState:
+                type: string
+              jobStatus:
+                description: JobStatus defines the status of the cost calculation
+                  job.
+                type: string
+              podName:
+                type: string
+              trafficmodalState:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: trafficmodels.windtunnel.plantd.org
+spec:
+  group: windtunnel.plantd.org
+  names:
+    kind: TrafficModel
+    listKind: TrafficModelList
+    plural: trafficmodels
+    singular: trafficmodel
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: TrafficModel is the Schema for the trafficmodels API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TrafficModelSpec defines the desired state of TrafficModel
+            properties:
+              config:
+                type: string
+            type: object
+          status:
+            description: TrafficModelStatus defines the observed state of TrafficModel
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -3013,20 +3211,6 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
-  - digitaltwins/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - digitaltwins/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
   - experiments
   verbs:
   - create
@@ -3118,6 +3302,44 @@ rules:
   - windtunnel.plantd.org
   resources:
   - schemas
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - simulations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - simulations/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - simulations/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - trafficmodels
   verbs:
   - create
   - delete
@@ -3307,7 +3529,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/carnegiemellon-plantd/plantd-controller:digitaltwin
+        image: ghcr.io/carnegiemellon-plantd/plantd-controller:digitaltwin1
         livenessProbe:
           httpGet:
             path: /healthz

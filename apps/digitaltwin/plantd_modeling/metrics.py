@@ -19,7 +19,7 @@ class Redis:
     def __init__(self, redis_host, redis_password) -> None:
         self.redis_host = redis_host
         self.redis_password = redis_password
-        if redis_host is None:
+        if redis_host is None or redis_host == "":
             raise Exception("REDIS_HOST environment variable not set")
         self.r = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True, password=redis_password)
 
@@ -149,8 +149,7 @@ class Metrics:
                 for column, dtype in df.dtypes.iteritems():
                     if dtype == 'object':
                         df[column] = pd.to_numeric(df[column], errors='coerce')
-                metrics.redis.save_str("metrics", experiment.experiment_name, df.to_csv(index=True))
-                #df.to_csv(f"fakeredis/metrics_{experiment.experiment_name}.csv")
+                metrics.redis.save_str("metrics", experiment.experiment_name,df.to_json(orient='split', date_format='iso'))
             else:
                 df = pd.DataFrame()
         except requests.exceptions.HTTPError as e:
@@ -158,11 +157,15 @@ class Metrics:
             
             print(f"Trying redis")
             # read from redis
-            df = pd.read_csv(io.StringIO(metrics.redis.load_str("metrics", experiment.experiment_name)), index_col=0, parse_dates=True)
+            df = pd.read_json(io.StringIO(metrics.redis.load_str("metrics", experiment.experiment_name)), orient='split', convert_dates=True)
+
+            #df = pd.read_csv(io.StringIO(metrics.redis.load_str("metrics", experiment.experiment_name)), index_col=0, parse_dates=True)
         except Exception as e:
             print(f"Error getting metrics for {experiment.experiment_name}: {type(e)} {e}")
             print(f"Trying redis")
             # read from redis
-            df = pd.read_csv(io.StringIO(metrics.redis.load_str("metrics", experiment.experiment_name)), index_col=0, parse_dates=True)
+            df = pd.read_json(io.StringIO(metrics.redis.load_str("metrics", experiment.experiment_name)), orient='split', convert_dates=True)
+
+            #df = pd.read_csv(io.StringIO(metrics.redis.load_str("metrics", experiment.experiment_name)), index_col=0, parse_dates=True)
 
         return df

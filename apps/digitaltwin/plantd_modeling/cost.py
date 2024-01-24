@@ -98,7 +98,7 @@ def get_cost_data(opencost_endpoint, pipeline_label_key, pipeline_label_value,
     if response.status_code >= 500:
         print("Error querying OpenCost API: ", response.status_code)
         print("Exiting...")
-        exit(1)
+        # exit(1)
     elif response.status_code >= 400 and response.status.code < 500:
         print("Error querying OpenCost API: ", response.status_code)
         print("Ignoring...")
@@ -134,7 +134,7 @@ def get_cost_data(opencost_endpoint, pipeline_label_key, pipeline_label_value,
     except:
         print("Error parsing OpenCost response: ", response.json())
         print("Exiting...")
-        exit(1)
+        # exit(1)
 
     return opencost_records
 
@@ -156,13 +156,13 @@ def get_prometheus_data(prometheus_endpoint):
         if response.status_code != 200:
             print("Error querying Prometheus API: ", response.status_code)
             print("Exiting...")
-            exit(1)
+            # exit(1)
         try:
             prometheus_records[metric] = float(response.json()["data"]["result"][0]["value"][1])
         except:
             print("Error parsing Prometheus response: ", response.json())
             print("Exiting...")
-            exit(1)
+            # exit(1)
     return prometheus_records
 
 def calculate_experiment_cost(cost_data, prometheus_data, duration, opencost_endpoint):
@@ -233,14 +233,14 @@ def count_namespaces(opencost_endpoint):
     if response.status_code != 200:
         print("Error querying OpenCost API: ", response.status_code)
         print("Exiting...")
-        exit(1)
+        # exit(1)
 
     try: 
         num_namespaces = len(response.json()['data'][0])
     except:
         print("Error parsing OpenCost response: ", response.json())
         print("Exiting...")
-        exit(1)
+        # exit(1)
     print("There are ", num_namespaces, " namespaces in the cluster")
     return num_namespaces
 

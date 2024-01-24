@@ -13,7 +13,6 @@ def forecast(year):
     prometheus_host = os.environ['PROMETHEUS_HOST']
     prometheus_password = os.environ['PROMETHEUS_PASSWORD']
     
-    
     config = configuration.ConfigurationConnectionEnvVars()
     #model = TrafficModel.deserialize_parameters_from_file(open(f"fakeredis/trafficmodel_{traffic_model_name}.json").read())
     model = TrafficModel.deserialize_parameters(metrics.redis.load_str("trafficmodel_params", traffic_model_name))
@@ -122,25 +121,27 @@ class TrafficModel(dict):
         self.traffic = make_blank_frame(fromdate, todate)
         self.traffic["base_recs"] = self["start_row_cnt"]
         month_growth = self["yearly_growth_rate"] ** (1.0/12)
+        compounded_growth_rates = pd.Series([month_growth ** i for i in range(1, 13)], index=pd.Index(range(1, 13), name="Month"))
+
         self.traffic["monthly"] = adjust_by_matching_index(self.traffic.base_recs,  \
-                    month_growth * self["corrections_monthly"])
+                    compounded_growth_rates * self["corrections_monthly"])
         self.traffic["hourly"] = adjust_by_matching_index(self.traffic["monthly"], self["corrections_hourly"])
         return self.traffic
     
     def serialize_forecast_to_file(self, filename):
-        self.traffic.reset_index().to_csv(filename)
+        self.traffic.reset_index().to_json(filename, orient="split", date_format="iso")
 
     def serialize_forecast(self):
-        return self.traffic.reset_index().to_csv()
+        return self.traffic.reset_index().to_json(orient="split", date_format="iso")
 
     def deserialize_forecast_from_file(self, filename):
         if os.path.exists(filename):
-            self.traffic = pd.read_csv(filename).set_index(["Year","Month","Day","DOW","Hour"], inplace=False)
+            self.traffic = pd.read_json(filename, orient="split", date_format="iso").set_index(["Year","Month","Day","DOW","Hour"], inplace=False)
         else:
             raise Exception(f"File {filename} does not exist")
         
     def deserialize_forecast(self, serialized):
-        self.traffic = pd.read_csv(io.StringIO(serialized)).set_index(["Year","Month","Day","DOW","Hour"], inplace=False)
+        self.traffic = pd.read_json(io.StringIO(serialized), orient="split", date_format="iso").set_index(["Year","Month","Day","DOW","Hour"], inplace=False)
         
     def serialize_parameters(self):
         serialized = {
@@ -223,3 +224,4 @@ class TrafficModel(dict):
         print(f"Calculating queue")
         self.calculate()
         return self.traffic.queue_len
+        

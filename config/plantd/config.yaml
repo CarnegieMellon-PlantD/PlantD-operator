@@ -6,7 +6,7 @@ costService:
   requests.cpu: 300m
   limits.cpu: 500m
 digitalTwin:
-  image: ghcr.io/carnegiemellon-plantd/digitaltwin:v0.0.1
+  image: ghcr.io/carnegiemellon-plantd/digitaltwin:v0.0.3
   requests.cpu: 300m
   limits.cpu: 500m
 dataGenerator:
