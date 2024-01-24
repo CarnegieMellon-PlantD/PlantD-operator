@@ -4,11 +4,11 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update -y
 RUN apt-get install -y build-essential cmake dnsutils
 ENV PYTHONPATH="/digitaltwin:$PYTHONPATH"
-COPY ./digitaltwin /digitaltwin/
+COPY ./digitaltwin/requirements.txt /digitaltwin/requirements.txt
 WORKDIR /digitaltwin/
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
-
+COPY ./digitaltwin /digitaltwin
 # Production Stage
 FROM python:3.9-slim
 ENV PYTHONUNBUFFERED=1

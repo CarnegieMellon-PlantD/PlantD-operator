@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/part-of: plantd-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: plantd-operator
-  name: digitaltwin-sample
+  name: digitaltwin-incluster
 spec:
   modelType: "quickscaling"
-  loadPatternNames: "ubi-chris-test.loadpattern"
+  loadPatternNames: "test-pipeline.loadpattern-test-pipeline"
   experimentNames: "test-pipeline.experiment-test-pipeline"

@@ -23,11 +23,13 @@ def get_cost(source, experiment_name, pipeline_namespace, start_time, end_time, 
     # Get endpoints from environment variables
     # load_dotenv(".env")   # read from .env file for local testing only
     prometheus_endpoint = os.environ.get("PROMETHEUS_HOST", "http://localhost:9090")
+    prometheus_endpoint = prometheus_endpoint + "/api/v1/query"
     opencost_endpoint = os.environ.get("OPENCOST_ENDPOINT", "http://localhost:9003")
+    opencost_endpoint = opencost_endpoint + "/allocation"
     
     # Get experiment tag and start and end times from environment variables
-    pipeline_label_key = os.environ.get("PIPELINE_LABEL_KEY", "app")
-    pipepline_label_value = os.environ.get("PIPELINE_LABEL_VALUE", "unzipper")
+    pipeline_label_key = os.environ.get("PIPELINE_LABEL_KEY", None)
+    pipepline_label_value = os.environ.get("PIPELINE_LABEL_VALUE", None)
    
     # Get experiment tag and start and end times from environment variables
     pipeline_label_key = os.environ.get("PIPELINE_LABEL_KEY", None)
@@ -94,7 +96,7 @@ def get_cost_data(opencost_endpoint, pipeline_label_key, pipeline_label_value,
     print("Calling: ", opencost_endpoint, " with params: ", params)
 
     # make API request
-    response = requests.get(opencost_endpoint + "/allocation", params=params)
+    response = requests.get(opencost_endpoint, params=params)
     if response.status_code >= 500:
         print("Error querying OpenCost API: ", response.status_code)
         print("Exiting...")
@@ -152,7 +154,7 @@ def get_prometheus_data(prometheus_endpoint):
     for metric in ["kubecost_cluster_management_cost", "node_cpu_hourly_cost", 
                     "node_ram_hourly_cost"]:
         params["query"] = metric
-        response = requests.get(prometheus_endpoint + "/api/v1/query", params=params)
+        response = requests.get(prometheus_endpoint, params=params)
         if response.status_code != 200:
             print("Error querying Prometheus API: ", response.status_code)
             print("Exiting...")

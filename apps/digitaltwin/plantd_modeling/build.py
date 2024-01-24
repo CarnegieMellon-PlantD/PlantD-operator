@@ -81,23 +81,24 @@ def build_twin(model_type, from_cached=False):
         first_complete_pass = max(earliest.values())
 
         #import pdb; pdb.set_trace()
-        if "good" in config.experiments[experiment_name].pipeline_name.dotted_name:
-            pipeline_resource_namespace = "ubi"
-        elif "bad" in config.experiments[experiment_name].pipeline_name.dotted_name:
-            pipeline_resource_namespace = "ubi-2"
-        elif "fixed" in config.experiments[experiment_name].pipeline_name.dotted_name:
-            pipeline_resource_namespace = "ubi-3"
-        else:
-            raise Exception("Unknown pipeline resource namespace")
-
-        # cost_info = cost.get_cost("opencost",
-        #     experiment_name,
-        #     pipeline_resource_namespace,
-        #     config.experiments[experiment_name].start_time, config.experiments[experiment_name].end_time,
-        #     from_cached=from_cached)
+        # if "good" in config.experiments[experiment_name].pipeline_name.dotted_name:
+        #     pipeline_resource_namespace = "ubi"
+        # elif "bad" in config.experiments[experiment_name].pipeline_name.dotted_name:
+        #     pipeline_resource_namespace = "ubi-2"
+        # elif "fixed" in config.experiments[experiment_name].pipeline_name.dotted_name:
+        #     pipeline_resource_namespace = "ubi-3"
+        # else:
+        #     raise Exception("Unknown pipeline resource namespace")
+        pipeline_resource_namespace = "test-pipeline"
+        print(f"Printing pipeline namespace {pipeline_resource_namespace}")
+        cost_info = cost.get_cost("opencost",
+            experiment_name,
+            pipeline_resource_namespace,
+            config.experiments[experiment_name].start_time, config.experiments[experiment_name].end_time,
+            from_cached=from_cached)
         
         #import pdb; pdb.set_trace()
-        total_cost = 0.0 #sum([cost_info[phase]["total_cost"] for phase in cost_info])
+        total_cost = sum([cost_info[phase]["total_cost"] for phase in cost_info])
 
         # I can't reconcile the counts here for a few reasons:
         #   - each phase may process a variable number of records (in UBI, its 10x as many in phases 2 and 3)

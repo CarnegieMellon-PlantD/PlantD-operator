@@ -12,10 +12,9 @@ def forecast(year):
     traffic_model_name = os.environ['TRAFFIC_MODEL_NAME']
     prometheus_host = os.environ['PROMETHEUS_HOST']
     prometheus_password = os.environ['PROMETHEUS_PASSWORD']
-    
     config = configuration.ConfigurationConnectionEnvVars()
     #model = TrafficModel.deserialize_parameters_from_file(open(f"fakeredis/trafficmodel_{traffic_model_name}.json").read())
-    model = TrafficModel.deserialize_parameters(metrics.redis.load_str("trafficmodel_params", traffic_model_name))
+    model = TrafficModel.deserialize_parameters(os.environ['TRAFFIC_MODEL'])
     model.generate_traffic(datetime(year,1,1), datetime(year,12,31))
 
     #model.serialize_forecast(f"fakeredis/trafficmodel_{traffic_model_name}.csv")
