@@ -241,5 +241,5 @@ database:
     url: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090
   redis:
     # Ensure Redis service name, namespace, and port are correct
-    host: redis-service.plantd-operator-system.svc.cluster.local
+    host: redis-service.plantd-operator-system.svc.cluster.local:6379
     port: 6379
