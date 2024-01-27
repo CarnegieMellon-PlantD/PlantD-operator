@@ -5,6 +5,8 @@ costService:
   image: ghcr.io/carnegiemellon-plantd/aws-cost-service:v0.0.4
   requests.cpu: 300m
   limits.cpu: 500m
+  opencost:
+    url: http://opencost.opencost.svc.cluster.local:9003
 digitalTwin:
   image: ghcr.io/carnegiemellon-plantd/digitaltwin:v0.0.4 # v0.0.3 is the stable version
   requests.cpu: 300m
@@ -241,5 +243,5 @@ database:
     url: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090
   redis:
     # Ensure Redis service name, namespace, and port are correct
-    host: redis-service.plantd-operator-system.svc.cluster.local:6379
+    host: redis-service.plantd-operator-system.svc.cluster.local
     port: 6379

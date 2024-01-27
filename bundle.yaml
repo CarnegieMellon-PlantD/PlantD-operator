@@ -3529,7 +3529,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/carnegiemellon-plantd/plantd-controller:digitaltwin1
+        image: ghcr.io/carnegiemellon-plantd/plantd-controller:latest
         livenessProbe:
           httpGet:
             path: /healthz

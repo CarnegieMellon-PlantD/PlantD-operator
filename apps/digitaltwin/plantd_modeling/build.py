@@ -89,8 +89,8 @@ def build_twin(model_type, from_cached=False):
         #     pipeline_resource_namespace = "ubi-3"
         # else:
         #     raise Exception("Unknown pipeline resource namespace")
-        pipeline_resource_namespace = "test-pipeline"
-        print(f"Printing pipeline namespace {pipeline_resource_namespace}")
+        pipeline_resource_namespace = config.experiments[experiment_name].pipeline_name.dotted_name.split(".")[0]
+        print(f"Printing pipeline namespace {config.experiments[experiment_name].pipeline_name.dotted_name}")
         cost_info = cost.get_cost("opencost",
             experiment_name,
             pipeline_resource_namespace,

@@ -11,4 +11,4 @@ metadata:
 spec:
   modelType: "quickscaling"
   loadPatternNames: "test-pipeline.loadpattern-test-pipeline"
-  experimentNames: "test-pipeline.experiment-test-pipeline"
+  experimentNames: "test-pipeline.experiment-test-pipeline-2"

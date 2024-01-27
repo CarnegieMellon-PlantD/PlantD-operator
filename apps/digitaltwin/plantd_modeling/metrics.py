@@ -21,7 +21,7 @@ class Redis:
         self.redis_password = redis_password
         if redis_host is None or redis_host == "":
             raise Exception("REDIS_HOST environment variable not set")
-        self.r = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True, password=redis_password)
+        self.r = redis.Redis(host=redis_host, db=0, decode_responses=True, password=redis_password)
 
     def save_dict(self, type, name, data):
         self.r.set(f"plantd:{type}:{name}", json.dumps(data))

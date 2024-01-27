@@ -17,9 +17,9 @@ func init() {
 }
 
 // CreateJobByDigitalTwin creates a Kubernetes Job based on the Digital Twinconfiguration.
-func CreateJobBySimulation(ctx context.Context, jobName string, digitalTwin *windtunnelv1alpha1.DigitalTwin,
-	trafficModel *windtunnelv1alpha1.TrafficModel, experimentListJson string,
-	loadPatternListJson string) (*corev1.Pod, error) {
+func CreateJobBySimulation(ctx context.Context, jobName string, simulation *windtunnelv1alpha1.Simulation,
+	digitalTwin *windtunnelv1alpha1.DigitalTwin, trafficModel *windtunnelv1alpha1.TrafficModel,
+	experimentListJson string, loadPatternListJson string) (*corev1.Pod, error) {
 
 	// Create the Kubernetes Job object
 	pod := &corev1.Pod{
@@ -52,7 +52,7 @@ func CreateJobBySimulation(ctx context.Context, jobName string, digitalTwin *win
 						},
 						{
 							Name:  "SIM_NAME",
-							Value: jobName,
+							Value: simulation.Namespace + "." + simulation.Name,
 						},
 						{
 							Name:  "PIPELINE_NAMESPACE",
@@ -77,7 +77,7 @@ func CreateJobBySimulation(ctx context.Context, jobName string, digitalTwin *win
 
 						{
 							Name:  "OPENCOST_ENDPOINT",
-							Value: "http://opencost.opencost.svc.cluster.local:9003",
+							Value: config.GetString("costService.opencost.url"),
 						},
 						{
 							Name:  "PROMETHEUS_PASSWORD",

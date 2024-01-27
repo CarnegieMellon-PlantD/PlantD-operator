@@ -151,7 +151,7 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if sim.Status.PodName == "" {
-		pod, _ := simulation.CreateJobBySimulation(ctx, sim.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), digitalTwin, trafficModel, string(experimentListJSON), string(loadPatternListJSON))
+		pod, _ := simulation.CreateJobBySimulation(ctx, sim.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), sim, digitalTwin, trafficModel, string(experimentListJSON), string(loadPatternListJSON))
 
 		sim.Status.PodName = pod.Name
 		if err := ctrl.SetControllerReference(sim, pod, r.Scheme); err != nil {

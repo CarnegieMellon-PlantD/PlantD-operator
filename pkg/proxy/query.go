@@ -41,11 +41,11 @@ func NewQueryAgent() (*QueryAgent, error) {
 	}
 	promApi := prometheusv1.NewAPI(promClient)
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     redisHost,
+		Addr:     redisHost + ":6379",
 		Password: "",
 		DB:       0,
 	})
-	redisTSClient := redistimeseries.NewClient(redisHost, "redis-ts-client", nil)
+	redisTSClient := redistimeseries.NewClient(redisHost+":6379", "redis-ts-client", nil)
 
 	return &QueryAgent{
 		PromAPI:       promApi,
