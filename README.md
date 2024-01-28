@@ -20,6 +20,16 @@ For more detailed information about how to use PlantD, see our full [documentati
 
 ### CLI Commands
 
+
+#### Kubernetes cluster
+ If you don't have a kubernetes cluster handy, you can setup a small test cluster using Minikube.
+
+ Note that this will not scale up well to measuring dataflow of large pipelines, but it's enough to experiment and find out how PlantD works.
+
+ Type `kubectl cluster-info` to check that it's running
+
+
+
 #### Generate code
 
 ```shell
@@ -46,26 +56,16 @@ This command will generate the `bundle.yaml`. Remember to run this command after
 
 #### Install/Uninstall the CRD
 
-```shell
-# Install
-make install
+    ### Instal the K6 Operator
+    curl https://raw.githubusercontent.com/grafana/k6-operator/main/bundle.yaml | kubectl create -f -
 
-# Uninstall
-make uninstall
-```
+    ### Install the Prometheus Operator
+    curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f -
 
-#### Deploy/Undeploy the operator
 
-```shell
-# Deploy
-make deploy
-
-# Deploy with a custom Docker image
-make deploy IMG=<custom-image>
-
-# Undeploy
-make undeploy
-```
+    ### Install the PlantD Operator
+    curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f - 
+ 	
 
 Remember to run
 
