@@ -64,7 +64,7 @@ This command will generate the `bundle.yaml`. Remember to run this command after
 
 
     ### Install the PlantD Operator
-    curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f - 
+    curl https://raw.githubusercontent.com/CarnegieMellon-PlantD/PlantD-operator/main/bundle.yaml | kubectl create -f - 
  	
 
 Remember to run
