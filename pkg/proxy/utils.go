@@ -31,6 +31,9 @@ const (
 	ExperimentKind   string = "Experiment"
 	PlantDCoreKind   string = "PlantDCore"
 	CostExporterKind string = "CostExporter"
+	TrafficModelKind string = "TrafficModel"
+	DigitalTwinKind  string = "DigitalTwin"
+	SimulationKind   string = "Simulation"
 )
 
 // ForObject returns a client.Object instance based on the provided kind.
@@ -50,6 +53,12 @@ func ForObject(kind string) (client.Object, error) {
 		return &windtunnelv1alpha1.PlantDCore{}, nil
 	case CostExporterKind:
 		return &windtunnelv1alpha1.CostExporter{}, nil
+	case TrafficModelKind:
+		return &windtunnelv1alpha1.TrafficModel{}, nil
+	case DigitalTwinKind:
+		return &windtunnelv1alpha1.DigitalTwin{}, nil
+	case SimulationKind:
+		return &windtunnelv1alpha1.Simulation{}, nil
 	}
 	return nil, fmt.Errorf("failed to find resource of kind \"%s\"", kind)
 }

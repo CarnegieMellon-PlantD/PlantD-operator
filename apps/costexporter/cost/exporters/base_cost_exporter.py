@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 import redis
-
+import time
 
 class CostExporter(ABC):
   """
@@ -20,6 +20,7 @@ class CostExporter(ABC):
     self.redis_port = os.environ.get('REDIS_PORT', 6379)
     self.db = self._create_redis_time_series()
     self.cloud_service_provider = os.environ.get('CLOUD_SERVICE_PROVIDER', '')
+    self.count = 0
 
   def _create_redis_time_series(self):
     """
@@ -31,7 +32,7 @@ class CostExporter(ABC):
     try:
       redis_pool = redis.ConnectionPool(host=self.redis_host, port=self.redis_port, db=0)
       redis_conn = redis.Redis(connection_pool=redis_pool)
-      return redis_conn
+      return redis_conn.ts()
     except redis.ConnectionError as e:
       print("Error: Failed to connect to Redis.", e)
       quit()
@@ -51,21 +52,17 @@ class CostExporter(ABC):
     :return: None
     """
     try:
-      print("Writing to Redis")
-      print(values)
-      self.db.hmset(
-          values.get("key"),
-          {
-              "timestamp": values.get("timestamp"),
-              "cost": values.get("cost"),
-              "tag": values.get("tag"),
-              "resource": values.get("resource"),
-          }
-      )
+      
+      cost_key = values.get("key") + "-" + values.get("tag") +  values.get("resource")
+      print("writing cost key " + cost_key + " to redis")
+      print({"experiment": values.get("key"), "tag": values.get("tag"), "resource": values.get("resource")})
+      self.db.add(cost_key.encode(), values.get("timestamp"), values.get("cost"), labels={"experiment": values.get("key"), "tag": values.get("tag"), "resource": values.get("resource")}, duplicate_policy="last")
     except redis.RedisError as e:
       print("Error: Failed to write to Redis.", e)
+      raise e
     except Exception as e:
       print("Error: Unexpected error occurred while writing records to Redis.", e)
+      raise e
 
   @abstractmethod
   def get_cost_logs(self):

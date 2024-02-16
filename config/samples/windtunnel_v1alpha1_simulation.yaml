@@ -1,0 +1,17 @@
+apiVersion: windtunnel.plantd.org/v1alpha1
+kind: Simulation
+metadata:
+  labels:
+    app.kubernetes.io/name: simulation
+    app.kubernetes.io/instance: simulation-sample
+    app.kubernetes.io/part-of: plantd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: plantd-operator
+  name: simulation-sample
+spec:
+  trafficModelRef: 
+    name: trafficmodel-sample
+    namespace: default
+  digitalTwinRef: 
+    name: digitaltwin-sample
+    namespace: default

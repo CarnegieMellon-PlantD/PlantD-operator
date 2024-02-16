@@ -18,12 +18,12 @@ import (
 
 var (
 	promUrl   string
-	redisHost string
+	redisAddr string
 )
 
 func init() {
 	promUrl = config.GetString("database.prometheus.url")
-	redisHost = config.GetString("database.redis.host")
+	redisAddr = fmt.Sprintf("%s:%d", config.GetString("database.redis.host"), config.GetInt("database.redis.port"))
 }
 
 type QueryAgent struct {
@@ -41,11 +41,11 @@ func NewQueryAgent() (*QueryAgent, error) {
 	}
 	promApi := prometheusv1.NewAPI(promClient)
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     redisHost,
+		Addr:     redisAddr,
 		Password: "",
 		DB:       0,
 	})
-	redisTSClient := redistimeseries.NewClient(redisHost, "redis-ts-client", nil)
+	redisTSClient := redistimeseries.NewClient(redisAddr, "redis-ts-client", nil)
 
 	return &QueryAgent{
 		PromAPI:       promApi,

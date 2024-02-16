@@ -67,6 +67,24 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Put("/costexporters/{namespace}/{name}", updateObjectHandler(client, proxy.CostExporterKind))
 		r.Delete("/costexporters/{namespace}/{name}", deleteObjectHandler(client, proxy.CostExporterKind))
 
+		r.Get("/trafficmodels", getObjectListHandler(client, proxy.TrafficModelKind))
+		r.Get("/trafficmodels/{namespace}/{name}", getObjectHandler(client, proxy.TrafficModelKind))
+		r.Post("/trafficmodels/{namespace}/{name}", createObjectHandler(client, proxy.TrafficModelKind))
+		r.Put("/trafficmodels/{namespace}/{name}", updateObjectHandler(client, proxy.TrafficModelKind))
+		r.Delete("/trafficmodels/{namespace}/{name}", deleteObjectHandler(client, proxy.TrafficModelKind))
+
+		r.Get("/digitaltwins", getObjectListHandler(client, proxy.DigitalTwinKind))
+		r.Get("/digitaltwins/{namespace}/{name}", getObjectHandler(client, proxy.DigitalTwinKind))
+		r.Post("/digitaltwins/{namespace}/{name}", createObjectHandler(client, proxy.DigitalTwinKind))
+		r.Put("/digitaltwins/{namespace}/{name}", updateObjectHandler(client, proxy.DigitalTwinKind))
+		r.Delete("/digitaltwins/{namespace}/{name}", deleteObjectHandler(client, proxy.DigitalTwinKind))
+
+		r.Get("/simulations", getObjectListHandler(client, proxy.SimulationKind))
+		r.Get("/simulations/{namespace}/{name}", getObjectHandler(client, proxy.SimulationKind))
+		r.Post("/simulations/{namespace}/{name}", createObjectHandler(client, proxy.SimulationKind))
+		r.Put("/simulations/{namespace}/{name}", updateObjectHandler(client, proxy.SimulationKind))
+		r.Delete("/simulations/{namespace}/{name}", deleteObjectHandler(client, proxy.SimulationKind))
+
 		r.Get("/plantdcores/{namespace}/{name}", getObjectHandler(client, proxy.PlantDCoreKind))
 		r.Put("/plantdcores/{namespace}/{name}", updateObjectHandler(client, proxy.PlantDCoreKind))
 

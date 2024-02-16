@@ -41,23 +41,23 @@ func CreateJobByCostServie(ctx context.Context, jobName string, costService *win
 					Env: []corev1.EnvVar{
 						{
 							Name:  "EXPERIMENT_TAGS",
-							Value: string(costService.Status.Tags),
+							Value: costService.Status.Tags,
 						},
 						{
 							Name:  "S3_BUCKET_NAME",
-							Value: string(costService.Spec.S3Bucket),
+							Value: costService.Spec.S3Bucket,
 						},
 						{
 							Name:  "REDIS_HOST",
-							Value: "redis",
+							Value: config.GetString("database.redis.host"),
 						},
 						{
 							Name:  "REDIS_PORT",
-							Value: strconv.FormatInt(int64(6379), 10),
+							Value: strconv.FormatInt(config.GetInt64("database.redis.port"), 10),
 						},
 						{
 							Name:  "CLOUD_SERVICE_PROVIDER",
-							Value: string(costService.Spec.CloudServiceProvider),
+							Value: costService.Spec.CloudServiceProvider,
 						},
 						{
 							Name:  "EARLIEST_EXPERIMENT",
