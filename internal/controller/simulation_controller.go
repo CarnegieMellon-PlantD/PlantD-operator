@@ -19,6 +19,9 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+	"time"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,9 +31,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strconv"
-	"strings"
-	"time"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/simulation"
@@ -105,40 +105,27 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	experiments := &windtunnelv1alpha1.ExperimentList{}
-
-	err := r.List(ctx, experiments)
-	if err != nil {
-		log.Error(err, "Unable to list experiments when running digital twin")
-		return ctrl.Result{}, err
-	}
-
 	// List experiments required for digital twin
-	experimentsList := &windtunnelv1alpha1.ExperimentList{}
-	for _, experiment := range experiments.Items {
-		experimentNameCheck := experiment.Namespace + "." + experiment.Name
-		if strings.Contains(digitalTwin.Spec.ExperimentNames, experimentNameCheck) {
-			experimentsList.Items = append(experimentsList.Items, experiment)
+	experimentList := &windtunnelv1alpha1.ExperimentList{}
+	for _, experimentRef := range digitalTwin.Spec.Experiments {
+		experiment := &windtunnelv1alpha1.Experiment{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: experimentRef.Namespace, Name: experimentRef.Name}, experiment); err != nil {
+			return ctrl.Result{}, err
 		}
-	}
-
-	loadPatterns := &windtunnelv1alpha1.LoadPatternList{}
-
-	err1 := r.List(ctx, loadPatterns)
-	if err1 != nil {
-		log.Error(err, "Unable to list load patterns when running digital twin")
-		return ctrl.Result{}, err
+		experimentList.Items = append(experimentList.Items, *experiment)
 	}
 
 	// List experiments required for digital twin
 	loadPatternList := &windtunnelv1alpha1.LoadPatternList{}
-	for _, loadPattern := range loadPatterns.Items {
-		loadPatternNameCheck := loadPattern.Namespace + "." + loadPattern.Name
-		if strings.Contains(digitalTwin.Spec.LoadPatternNames, loadPatternNameCheck) {
-			loadPatternList.Items = append(loadPatternList.Items, loadPattern)
+	for _, loadPatternRef := range digitalTwin.Spec.LoadPatterns {
+		loadPattern := &windtunnelv1alpha1.LoadPattern{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: loadPatternRef.Namespace, Name: loadPatternRef.Name}, loadPattern); err != nil {
+			return ctrl.Result{}, err
 		}
+		loadPatternList.Items = append(loadPatternList.Items, *loadPattern)
 	}
-	experimentListJSON, err := json.Marshal(experimentsList)
+
+	experimentListJSON, err := json.Marshal(experimentList)
 	if err != nil {
 		log.Error(err, "Unable to marshal experimentList to JSON")
 		return ctrl.Result{}, err

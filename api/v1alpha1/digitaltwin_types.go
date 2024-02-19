@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,18 +26,13 @@ import (
 
 // DigitalTwinSpec defines the desired state of DigitalTwin
 type DigitalTwinSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	ModelType        string `json:"modelType,omitempty"`
-	LoadPatternNames string `json:"loadPatternNames,omitempty"`
-	ExperimentNames  string `json:"experimentNames,omitempty"`
+	ModelType    string                    `json:"modelType,omitempty"`
+	LoadPatterns []*corev1.ObjectReference `json:"loadPatterns,omitempty"`
+	Experiments  []*corev1.ObjectReference `json:"experiments,omitempty"`
 }
 
 // DigitalTwinStatus defines the observed state of DigitalTwin
-type DigitalTwinStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type DigitalTwinStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
