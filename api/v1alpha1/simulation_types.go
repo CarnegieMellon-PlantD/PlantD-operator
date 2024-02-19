@@ -24,23 +24,20 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ExperimentSpec defines the desired state of Experiment
+// SimulationSpec defines the desired state of Simulation
 type SimulationSpec struct {
-	// PipelineRef defines s reference of the Pipeline object.
+	// TrafficModelRef defines a reference of the TrafficModel object.
 	TrafficModelRef corev1.ObjectReference `json:"trafficModelRef"`
-	// LoadPatterns defines a list of configuration of name of endpoints and LoadPatterns.
+	// DigitalTwinRef defines a reference of the DigitalTwin object.
 	DigitalTwinRef corev1.ObjectReference `json:"digitalTwinRef"`
-	// ScheduledTime defines the scheduled time for the Experiment.
+	// ScheduledTime defines the scheduled time for the Simulation.
 	ScheduledTime metav1.Time `json:"scheduledTime,omitempty"`
 }
 
 // SimulationStatus defines the observed state of Simulation
 type SimulationStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	DigitalTwinState  string `json:"digitaltwinState,omitempty"`
-	TrafficModelState string `json:"trafficmodalState,omitempty"`
+	DigitalTwinState  string `json:"digitalTwinState,omitempty"`
+	TrafficModelState string `json:"trafficModalState,omitempty"`
 
 	PodName string `json:"podName,omitempty"`
 	// JobStatus defines the status of the cost calculation job.

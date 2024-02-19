@@ -29,10 +29,7 @@ type TrafficModelSpec struct {
 }
 
 // TrafficModelStatus defines the observed state of TrafficModel
-type TrafficModelStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type TrafficModelStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

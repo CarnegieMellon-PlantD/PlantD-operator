@@ -2,6 +2,8 @@ package simulation
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
@@ -20,6 +22,17 @@ func init() {
 func CreateJobBySimulation(ctx context.Context, jobName string, simulation *windtunnelv1alpha1.Simulation,
 	digitalTwin *windtunnelv1alpha1.DigitalTwin, trafficModel *windtunnelv1alpha1.TrafficModel,
 	experimentListJson string, loadPatternListJson string) (*corev1.Pod, error) {
+
+	// Get LoadPattern and Experiment names
+	var loadPatternNameList []string
+	for _, loadPatternRef := range digitalTwin.Spec.LoadPatterns {
+		loadPatternNameList = append(loadPatternNameList, fmt.Sprintf("%s.%s", loadPatternRef.Namespace, loadPatternRef.Name))
+	}
+
+	var experimentNameList []string
+	for _, experimentRef := range digitalTwin.Spec.Experiments {
+		experimentNameList = append(experimentNameList, fmt.Sprintf("%s.%s", experimentRef.Namespace, experimentRef.Name))
+	}
 
 	// Create the Kubernetes Job object
 	pod := &corev1.Pod{
@@ -85,11 +98,11 @@ func CreateJobBySimulation(ctx context.Context, jobName string, simulation *wind
 						},
 						{
 							Name:  "LOAD_PATTERN_NAMES",
-							Value: string(digitalTwin.Spec.LoadPatternNames),
+							Value: strings.Join(loadPatternNameList, ","),
 						},
 						{
 							Name:  "EXPERIMENT_NAMES",
-							Value: string(digitalTwin.Spec.ExperimentNames),
+							Value: strings.Join(experimentNameList, ","),
 						},
 						{
 							Name:  "LOAD_PATTERN_METADATA",
