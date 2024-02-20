@@ -13,6 +13,8 @@ Package v1alpha1 contains API Schema definitions for the windtunnel v1alpha1 API
 - [CostExporterList](#costexporterlist)
 - [DataSet](#dataset)
 - [DataSetList](#datasetlist)
+- [DigitalTwin](#digitaltwin)
+- [DigitalTwinList](#digitaltwinlist)
 - [Experiment](#experiment)
 - [ExperimentList](#experimentlist)
 - [LoadPattern](#loadpattern)
@@ -23,6 +25,10 @@ Package v1alpha1 contains API Schema definitions for the windtunnel v1alpha1 API
 - [PlantDCoreList](#plantdcorelist)
 - [Schema](#schema)
 - [SchemaList](#schemalist)
+- [Simulation](#simulation)
+- [SimulationList](#simulationlist)
+- [TrafficModel](#trafficmodel)
+- [TrafficModelList](#trafficmodellist)
 
 
 
@@ -57,7 +63,7 @@ _Appears in:_
 | `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
 | `kind` _string_ | `CostExporter`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[CostExporterSpec](#costexporterspec)_ | Spec defines the specifictions of the CostExporter. |
+| `spec` _[CostExporterSpec](#costexporterspec)_ | Spec defines the specifications of the CostExporter. |
 
 
 #### CostExporterList
@@ -143,7 +149,7 @@ _Appears in:_
 | `compressPerSchema` _boolean_ | CompressPerSchema defines the flag of compression. If you wish files from all the different schemas to compressed into one compressed file leave this field as false. If you wish to have a different compressed file for every schema, mark this field as true. |
 | `numFiles` _integer_ | NumberOfFiles defines the total number of output files irrespective of compression. Unless "compressPerSchema" is false, this field is applicable per schema. |
 | `schemas` _[SchemaSelector](#schemaselector) array_ | Schemas defines a list of Schemas. |
-| `parallelJobs` _integer_ | ParallelJobs defines the number of parallel jobs when generating the dataset. TODO: Infer the optimal number of parallel jobs automatically. |
+| `parallelJobs` _integer_ | ParallelJobs defines the number of parallel jobs when generating the dataset. |
 
 
 
@@ -162,6 +168,57 @@ _Appears in:_
 | `image` _string_ | Image defines the container image to use |
 | `replicas` _integer_ | Replicas defines the desired number of replicas |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#resourcerequirements-v1-core)_ | Resources defines the resource requirements per replica |
+
+
+#### DigitalTwin
+
+
+
+DigitalTwin is the Schema for the digitaltwins API
+
+_Appears in:_
+- [DigitalTwinList](#digitaltwinlist)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `DigitalTwin`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[DigitalTwinSpec](#digitaltwinspec)_ | Spec defines the specifications of the DigitalTwin. |
+
+
+#### DigitalTwinList
+
+
+
+DigitalTwinList contains a list of DigitalTwin
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `DigitalTwinList`
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `items` _[DigitalTwin](#digitaltwin) array_ | Items defines a list of DigitalTwins. |
+
+
+#### DigitalTwinSpec
+
+
+
+DigitalTwinSpec defines the desired state of DigitalTwin
+
+_Appears in:_
+- [DigitalTwin](#digitaltwin)
+
+| Field | Description |
+| --- | --- |
+| `modelType` _string_ | ModelType defines the type of the DigitalTwin model. |
+| `loadPatterns` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core) array_ | LoadPatterns contains the list of LoadPattern object references for the DigitalTwin. |
+| `experiments` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core) array_ | Experiments contains the list of Experiment object references for the DigitalTwin. |
+
+
 
 
 #### Endpoint
@@ -234,7 +291,7 @@ ExperimentList contains a list of Experiments.
 | `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
 | `kind` _string_ | `ExperimentList`
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Experiment](#experiment) array_ | Items defines a list of Experiment. |
+| `items` _[Experiment](#experiment) array_ | Items defines a list of Experiments. |
 
 
 #### ExperimentSpec
@@ -289,7 +346,7 @@ _Appears in:_
 
 
 
-GRPC defines the configurations of gRPC protocol. TODO: Validate the gRPC library in K6 and update the API.
+GRPC defines the configurations of gRPC protocol.
 
 _Appears in:_
 - [Endpoint](#endpoint)
@@ -380,7 +437,7 @@ LoadPatternList contains a list of LoadPattern
 | `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
 | `kind` _string_ | `LoadPatternList`
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[LoadPattern](#loadpattern) array_ | Items defines a list of LoadPattern. |
+| `items` _[LoadPattern](#loadpattern) array_ | Items defines a list of LoadPatterns. |
 
 
 #### LoadPatternSpec
@@ -484,7 +541,7 @@ _Appears in:_
 | `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
 | `kind` _string_ | `PlantDCore`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `spec` _[PlantDCoreSpec](#plantdcorespec)_ |  |
+| `spec` _[PlantDCoreSpec](#plantdcorespec)_ | Spec defines the specifications of the PlantDCore. |
 
 
 #### PlantDCoreList
@@ -500,7 +557,7 @@ PlantDCoreList contains a list of PlantDCore
 | `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
 | `kind` _string_ | `PlantDCoreList`
 | `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[PlantDCore](#plantdcore) array_ |  |
+| `items` _[PlantDCore](#plantdcore) array_ | Items defines a list of PlantDCores. |
 
 
 #### PlantDCoreSpec
@@ -514,7 +571,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `kubeProxy` _[DeploymentConfig](#deploymentconfig)_ | INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file KubeProxyConfig defines the desire state of PlantD Kube Proxy |
+| `kubeProxy` _[DeploymentConfig](#deploymentconfig)_ | KubeProxyConfig defines the desire state of PlantD Kube Proxy |
 | `studio` _[DeploymentConfig](#deploymentconfig)_ | StudioConfig defines the desire state of PlantD Studio |
 | `prometheus` _[PrometheusConfig](#prometheusconfig)_ | PrometheusConfig defines the desire state of Prometheus |
 | `redis` _[DeploymentConfig](#deploymentconfig)_ | RedisConfig defines the desire state of Redis |
@@ -603,6 +660,56 @@ _Appears in:_
 
 
 
+#### Simulation
+
+
+
+Simulation is the Schema for the simulations API
+
+_Appears in:_
+- [SimulationList](#simulationlist)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `Simulation`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[SimulationSpec](#simulationspec)_ | Spec defines the specifications of the Simulation. |
+
+
+#### SimulationList
+
+
+
+SimulationList contains a list of Simulation
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `SimulationList`
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `items` _[Simulation](#simulation) array_ | Items defines a list of Simulations. |
+
+
+#### SimulationSpec
+
+
+
+SimulationSpec defines the desired state of Simulation
+
+_Appears in:_
+- [Simulation](#simulation)
+
+| Field | Description |
+| --- | --- |
+| `trafficModelRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | TrafficModelRef defines the TrafficModel object reference for the Simulation. |
+| `digitalTwinRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | DigitalTwinRef defines the DigitalTwin object reference for the Simulation. |
+
+
+
+
 #### Stage
 
 
@@ -633,11 +740,60 @@ _Appears in:_
 | `secretRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | SecretRef defines the reference to the Kubernetes Secret object for authentication on the cloud service provider. |
 
 
+#### TrafficModel
+
+
+
+TrafficModel is the Schema for the trafficmodels API
+
+_Appears in:_
+- [TrafficModelList](#trafficmodellist)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `TrafficModel`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[TrafficModelSpec](#trafficmodelspec)_ | Spec defines the specifications of the TrafficModel. |
+
+
+#### TrafficModelList
+
+
+
+TrafficModelList contains a list of TrafficModel
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `TrafficModelList`
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `items` _[TrafficModel](#trafficmodel) array_ | Items defines a list of TrafficModels. |
+
+
+#### TrafficModelSpec
+
+
+
+TrafficModelSpec defines the desired state of TrafficModel
+
+_Appears in:_
+- [TrafficModel](#trafficmodel)
+
+| Field | Description |
+| --- | --- |
+| `config` _string_ | Config defines the configuration of the TrafficModel. |
+
+
+
+
 #### WebSocket
 
 
 
-WebSocket defines the configurations of websocket protocol. TODO: Validate the websocket library in K6 and update the API.
+WebSocket defines the configurations of websocket protocol.
 
 _Appears in:_
 - [Endpoint](#endpoint)

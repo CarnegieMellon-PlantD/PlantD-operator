@@ -45,12 +45,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: PlantDCoreSpec defines the desired state of PlantDCore
+            description: Spec defines the specifications of the PlantDCore.
             properties:
               kubeProxy:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                  KubeProxyConfig defines the desire state of PlantD Kube Proxy'
+                description: KubeProxyConfig defines the desire state of PlantD Kube
+                  Proxy
                 properties:
                   image:
                     description: Image defines the container image to use
@@ -293,7 +292,7 @@ spec:
                 type: object
             type: object
           status:
-            description: PlantDCoreStatus defines the observed state of PlantDCore
+            description: Status defines the status of the PlantDCore.
             properties:
               kubeProxyReady:
                 description: KubeProxyReady shows if the PlantD Kube Proxy is ready

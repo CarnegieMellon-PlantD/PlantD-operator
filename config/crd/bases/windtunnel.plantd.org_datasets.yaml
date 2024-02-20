@@ -78,9 +78,8 @@ spec:
                 format: int32
                 type: integer
               parallelJobs:
-                description: 'ParallelJobs defines the number of parallel jobs when
-                  generating the dataset. TODO: Infer the optimal number of parallel
-                  jobs automatically.'
+                description: ParallelJobs defines the number of parallel jobs when
+                  generating the dataset.
                 format: int32
                 type: integer
               schemas:

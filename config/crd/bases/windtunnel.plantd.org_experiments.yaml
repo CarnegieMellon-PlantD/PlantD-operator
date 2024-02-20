@@ -161,8 +161,7 @@ spec:
                 description: EnableCostCalculation defines teh flag of cost calculation.
                 type: boolean
               endTime:
-                description: 'EndTime defines the end of the Experiment. TODO: Add
-                  microservice to calculate the end time of the experiment.'
+                description: EndTime defines the end of the Experiment.
                 format: date-time
                 type: string
               experimentState:
