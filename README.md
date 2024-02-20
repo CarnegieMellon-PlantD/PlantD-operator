@@ -34,7 +34,9 @@ This command will generate the auto-generated code such as `zz_generated.deepcop
 make manifests
 ```
 
-This command will generate the CRD manifests under `config`. Remember to run this command after modifying the CRD.
+This command will generate the CRD manifests under `config`.
+
+**NOTE**: Remember to run this command after modifying the CRD.
 
 #### Generate `bundle.yaml`
 
@@ -42,7 +44,19 @@ This command will generate the CRD manifests under `config`. Remember to run thi
 make bundle
 ```
 
-This command will generate the `bundle.yaml`. Remember to run this command after modifying the CRD.
+This command will generate the `bundle.yaml`.
+
+**NOTE**: Remember to run this command after modifying the CRD.
+
+#### Generate CRD API reference
+
+```shell
+make docs
+```
+
+This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md).
+
+**NOTE**: Remember to run this command after modifying the CRD.
 
 #### Install/Uninstall the CRD
 
@@ -67,33 +81,13 @@ make deploy IMG=<custom-image>
 make undeploy
 ```
 
-Remember to run
+**NOTE**: Remember to run
 
 ```shell
 kubectl delete plantdcore -n plantd-operator-system plantdcore-core
 ```
 
 before undeploying the operator, since the undeploying command will remove PlantD controllers before removing the `PlantDCore` resource, and the `PlantDCore` resource has a finalizer that will prevent the entire process from completing given the operator is removed before.
-
-#### Generate CRD API reference
-
-1. Install [`crd-ref-docs`](https://github.com/elastic/crd-ref-docs)
-
-    ```shell
-    go install github.com/elastic/crd-ref-docs@latest
-    ```
-
-2. In the project root directory, run
-
-    ```shell
-    $(go env GOPATH)/bin/crd-ref-docs \
-    --source-path=./api/v1alpha1 \
-    --output-path=./docs/api/crd-api-reference.md \
-    --config=./docs/api/config.yaml \
-    --renderer=markdown
-    ```
-
-    This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md). Remember to run this command after modifying the CRD.
 
 ### Release
 
