@@ -30,8 +30,6 @@ type SimulationSpec struct {
 	TrafficModelRef corev1.ObjectReference `json:"trafficModelRef"`
 	// DigitalTwinRef defines the DigitalTwin object reference for the Simulation.
 	DigitalTwinRef corev1.ObjectReference `json:"digitalTwinRef"`
-	// ScheduledTime defines the scheduled time for the Simulation.
-	ScheduledTime metav1.Time `json:"scheduledTime,omitempty"`
 }
 
 // SimulationStatus defines the observed state of Simulation
