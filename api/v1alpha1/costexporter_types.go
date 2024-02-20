@@ -38,7 +38,7 @@ type CostExporter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specifictions of the CostExporter.
+	// Spec defines the specifications of the CostExporter.
 	Spec CostExporterSpec `json:"spec,omitempty"`
 	// Status defines the status of the CostExporter.
 	Status CostExporterStatus `json:"status,omitempty"`
@@ -50,6 +50,7 @@ type CostExporter struct {
 type CostExporterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
+
 	// Items defines a list of CostExporters.
 	Items []CostExporter `json:"items"`
 }

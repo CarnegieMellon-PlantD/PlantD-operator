@@ -37,7 +37,6 @@ type ExperimentStatus struct {
 	// StartTime defines the start of the K6 load generator.
 	StartTime *metav1.Time `json:"startTime,omitempty"`
 	// EndTime defines the end of the Experiment.
-	// TODO: Add microservice to calculate the end time of the experiment.
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 	// CloudVendor defines the cloud service provider which the pipeline-under-test is deployed.
 	CloudVendor string `json:"cloudVendor,omitempty"`
@@ -68,7 +67,8 @@ type Experiment struct {
 type ExperimentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	// Items defines a list of Experiment.
+
+	// Items defines a list of Experiments.
 	Items []Experiment `json:"items"`
 }
 

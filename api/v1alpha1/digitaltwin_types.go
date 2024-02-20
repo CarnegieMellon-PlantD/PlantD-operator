@@ -26,9 +26,12 @@ import (
 
 // DigitalTwinSpec defines the desired state of DigitalTwin
 type DigitalTwinSpec struct {
-	ModelType    string                    `json:"modelType,omitempty"`
+	// ModelType defines the type of the DigitalTwin model.
+	ModelType string `json:"modelType,omitempty"`
+	// LoadPatterns contains the list of LoadPattern object references for the DigitalTwin.
 	LoadPatterns []*corev1.ObjectReference `json:"loadPatterns,omitempty"`
-	Experiments  []*corev1.ObjectReference `json:"experiments,omitempty"`
+	// Experiments contains the list of Experiment object references for the DigitalTwin.
+	Experiments []*corev1.ObjectReference `json:"experiments,omitempty"`
 }
 
 // DigitalTwinStatus defines the observed state of DigitalTwin
@@ -42,7 +45,9 @@ type DigitalTwin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DigitalTwinSpec   `json:"spec,omitempty"`
+	// Spec defines the specifications of the DigitalTwin.
+	Spec DigitalTwinSpec `json:"spec,omitempty"`
+	// Status defines the status of the DigitalTwin.
 	Status DigitalTwinStatus `json:"status,omitempty"`
 }
 
@@ -52,7 +57,9 @@ type DigitalTwin struct {
 type DigitalTwinList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DigitalTwin `json:"items"`
+
+	// Items defines a list of DigitalTwins.
+	Items []DigitalTwin `json:"items"`
 }
 
 func init() {

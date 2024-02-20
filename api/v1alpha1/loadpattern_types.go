@@ -49,7 +49,8 @@ type LoadPattern struct {
 type LoadPatternList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	// Items defines a list of LoadPattern.
+
+	// Items defines a list of LoadPatterns.
 	Items []LoadPattern `json:"items"`
 }
 
