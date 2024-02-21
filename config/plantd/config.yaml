@@ -2,15 +2,11 @@ name: PlantD
 version: 1.0.0
 pvc.requests.storage: 10Gi
 costService:
-  image: ghcr.io/carnegiemellon-plantd/aws-cost-service:v0.0.4
-  requests.cpu: 300m
-  limits.cpu: 500m
+  image: ghcr.io/carnegiemellon-plantd/costservice:latest
   opencost:
     url: http://opencost.opencost.svc.cluster.local:9003
 digitalTwin:
-  image: ghcr.io/carnegiemellon-plantd/digitaltwin:v0.0.4 # v0.0.3 is the stable version
-  requests.cpu: 300m
-  limits.cpu: 500m
+  image: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
 dataGenerator:
   path: /test # Default path where k6 looks for the files
   image: ghcr.io/carnegiemellon-plantd/datagenerator:latest
