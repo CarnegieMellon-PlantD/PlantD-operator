@@ -28,6 +28,8 @@ make generate
 
 This command will generate the auto-generated code such as `zz_generated.deepcopy.go`.
 
+**NOTE**: Remember to run this command after modifying the CRD.
+
 #### Generate CRD manifests
 
 ```shell
