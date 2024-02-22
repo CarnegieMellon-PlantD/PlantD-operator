@@ -18,8 +18,8 @@ func init() {
 	image = config.GetString("costService.image")
 }
 
-// CreateJobByCostServie creates a Kubernetes Job based on the Cost Service configuration.
-func CreateJobByCostServie(ctx context.Context, jobName string, costService *windtunnelv1alpha1.CostExporter,
+// CreateJobByCostService creates a Kubernetes Job based on the Cost Service configuration.
+func CreateJobByCostService(ctx context.Context, jobName string, costService *windtunnelv1alpha1.CostExporter,
 	earliestTime time.Time) (*corev1.Pod, error) {
 
 	// Create the Kubernetes Job object

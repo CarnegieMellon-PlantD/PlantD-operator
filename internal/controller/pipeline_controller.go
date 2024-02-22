@@ -229,18 +229,18 @@ func (r *PipelineReconciler) CreateService(ctx context.Context, pipeline *windtu
 	log := log.FromContext(ctx)
 	// Create externalName service and endpoint for pipeline endpoints.
 	for _, endpoint := range pipeline.Spec.PipelineEndpoints {
-		serivce, endpoints, err := monitor.CreateExternalNameService(pipeline.Namespace, pipeline.Name, &endpoint)
+		service, endpoints, err := monitor.CreateExternalNameService(pipeline.Namespace, pipeline.Name, &endpoint)
 		if err != nil {
 			log.Error(err, "Cannot create service manifests for outside-cluster Pipeline")
 			return err
 		}
-		if err := ctrl.SetControllerReference(pipeline, serivce, r.Scheme); err != nil {
+		if err := ctrl.SetControllerReference(pipeline, service, r.Scheme); err != nil {
 			return err
 		}
 		if err := ctrl.SetControllerReference(pipeline, endpoints, r.Scheme); err != nil {
 			return err
 		}
-		if err := r.Create(ctx, serivce); err != nil {
+		if err := r.Create(ctx, service); err != nil {
 			log.Error(err, "Cannot create ExternalName service for outside-cluster Pipeline")
 			return err
 		}
@@ -251,18 +251,18 @@ func (r *PipelineReconciler) CreateService(ctx context.Context, pipeline *windtu
 	}
 
 	// Create externalName service and endpoint for the metrics endpoint.
-	serivce, endpoints, err := monitor.CreateExternalNameService(pipeline.Namespace, pipeline.Name, &pipeline.Spec.MetricsEndpoint)
+	service, endpoints, err := monitor.CreateExternalNameService(pipeline.Namespace, pipeline.Name, &pipeline.Spec.MetricsEndpoint)
 	if err != nil {
 		log.Error(err, "Cannot create service manifests for outside-cluster Pipeline")
 		return err
 	}
-	if err := ctrl.SetControllerReference(pipeline, serivce, r.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(pipeline, service, r.Scheme); err != nil {
 		return err
 	}
 	if err := ctrl.SetControllerReference(pipeline, endpoints, r.Scheme); err != nil {
 		return err
 	}
-	if err := r.Create(ctx, serivce); err != nil {
+	if err := r.Create(ctx, service); err != nil {
 		log.Error(err, "Cannot create ExternalName service for outside-cluster Pipeline")
 		return err
 	}
