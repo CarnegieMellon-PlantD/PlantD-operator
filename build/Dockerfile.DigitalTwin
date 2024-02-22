@@ -10,6 +10,7 @@ RUN pip install --user -r requirements.txt
 FROM python:3.9-slim
 COPY --from=builder /root/.local /root/.local
 COPY ./apps/digitaltwin/ /digitaltwin/
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1
 ENTRYPOINT ["python3"]
 CMD ["/digitaltwin/main.py"]
