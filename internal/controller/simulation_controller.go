@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -106,6 +107,8 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// List Experiments and LoadPatterns required for digital twin
+	var experimentNames []string
+	var loadPatternNames []string
 	experimentList := &windtunnelv1alpha1.ExperimentList{}
 	loadPatternList := &windtunnelv1alpha1.LoadPatternList{}
 	for _, experimentRef := range digitalTwin.Spec.Experiments {
@@ -113,6 +116,7 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.Get(ctx, types.NamespacedName{Namespace: experimentRef.Namespace, Name: experimentRef.Name}, experiment); err != nil {
 			return ctrl.Result{}, err
 		}
+		experimentNames = append(experimentNames, fmt.Sprintf("%s.%s", experiment.Namespace, experiment.Name))
 		experimentList.Items = append(experimentList.Items, *experiment)
 
 		for _, loadPatternConfig := range experiment.Spec.LoadPatterns {
@@ -123,6 +127,7 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}, loadPattern); err != nil {
 				return ctrl.Result{}, err
 			}
+			loadPatternNames = append(loadPatternNames, fmt.Sprintf("%s.%s", loadPattern.Namespace, loadPattern.Name))
 			loadPatternList.Items = append(loadPatternList.Items, *loadPattern)
 		}
 	}
@@ -140,7 +145,8 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if sim.Status.PodName == "" {
-		pod, _ := simulation.CreateJobBySimulation(ctx, sim.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), sim, digitalTwin, trafficModel, string(experimentListJSON), string(loadPatternListJSON))
+		pod, _ := simulation.CreateJobBySimulation(sim.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), sim,
+			digitalTwin, trafficModel, experimentNames, loadPatternNames, string(experimentListJSON), string(loadPatternListJSON))
 		if err := ctrl.SetControllerReference(sim, pod, r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
