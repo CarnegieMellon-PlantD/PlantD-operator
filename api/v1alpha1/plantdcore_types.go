@@ -47,8 +47,6 @@ type PrometheusConfig struct {
 
 // PlantDCoreSpec defines the desired state of PlantDCore
 type PlantDCoreSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	// KubeProxyConfig defines the desire state of PlantD Kube Proxy
 	KubeProxyConfig DeploymentConfig `json:"kubeProxy,omitempty"`
 	// StudioConfig defines the desire state of PlantD Studio
@@ -61,9 +59,6 @@ type PlantDCoreSpec struct {
 
 // PlantDCoreStatus defines the observed state of PlantDCore
 type PlantDCoreStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	// KubeProxyReady shows if the PlantD Kube Proxy is ready
 	KubeProxyReady bool `json:"kubeProxyReady,omitempty"`
 	// StudioReady shows if the PlantD Studio is ready
@@ -94,7 +89,9 @@ type PlantDCore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PlantDCoreSpec   `json:"spec,omitempty"`
+	// Spec defines the specifications of the PlantDCore.
+	Spec PlantDCoreSpec `json:"spec,omitempty"`
+	// Status defines the status of the PlantDCore.
 	Status PlantDCoreStatus `json:"status,omitempty"`
 }
 
@@ -104,7 +101,9 @@ type PlantDCore struct {
 type PlantDCoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PlantDCore `json:"items"`
+
+	// Items defines a list of PlantDCores.
+	Items []PlantDCore `json:"items"`
 }
 
 func init() {

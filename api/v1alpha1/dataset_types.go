@@ -34,7 +34,6 @@ type DataSetSpec struct {
 	// Schemas defines a list of Schemas.
 	Schemas []SchemaSelector `json:"schemas"`
 	// ParallelJobs defines the number of parallel jobs when generating the dataset.
-	// TODO: Infer the optimal number of parallel jobs automatically.
 	ParallelJobs int32 `json:"parallelJobs,omitempty"`
 }
 
@@ -82,6 +81,7 @@ type DataSet struct {
 type DataSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
+
 	// Items defines a list of DataSets.
 	Items []DataSet `json:"items"`
 }

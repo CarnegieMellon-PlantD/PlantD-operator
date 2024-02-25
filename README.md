@@ -8,7 +8,9 @@ Kubernetes operator for PlantD.
 
 ## Documentation
 
-For more detailed information about how to use PlantD, see our full [documentation](https://plantd.org/).
+For how to install PlantD, see [installation guide](https://plantd.org/docs/tutorial/installation/).
+
+For more information about PlantD, see [PlantD website](https://plantd.org).
 
 ## Development
 
@@ -17,6 +19,18 @@ For more detailed information about how to use PlantD, see our full [documentati
 - [Go](https://golang.org/) (`>= 1.21`)
 - [kubebuilder](https://book.kubebuilder.io/quick-start.html#installation)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator)
+- [K6 Operator](https://github.com/grafana/k6-operator)
+
+To install the Prometheus Operator and K6 Operator, run the following commands:
+
+```shell
+# Install the K6 Operator
+curl https://raw.githubusercontent.com/grafana/k6-operator/main/bundle.yaml | kubectl create -f -
+
+# Install the Prometheus Operator
+curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f -
+```
 
 ### CLI Commands
 
@@ -28,13 +42,17 @@ make generate
 
 This command will generate the auto-generated code such as `zz_generated.deepcopy.go`.
 
+**NOTE**: Remember to run this command after modifying the CRD.
+
 #### Generate CRD manifests
 
 ```shell
 make manifests
 ```
 
-This command will generate the CRD manifests under `config`. Remember to run this command after modifying the CRD.
+This command will generate the CRD manifests under `config`.
+
+**NOTE**: Remember to run this command after modifying the CRD.
 
 #### Generate `bundle.yaml`
 
@@ -42,7 +60,19 @@ This command will generate the CRD manifests under `config`. Remember to run thi
 make bundle
 ```
 
-This command will generate the `bundle.yaml`. Remember to run this command after modifying the CRD.
+This command will generate the `bundle.yaml`.
+
+**NOTE**: Remember to run this command after modifying the CRD.
+
+#### Generate CRD API reference
+
+```shell
+make docs
+```
+
+This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md).
+
+**NOTE**: Remember to run this command after modifying the CRD.
 
 #### Install/Uninstall the CRD
 
@@ -67,33 +97,13 @@ make deploy IMG=<custom-image>
 make undeploy
 ```
 
-Remember to run
+**NOTE**: Remember to run
 
 ```shell
 kubectl delete plantdcore -n plantd-operator-system plantdcore-core
 ```
 
 before undeploying the operator, since the undeploying command will remove PlantD controllers before removing the `PlantDCore` resource, and the `PlantDCore` resource has a finalizer that will prevent the entire process from completing given the operator is removed before.
-
-#### Generate CRD API reference
-
-1. Install [`crd-ref-docs`](https://github.com/elastic/crd-ref-docs)
-
-    ```shell
-    go install github.com/elastic/crd-ref-docs@latest
-    ```
-
-2. In the project root directory, run
-
-    ```shell
-    $(go env GOPATH)/bin/crd-ref-docs \
-    --source-path=./api/v1alpha1 \
-    --output-path=./docs/api/crd-api-reference.md \
-    --config=./docs/api/config.yaml \
-    --renderer=markdown
-    ```
-
-    This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md). Remember to run this command after modifying the CRD.
 
 ### Release
 

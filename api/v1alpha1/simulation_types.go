@@ -26,21 +26,21 @@ import (
 
 // SimulationSpec defines the desired state of Simulation
 type SimulationSpec struct {
-	// TrafficModelRef defines a reference of the TrafficModel object.
+	// TrafficModelRef defines the TrafficModel object reference for the Simulation.
 	TrafficModelRef corev1.ObjectReference `json:"trafficModelRef"`
-	// DigitalTwinRef defines a reference of the DigitalTwin object.
+	// DigitalTwinRef defines the DigitalTwin object reference for the Simulation.
 	DigitalTwinRef corev1.ObjectReference `json:"digitalTwinRef"`
-	// ScheduledTime defines the scheduled time for the Simulation.
-	ScheduledTime metav1.Time `json:"scheduledTime,omitempty"`
 }
 
 // SimulationStatus defines the observed state of Simulation
 type SimulationStatus struct {
-	DigitalTwinState  string `json:"digitalTwinState,omitempty"`
+	// DigitalTwinState is the state of the DigitalTwin.
+	DigitalTwinState string `json:"digitalTwinState,omitempty"`
+	// TrafficModelState is the state of the TrafficModel.
 	TrafficModelState string `json:"trafficModalState,omitempty"`
-
+	// PodName is the pod name of the digital twin job.
 	PodName string `json:"podName,omitempty"`
-	// JobStatus defines the status of the cost calculation job.
+	// JobStatus is the status of the digital twin job.
 	JobStatus string `json:"jobStatus,omitempty"`
 }
 
@@ -56,7 +56,9 @@ type Simulation struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SimulationSpec   `json:"spec,omitempty"`
+	// Spec defines the specifications of the Simulation.
+	Spec SimulationSpec `json:"spec,omitempty"`
+	// Status defines the status of the Simulation.
 	Status SimulationStatus `json:"status,omitempty"`
 }
 
@@ -66,7 +68,9 @@ type Simulation struct {
 type SimulationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Simulation `json:"items"`
+
+	// Items defines a list of Simulations.
+	Items []Simulation `json:"items"`
 }
 
 func init() {

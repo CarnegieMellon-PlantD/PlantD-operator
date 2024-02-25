@@ -42,7 +42,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifictions of the CostExporter.
+            description: Spec defines the specifications of the CostExporter.
             properties:
               cloudServiceProvider:
                 description: CloudServiceProvider defines the target cloud service

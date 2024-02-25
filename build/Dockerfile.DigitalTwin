@@ -1,21 +1,16 @@
 # Build Stage
-FROM python:3.9-slim as build
-ENV PYTHONUNBUFFERED=1
-RUN apt-get update -y
-RUN apt-get install -y build-essential cmake dnsutils
-ENV PYTHONPATH="/digitaltwin:$PYTHONPATH"
-COPY ./digitaltwin/requirements.txt /digitaltwin/requirements.txt
-WORKDIR /digitaltwin/
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
-COPY ./digitaltwin /digitaltwin
+FROM python:3.9-slim as builder
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends build-essential
+WORKDIR /workspace
+COPY ./apps/digitaltwin/requirements.txt .
+RUN pip install --user -r requirements.txt
+
 # Production Stage
 FROM python:3.9-slim
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH="/digitaltwin:$PYTHONPATH"
-COPY --from=build /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
-COPY --from=build /digitaltwin /digitaltwin
-WORKDIR /digitaltwin
-
+COPY --from=builder /root/.local /root/.local
+COPY ./apps/digitaltwin/ /digitaltwin/
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1
 ENTRYPOINT ["python3"]
-CMD ["main.py"]
+CMD ["/digitaltwin/main.py"]

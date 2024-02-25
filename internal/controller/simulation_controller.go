@@ -139,22 +139,19 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if sim.Status.PodName == "" {
 		pod, _ := simulation.CreateJobBySimulation(ctx, sim.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), sim, digitalTwin, trafficModel, string(experimentListJSON), string(loadPatternListJSON))
-
-		sim.Status.PodName = pod.Name
 		if err := ctrl.SetControllerReference(sim, pod, r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
-
 		if err := r.Create(ctx, pod); err != nil {
 			log.Error(err, "Cannot create simulation job.")
 		}
 
+		sim.Status.PodName = pod.Name
+		sim.Status.JobStatus = SimulationPending
 		if err := r.Status().Update(ctx, sim); err != nil {
 			log.Error(err, "Cannot update the status of Simulation after creation.")
 		}
-
 	} else {
-
 		log.Info("checking if pod exists")
 		// Pod name exists, fetch the Pod and check its status
 		pod := &corev1.Pod{}
@@ -167,33 +164,38 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		switch pod.Status.Phase {
 		case corev1.PodSucceeded:
 			log.Info("Pod has succeeded")
-			sim.Status.JobStatus = SUCCESS
 
 			if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 				Namespace: sim.Namespace,
 				Name:      sim.Status.PodName,
 			}}); err != nil {
 				log.Error(err, "Failed to delete the cost service - "+sim.Status.PodName)
+				return ctrl.Result{}, err
 			}
 
-			// sim.Status.PodName = ""
+			sim.Status.JobStatus = SimulationFinished
 			if err := r.Status().Update(ctx, sim); err != nil {
-				log.Error(err, "Cannot update the status of Cost Service after pod success.")
+				log.Error(err, "Cannot update the status of Cost Service after pod succeeded.")
+				return ctrl.Result{}, err
 			}
 
 			return ctrl.Result{}, nil
-			// The Pod has succeeded
-			// You can handle this case here
 		case corev1.PodFailed:
-			sim.Status.JobStatus = FAILED
 			log.Info("Pod has failed")
+
+			sim.Status.JobStatus = SimulationFailed
+			if err := r.Status().Update(ctx, sim); err != nil {
+				log.Error(err, "Cannot update the status of Cost Service after pod failed.")
+				return ctrl.Result{}, err
+			}
+
 			return ctrl.Result{}, nil
-			// The Pod has failed
-			// You can handle this case here
 		default:
-			sim.Status.JobStatus = RUNNING
-			// The Pod is still running or in an unknown state
-			// You can handle this case here
+			sim.Status.JobStatus = SimulationRunning
+			if err := r.Status().Update(ctx, sim); err != nil {
+				log.Error(err, "Cannot update the status of Cost Service when pod is running.")
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	// Requeue to re-run the reconiler. If it reaches here, it means the pod is still running

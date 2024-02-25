@@ -148,7 +148,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	if costExporter.Status.PodName == "" {
 
-		pod, _ := cost.CreateJobByCostServie(ctx, costExporter.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), costExporter, earliestTime)
+		pod, _ := cost.CreateJobByCostService(ctx, costExporter.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), costExporter, earliestTime)
 
 		// Extract the Pod's name from the created Pod object
 		costExporter.Status.PodName = pod.Name

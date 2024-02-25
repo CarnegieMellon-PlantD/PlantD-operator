@@ -32,7 +32,6 @@ type HTTP struct {
 }
 
 // WebSocket defines the configurations of websocket protocol.
-// TODO: Validate the websocket library in K6 and update the API.
 type WebSocket struct {
 	// Placeholder.
 	URL string `json:"url,omitempty"`
@@ -43,7 +42,6 @@ type WebSocket struct {
 }
 
 // GRPC defines the configurations of gRPC protocol.
-// TODO: Validate the gRPC library in K6 and update the API.
 type GRPC struct {
 	// Placeholder.
 	Address string `json:"address,omitempty"`
@@ -149,6 +147,7 @@ type Pipeline struct {
 type PipelineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
+
 	// Items defines a list of Pipelines.
 	Items []Pipeline `json:"items"`
 }

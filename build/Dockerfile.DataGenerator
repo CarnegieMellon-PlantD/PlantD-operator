@@ -1,23 +1,12 @@
-# Use the official Golang image as the base image
+# Build Stage
 FROM golang:1.21 as builder
-
-# Set the working directory
-WORKDIR /app
-
-# Copy the source code to the working directory
+WORKDIR /workspace
 COPY . .
-
-# Download dependencies
 RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o datagen ./apps/datagen/main.go
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o job ./apps/datagen/main.go
-
-# Use the scratch image for the final image
+# Production Stage
 FROM scratch
-
-# Copy the compiled binary from the builder stage
-COPY --from=builder /app/job /job
-COPY config/plantd/ /etc/plantd/
-# Set the entrypoint to run the compiled binary
-ENTRYPOINT ["/job"]
+COPY --from=builder /workspace/datagen /datagen
+COPY ./config/plantd/ /etc/plantd/
+ENTRYPOINT ["/datagen"]
