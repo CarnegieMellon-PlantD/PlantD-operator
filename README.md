@@ -8,7 +8,7 @@ Kubernetes operator for PlantD.
 
 ## Documentation
 
-For more detailed information about how to use PlantD, see our full [documentation](https://plantd.org/).
+For more detailed information about how to install and use PlantD, see our full [documentation](https://plantd.org/docs/tutorial/concepts).
 
 ## Development
 
@@ -17,6 +17,18 @@ For more detailed information about how to use PlantD, see our full [documentati
 - [Go](https://golang.org/) (`>= 1.21`)
 - [kubebuilder](https://book.kubebuilder.io/quick-start.html#installation)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator)
+- [K6 Operator](https://github.com/grafana/k6-operator)
+
+To install the Prometheus Operator and K6 Operator, run the following commands:
+
+```shell
+# Install the K6 Operator
+curl https://raw.githubusercontent.com/grafana/k6-operator/main/bundle.yaml | kubectl create -f -
+
+# Install the Prometheus Operator
+curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f -
+```
 
 ### CLI Commands
 
