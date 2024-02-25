@@ -28,8 +28,6 @@ import (
 type DigitalTwinSpec struct {
 	// ModelType defines the type of the DigitalTwin model.
 	ModelType string `json:"modelType,omitempty"`
-	// LoadPatterns contains the list of LoadPattern object references for the DigitalTwin.
-	LoadPatterns []*corev1.ObjectReference `json:"loadPatterns,omitempty"`
 	// Experiments contains the list of Experiment object references for the DigitalTwin.
 	Experiments []*corev1.ObjectReference `json:"experiments,omitempty"`
 }
