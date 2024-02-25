@@ -8,7 +8,9 @@ Kubernetes operator for PlantD.
 
 ## Documentation
 
-For more detailed information about how to install and use PlantD, see our full [documentation](https://plantd.org/docs/tutorial/concepts).
+For how to install PlantD, see [installation guide](https://plantd.org/docs/tutorial/installation/).
+
+For more information about PlantD, see [PlantD website](https://plantd.org).
 
 ## Development
 
