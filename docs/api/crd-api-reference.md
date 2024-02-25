@@ -215,7 +215,6 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `modelType` _string_ | ModelType defines the type of the DigitalTwin model. |
-| `loadPatterns` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core) array_ | LoadPatterns contains the list of LoadPattern object references for the DigitalTwin. |
 | `experiments` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core) array_ | Experiments contains the list of Experiment object references for the DigitalTwin. |
 
 

@@ -105,24 +105,26 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	// List experiments required for digital twin
+	// List Experiments and LoadPatterns required for digital twin
 	experimentList := &windtunnelv1alpha1.ExperimentList{}
+	loadPatternList := &windtunnelv1alpha1.LoadPatternList{}
 	for _, experimentRef := range digitalTwin.Spec.Experiments {
 		experiment := &windtunnelv1alpha1.Experiment{}
 		if err := r.Get(ctx, types.NamespacedName{Namespace: experimentRef.Namespace, Name: experimentRef.Name}, experiment); err != nil {
 			return ctrl.Result{}, err
 		}
 		experimentList.Items = append(experimentList.Items, *experiment)
-	}
 
-	// List experiments required for digital twin
-	loadPatternList := &windtunnelv1alpha1.LoadPatternList{}
-	for _, loadPatternRef := range digitalTwin.Spec.LoadPatterns {
-		loadPattern := &windtunnelv1alpha1.LoadPattern{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: loadPatternRef.Namespace, Name: loadPatternRef.Name}, loadPattern); err != nil {
-			return ctrl.Result{}, err
+		for _, loadPatternConfig := range experiment.Spec.LoadPatterns {
+			loadPattern := &windtunnelv1alpha1.LoadPattern{}
+			if err := r.Get(ctx, types.NamespacedName{
+				Namespace: loadPatternConfig.LoadPatternRef.Namespace,
+				Name:      loadPatternConfig.LoadPatternRef.Name,
+			}, loadPattern); err != nil {
+				return ctrl.Result{}, err
+			}
+			loadPatternList.Items = append(loadPatternList.Items, *loadPattern)
 		}
-		loadPatternList.Items = append(loadPatternList.Items, *loadPattern)
 	}
 
 	experimentListJSON, err := json.Marshal(experimentList)
