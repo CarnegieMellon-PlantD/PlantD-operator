@@ -2,7 +2,7 @@ name: PlantD
 version: 1.0.0
 pvc.requests.storage: 10Gi
 costService:
-  image: ghcr.io/carnegiemellon-plantd/costservice:latest
+  image: ghcr.io/carnegiemellon-plantd/costexporter:latest
   opencost:
     url: http://opencost.opencost.svc.cluster.local:9003
 digitalTwin:
