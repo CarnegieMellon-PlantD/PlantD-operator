@@ -9,6 +9,4 @@ metadata:
     app.kubernetes.io/created-by: plantd-operator
   name: digitaltwin-sample
 spec:
-  modelType: "quickscaling"
-  loadPatternNames: "ubi-chris-test.loadpattern"
-  experimentNames: "test-pipeline.experiment-test-pipeline"
+  # TODO(user): Add fields here

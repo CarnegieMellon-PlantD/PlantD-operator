@@ -84,15 +84,6 @@ resources:
   controller: true
   domain: plantd.org
   group: windtunnel
-  kind: TrafficPattern
-  path: github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: plantd.org
-  group: windtunnel
   kind: Simulation
   path: github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1
   version: v1alpha1

@@ -1,0 +1,10 @@
+apiVersion: windtunnel.plantd.org/v1alpha1
+kind: CostExporter
+metadata:
+  name: costexporter-sample
+spec:
+  s3Bucket: cost-logging
+  cloudServiceProvider: aws
+  secretRef:
+    name: csp-credentials
+    namespace: default

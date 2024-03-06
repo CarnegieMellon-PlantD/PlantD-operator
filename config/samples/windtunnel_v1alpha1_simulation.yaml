@@ -9,9 +9,4 @@ metadata:
     app.kubernetes.io/created-by: plantd-operator
   name: simulation-sample
 spec:
-  trafficModelRef: 
-    name: trafficmodel-sample
-    namespace: default
-  digitalTwinRef: 
-    name: digitaltwin-sample
-    namespace: default
+  # TODO(user): Add fields here
