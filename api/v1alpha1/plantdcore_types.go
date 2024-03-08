@@ -55,6 +55,8 @@ type PlantDCoreSpec struct {
 	PrometheusConfig PrometheusConfig `json:"prometheus,omitempty"`
 	// RedisConfig defines the desire state of Redis
 	RedisConfig DeploymentConfig `json:"redis,omitempty"`
+	// ThanosEnabled defines if Thanos is enabled (True / False)
+	ThanosEnabled bool `json:"thanosEnabled,omitempty"`
 }
 
 // PlantDCoreStatus defines the observed state of PlantDCore
@@ -67,6 +69,8 @@ type PlantDCoreStatus struct {
 	PrometheusReady bool `json:"prometheusReady,omitempty"`
 	// RedisReady shows if the Redis is ready
 	RedisReady bool `json:"redisReady,omitempty"`
+	// ThanosReady shows if the Thanos is ready
+	ThanosReady bool `json:"thanosReady,omitempty"`
 	// KubeProxyStatus shows the status of the PlantD Proxy
 	KubeProxyStatus string `json:"kubeProxyStatus,omitempty"`
 	// StudioStatus shows the status of the PlantD Studio
@@ -75,6 +79,8 @@ type PlantDCoreStatus struct {
 	PrometheusStatus string `json:"prometheusStatus,omitempty"`
 	// RedisStatus shows the status of the Redis
 	RedisStatus string `json:"redisStatus,omitempty"`
+	// Thanos status
+	ThanosStatus string `json:"thanosStatus,omitempty"`
 }
 
 //+kubebuilder:object:root=true

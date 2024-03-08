@@ -290,6 +290,9 @@ spec:
                         type: object
                     type: object
                 type: object
+              thanosEnabled:
+                description: ThanosEnabled defines if Thanos is enabled (True / False)
+                type: boolean
             type: object
           status:
             description: Status defines the status of the PlantDCore.
@@ -317,6 +320,12 @@ spec:
                 type: boolean
               studioStatus:
                 description: StudioStatus shows the status of the PlantD Studio
+                type: string
+              thanosReady:
+                description: ThanosReady shows if the Thanos is ready
+                type: boolean
+              thanosStatus:
+                description: Thanos status
                 type: string
             type: object
         type: object

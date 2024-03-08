@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"k8s.io/utils/pointer"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
@@ -362,6 +363,9 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 		resourceRequirements.Limits[corev1.ResourceMemory] = resource.MustParse(prometheusMemoryLimit)
 	}
 
+	thanosBaseImage := "quay.io/thanos/thanos"
+	thanosVersion := "v0.34.0"
+
 	prometheus := &monitoringv1.Prometheus{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      prometheusObjectName,
@@ -378,11 +382,28 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 				EnableRemoteWriteReceiver:       true,
 				Replicas:                        &numReplicas,
 				Resources:                       resourceRequirements,
+				SecurityContext: &corev1.PodSecurityContext{
+					RunAsUser:    pointer.Int64Ptr(1000),
+					RunAsNonRoot: pointer.BoolPtr(true),
+					FSGroup:      pointer.Int64Ptr(2000),
+					RunAsGroup:   pointer.Int64Ptr(2000),
+				},
 			},
 			EnableAdminAPI: false,
 		},
 	}
-
+	if plantDCore.Spec.ThanosEnabled {
+		prometheus.Spec.Thanos = &monitoringv1.ThanosSpec{
+			BaseImage: &thanosBaseImage,
+			Version:   &thanosVersion,
+			ObjectStorageConfig: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: "thanos-objstore-config",
+				},
+				Key: "thanos.yaml",
+			},
+		}
+	}
 	return prometheus
 }
 
@@ -418,7 +439,6 @@ func GetRedisDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.Deplo
 	if image == "" {
 		image = redisImage
 	}
-
 	resourceRequirements := plantDCore.Spec.RedisConfig.Resources
 
 	podTemplate := corev1.PodTemplateSpec{
@@ -483,3 +503,98 @@ func GetRedisService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service 
 
 	return service
 }
+func GetThanosQuerierService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "thanos-querier",
+			Namespace: plantDCore.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "http",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       9090,
+					TargetPort: intstr.FromInt(9090),
+				},
+			},
+			Selector: map[string]string{
+				"app": "thanos-querier",
+			},
+		},
+	}
+	return service
+}
+func GetThanosSidecarService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "thanos-sidecar-grpc",
+			Namespace: plantDCore.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "grpc",
+					Port:       10901,
+					TargetPort: intstr.FromInt(10901),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+			Selector: map[string]string{
+				"prometheus": "prometheus",
+			},
+		},
+	}
+	return service
+}
+func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "thanos-querier",
+			Namespace: plantDCore.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "thanos-querier",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "thanos-querier",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "thanos-querier",
+							Image: "quay.io/thanos/thanos:v0.34.0",
+							Args: []string{
+								"query",
+								"--http-address=0.0.0.0:9090",
+								"--grpc-address=0.0.0.0:10901",
+								"--store=thanos-sidecar-grpc.plantd-operator-system.svc.cluster.local:10901",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "http",
+									ContainerPort: 9090,
+								},
+								{
+									Name:          "grpc",
+									ContainerPort: 10901,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return deployment
+}
+func int32Ptr(i int32) *int32 { return &i }
