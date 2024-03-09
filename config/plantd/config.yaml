@@ -52,6 +52,30 @@ plantDCore:
     port: 9090
     targetPort: 9090
     nodePort: 30900
+    securityContext:
+      runAsUser: 1000
+      fsGroup: 2000
+      runAsGroup: 2000
+      runAsNonRoot: true
+    thanos:
+      thanosBaseImage: quay.io/thanos/thanos
+      thanosVersion: v0.34.0
+      thanosConfig:
+        name: thanos-objstore-config
+        key: thanos.yaml
+    thanosQuerier:
+      deploymentName: thanos-querier
+      labels:
+        app: thanos-querier
+      image: quay.io/thanos/thanos:v0.34.0
+      replicas: 1
+      httpPort: 9090
+      grpcPort: 10901
+      storeUrl: thanos-sidecar-grpc.plantd-operator-system.svc.cluster.local:10901
+    thanosSidecarService:
+      portName: grpc
+      port: 10901
+
   redis:
     labels:
       app: redis
