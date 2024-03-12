@@ -314,6 +314,8 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	curThanosQuerierDeployment := &appsv1.Deployment{}
 	curThanosQuerierService := &corev1.Service{}
 	curThanosSidecarService := &corev1.Service{}
+	curThanosStoreStatefulSet := &appsv1.StatefulSet{}
+	curThanosStoreService := &corev1.Service{}
 
 	desiredKubeProxyDeployment := core.GetKubeProxyDeployment(plantDCore)
 	desiredKubeProxyService := core.GetKubeProxyService(plantDCore)
@@ -328,6 +330,8 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	desiredThanosQuerierDeployment := core.GetThanosQuerierDeployment(plantDCore)
 	desiredThanosQuerierService := core.GetThanosQuerierService(plantDCore)
 	desiredThanosSidecarService := core.GetThanosSidecarService(plantDCore)
+	desiredThanosStoreStatefulSet := core.GetThanosStoreStatefulSet(plantDCore)
+	desiredThanosStoreService := core.GetThanosStoreService(plantDCore)
 
 	isAllReady := true
 
@@ -455,40 +459,61 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info("created Redis Service")
 		isAllReady = false
 	}
+
+	// Thanos Querier Deployment
+	if result, err := r.reconcileObject(ctx, plantDCore, curThanosQuerierDeployment, desiredThanosQuerierDeployment, true); err != nil {
+		logger.Error(err, "failed to reconcile Thanos Querier Deployment")
+		return ctrl.Result{}, err
+	} else {
+		if result == ReconcilerCreated {
+			logger.Info("created Thanos Querier Deployment")
+		} else if result == ReconcilerUpdated {
+			logger.Info("updated Thanos Querier Deployment")
+		}
+		ready, status := r.getStatusFields(result, curThanosQuerierDeployment.Status.AvailableReplicas, curThanosQuerierDeployment.Status.UnavailableReplicas)
+		if !ready {
+			isAllReady = false
+		}
+		plantDCore.Status.ThanosReady = ready
+		plantDCore.Status.ThanosStatus = status
+	}
+
+	// Thanos Querier service (to access thanos querier from plantd studio)
+	if result, err := r.reconcileObject(ctx, plantDCore, curThanosQuerierService, desiredThanosQuerierService, false); err != nil {
+		logger.Error(err, "failed to reconcile Thanos Querier Service")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created Thanos Querier Service")
+		isAllReady = false
+	}
+
+	// Thanos Sidecar service (to access thanos store endpoint from thanos querier)
+	if result, err := r.reconcileObject(ctx, plantDCore, curThanosSidecarService, desiredThanosSidecarService, false); err != nil {
+		logger.Error(err, "failed to reconcile Thanos Sidecar Service")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created Thanos Sidecar Service")
+		isAllReady = false
+	}
+
 	if plantDCore.Spec.ThanosEnabled {
-		// Thanos Querier Deployment
-		if result, err := r.reconcileObject(ctx, plantDCore, curThanosQuerierDeployment, desiredThanosQuerierDeployment, true); err != nil {
-			logger.Error(err, "failed to reconcile Thanos Querier Deployment")
+		// Thanos Store StatefulSet (to query metrics from S3)
+		if result, err := r.reconcileObject(ctx, plantDCore, curThanosStoreStatefulSet, desiredThanosStoreStatefulSet, true); err != nil {
+			logger.Error(err, "failed to reconcile Thanos Store StatefulSet")
 			return ctrl.Result{}, err
 		} else {
 			if result == ReconcilerCreated {
-				logger.Info("created Thanos Querier Deployment")
+				logger.Info("created Thanos Store StatefulSet")
 			} else if result == ReconcilerUpdated {
-				logger.Info("updated Thanos Querier Deployment")
+				logger.Info("updated Thanos Store StatefulSet")
 			}
-			ready, status := r.getStatusFields(result, curThanosQuerierDeployment.Status.AvailableReplicas, curThanosQuerierDeployment.Status.UnavailableReplicas)
-			if !ready {
-				isAllReady = false
-			}
-			plantDCore.Status.ThanosReady = ready
-			plantDCore.Status.ThanosStatus = status
 		}
-
-		// Thanos Querier service (to access thanos querier from plantd studio)
-		if result, err := r.reconcileObject(ctx, plantDCore, curThanosQuerierService, desiredThanosQuerierService, false); err != nil {
-			logger.Error(err, "failed to reconcile Thanos Querier Service")
+		// Thanos Store service
+		if result, err := r.reconcileObject(ctx, plantDCore, curThanosStoreService, desiredThanosStoreService, false); err != nil {
+			logger.Error(err, "failed to reconcile Thanos Store Service")
 			return ctrl.Result{}, err
 		} else if result == ReconcilerCreated {
-			logger.Info("created Thanos Querier Service")
-			isAllReady = false
-		}
-
-		// Thanos Sidecar service (to access thanos store endpoint from thanos querier)
-		if result, err := r.reconcileObject(ctx, plantDCore, curThanosSidecarService, desiredThanosSidecarService, false); err != nil {
-			logger.Error(err, "failed to reconcile Thanos Sidecar Service")
-			return ctrl.Result{}, err
-		} else if result == ReconcilerCreated {
-			logger.Info("created Thanos Sidecar Service")
+			logger.Info("created Thanos Store Service")
 			isAllReady = false
 		}
 	}
