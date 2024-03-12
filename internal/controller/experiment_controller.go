@@ -101,7 +101,15 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if exp.Status.ExperimentState == "" {
 		exp.Status.ExperimentState = ExperimentPending
 		// Initialize the protocol for each endpoint.
-		SetProtocol(exp, pipeline)
+		if err := SetProtocol(exp, pipeline); err != nil {
+			log.Error(err, "Cannot set protocol for Experiment: "+req.NamespacedName.String())
+			exp.Status.ExperimentState = "Error: Endpoint not found"
+			if err := r.Status().Update(ctx, exp); err != nil {
+				log.Error(err, "Cannot update the status of Experiment: "+req.NamespacedName.String())
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
 		if err := r.SetDuration(ctx, exp); err != nil {
 			return ctrl.Result{}, nil
 		}
@@ -166,20 +174,20 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *ExperimentReconciler) SetDuration(ctx context.Context, exp *windtunnelv1alpha1.Experiment) error {
 	log := log.FromContext(ctx)
 
-	n := len(exp.Spec.LoadPatterns)
+	n := len(exp.Spec.EndpointSpecs)
 	exp.Status.Duration = make(map[string]metav1.Duration, n)
-	for _, loadConfig := range exp.Spec.LoadPatterns {
-		load := &windtunnelv1alpha1.LoadPattern{}
-		loadName := types.NamespacedName{
-			Namespace: GetLoadPatternNamespace(exp, &loadConfig.LoadPatternRef),
-			Name:      loadConfig.LoadPatternRef.Name,
+	for _, endpointSpec := range exp.Spec.EndpointSpecs {
+		loadPattern := &windtunnelv1alpha1.LoadPattern{}
+		loadPatternName := types.NamespacedName{
+			Namespace: GetLoadPatternNamespace(exp, &endpointSpec.LoadPatternRef),
+			Name:      endpointSpec.LoadPatternRef.Name,
 		}
-		if err := r.Get(ctx, loadName, load); err != nil {
-			log.Error(err, "Cannot get LoadPattern: "+loadName.String())
+		if err := r.Get(ctx, loadPatternName, loadPattern); err != nil {
+			log.Error(err, "Cannot get LoadPattern: "+loadPatternName.String())
 			return err
 		}
 		sum := time.Duration(0)
-		for _, stage := range load.Spec.Stages {
+		for _, stage := range loadPattern.Spec.Stages {
 			d, err := time.ParseDuration(stage.Duration)
 			if err != nil {
 				log.Error(err, "Cannot parse duration: "+stage.Duration)
@@ -189,36 +197,52 @@ func (r *ExperimentReconciler) SetDuration(ctx context.Context, exp *windtunnelv
 			}
 			sum += d
 		}
-		exp.Status.Duration[loadConfig.EndpointName] = metav1.Duration{Duration: sum}
+		exp.Status.Duration[endpointSpec.EndpointName] = metav1.Duration{Duration: sum}
 	}
 	return nil
 }
 
-func SetProtocol(exp *windtunnelv1alpha1.Experiment, pipeline *windtunnelv1alpha1.Pipeline) {
-	n := len(pipeline.Spec.PipelineEndpoints)
+func SetProtocol(exp *windtunnelv1alpha1.Experiment, pipeline *windtunnelv1alpha1.Pipeline) error {
+	n := len(exp.Spec.EndpointSpecs)
 	exp.Status.Protocols = make(map[string]string, n)
 
-	for _, endpoint := range pipeline.Spec.PipelineEndpoints {
-		http := endpoint.HTTP.URL != ""
-		websocket := endpoint.WebSocket.URL != ""
-		grpc := endpoint.GRPC.URL != ""
+	for _, endpointSpec := range exp.Spec.EndpointSpecs {
+		pipelineEndpoint := findEndpoint(pipeline, endpointSpec.EndpointName)
+		if pipelineEndpoint == nil {
+			return fmt.Errorf("Endpoint not found: " + endpointSpec.EndpointName)
+		}
+		http := pipelineEndpoint.HTTP.URL != ""
+		websocket := pipelineEndpoint.WebSocket.URL != ""
+		grpc := pipelineEndpoint.GRPC.URL != ""
+
 		var dataOption string
-		if endpoint.HTTP.Body.DataSetRef.Name != "" {
+		if endpointSpec.DataSpec.DataSetRef.Name != "" {
 			dataOption = windtunnelv1alpha1.WithDataSet
 		} else {
 			dataOption = windtunnelv1alpha1.WithData
 		}
 
 		if http && !websocket && !grpc {
-			exp.Status.Protocols[endpoint.Name] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolHTTP, dataOption)
+			exp.Status.Protocols[endpointSpec.EndpointName] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolHTTP, dataOption)
 		} else if !http && websocket && !grpc {
-			exp.Status.Protocols[endpoint.Name] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolWebSocket, dataOption)
+			exp.Status.Protocols[endpointSpec.EndpointName] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolWebSocket, dataOption)
 		} else if !http && !websocket && grpc {
-			exp.Status.Protocols[endpoint.Name] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolGRPC, dataOption)
+			exp.Status.Protocols[endpointSpec.EndpointName] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolGRPC, dataOption)
 		} else {
 			exp.Status.ExperimentState = "Error: Invalid protocol"
 		}
 	}
+
+	return nil
+}
+
+func findEndpoint(pipeline *windtunnelv1alpha1.Pipeline, endpointName string) *windtunnelv1alpha1.Endpoint {
+	for _, endpoint := range pipeline.Spec.PipelineEndpoints {
+		if endpoint.Name == endpointName {
+			return &endpoint
+		}
+	}
+	return nil
 }
 
 func (r *ExperimentReconciler) InitializeExp(ctx context.Context, exp *windtunnelv1alpha1.Experiment, pipeline *windtunnelv1alpha1.Pipeline) error {
@@ -261,28 +285,20 @@ func (r *ExperimentReconciler) CreateTestRun(ctx context.Context, exp *windtunne
 	if exp.Status.ExperimentState != ExperimentReady {
 		return nil
 	}
-	for _, endpoint := range pipeline.Spec.PipelineEndpoints {
+	for _, endpointSpec := range exp.Spec.EndpointSpecs {
+		endpoint := findEndpoint(pipeline, endpointSpec.EndpointName)
+		if endpoint == nil {
+			return fmt.Errorf("Endpoint not found: " + endpointSpec.EndpointName)
+		}
+
 		var err error
-		if requireDataSet(&endpoint) {
-			err = r.CreateTestRunWithDataSet(ctx, exp, &endpoint)
+		if endpointSpec.DataSpec.DataSetRef.Name != "" {
+			err = r.CreateTestRunWithDataSet(ctx, exp, &endpointSpec, endpoint)
 		} else {
-			err = r.CreateTestRunWithOutDataSet(ctx, exp, &endpoint)
+			err = r.CreateTestRunWithOutDataSet(ctx, exp, &endpointSpec, endpoint)
 		}
 		if err != nil {
 			return err
-		}
-	}
-	return nil
-}
-
-func requireDataSet(endpoint *windtunnelv1alpha1.Endpoint) bool {
-	return endpoint.HTTP.Body.DataSetRef.Name != ""
-}
-
-func FindLoadConfig(endpointName string, exp *windtunnelv1alpha1.Experiment) *windtunnelv1alpha1.LoadPatternConfig {
-	for _, config := range exp.Spec.LoadPatterns {
-		if config.EndpointName == endpointName {
-			return &config
 		}
 	}
 	return nil
@@ -295,21 +311,13 @@ func GetLoadPatternNamespace(exp *windtunnelv1alpha1.Experiment, ref *corev1.Obj
 	return exp.Namespace
 }
 
-func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint) error {
+func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, endpoint *windtunnelv1alpha1.Endpoint) error {
 	log := log.FromContext(ctx)
 
-	targetEndpointName := endpoint.Name
-	loadpatternConfig := FindLoadConfig(targetEndpointName, exp)
-	if loadpatternConfig == nil {
-		exp.Status.ExperimentState = "Error: No LoadPatternConfig found"
-		log.Info("Cannot find Load Configuration for endpoint: " + targetEndpointName)
-		return r.Status().Update(ctx, exp)
-	}
 	load := &windtunnelv1alpha1.LoadPattern{}
-
 	loadName := types.NamespacedName{
-		Namespace: GetLoadPatternNamespace(exp, &loadpatternConfig.LoadPatternRef),
-		Name:      loadpatternConfig.LoadPatternRef.Name,
+		Namespace: GetLoadPatternNamespace(exp, &endpointSpec.LoadPatternRef),
+		Name:      endpointSpec.LoadPatternRef.Name,
 	}
 	if err := r.Get(ctx, loadName, load); err != nil {
 		exp.Status.ExperimentState = "Error: No LoadPattern found"
@@ -319,8 +327,8 @@ func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp
 
 	dataset := &windtunnelv1alpha1.DataSet{}
 	datasetName := types.NamespacedName{
-		Namespace: endpoint.HTTP.Body.DataSetRef.Namespace,
-		Name:      endpoint.HTTP.Body.DataSetRef.Name,
+		Namespace: endpointSpec.DataSpec.DataSetRef.Namespace,
+		Name:      endpointSpec.DataSpec.DataSetRef.Name,
 	}
 	if err := r.Get(ctx, datasetName, dataset); err != nil {
 		exp.Status.ExperimentState = "Error: No DataSet found"
@@ -333,7 +341,7 @@ func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp
 		return r.Status().Update(ctx, exp)
 	}
 	// TODO: Fix the config map name
-	testRunName := utils.GetTestRunName(exp.Name, targetEndpointName)
+	testRunName := utils.GetTestRunName(exp.Name, endpointSpec.EndpointName)
 	configMapName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
 	configMap := &corev1.ConfigMap{}
 	if err := r.Get(ctx, configMapName, configMap); err != nil {
@@ -344,7 +352,7 @@ func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp
 	if err := r.CopyConfigMap(ctx, dataset, configMap, exp); err != nil {
 		return err
 	}
-	if err := r.CreateK6WithDataSet(ctx, exp, dataset, targetEndpointName); err != nil {
+	if err := r.CreateK6WithDataSet(ctx, exp, dataset, endpointSpec.EndpointName); err != nil {
 		return err
 	}
 
@@ -357,20 +365,13 @@ func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp
 	return r.Status().Update(ctx, exp)
 }
 
-func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint) error {
+func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, endpoint *windtunnelv1alpha1.Endpoint) error {
 	log := log.FromContext(ctx)
-	targetEndpointName := endpoint.Name
-	loadpatternConfig := FindLoadConfig(targetEndpointName, exp)
-	if loadpatternConfig == nil {
-		exp.Status.ExperimentState = "Error: No LoadPatternConfig found"
-		log.Info("Cannot find Load Configuration for endpoint: " + targetEndpointName)
-		return r.Status().Update(ctx, exp)
-	}
-	load := &windtunnelv1alpha1.LoadPattern{}
 
+	load := &windtunnelv1alpha1.LoadPattern{}
 	loadName := types.NamespacedName{
-		Namespace: GetLoadPatternNamespace(exp, &loadpatternConfig.LoadPatternRef),
-		Name:      loadpatternConfig.LoadPatternRef.Name,
+		Namespace: GetLoadPatternNamespace(exp, &endpointSpec.LoadPatternRef),
+		Name:      endpointSpec.LoadPatternRef.Name,
 	}
 	if err := r.Get(ctx, loadName, load); err != nil {
 		exp.Status.ExperimentState = "Error: No LoadPattern found"
@@ -381,7 +382,7 @@ func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, 
 	if err := r.CreateConfigMap(ctx, exp, endpoint, load); err != nil {
 		return err
 	}
-	if err := r.CreateK6(ctx, exp, targetEndpointName); err != nil {
+	if err := r.CreateK6(ctx, exp, endpointSpec.EndpointName); err != nil {
 		return err
 	}
 
@@ -524,7 +525,7 @@ func (r *ExperimentReconciler) CheckFinished(ctx context.Context, exp *windtunne
 	}
 	log := log.FromContext(ctx)
 	successCounter := 0
-	for _, config := range exp.Spec.LoadPatterns {
+	for _, config := range exp.Spec.EndpointSpecs {
 		testRun := &k6v1alpha1.K6{}
 		testRunName := types.NamespacedName{Namespace: exp.Namespace, Name: utils.GetTestRunName(exp.Name, config.EndpointName)}
 		if err := r.Get(ctx, testRunName, testRun); err != nil {
@@ -536,7 +537,7 @@ func (r *ExperimentReconciler) CheckFinished(ctx context.Context, exp *windtunne
 		}
 	}
 
-	if successCounter == len(exp.Spec.LoadPatterns) {
+	if successCounter == len(exp.Spec.EndpointSpecs) {
 		exp.Status.ExperimentState = ExperimentFinished
 	}
 

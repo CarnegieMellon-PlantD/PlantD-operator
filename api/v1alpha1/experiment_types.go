@@ -5,21 +5,31 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// LoadPatternConfig defines the configuration of the load pattern in the experiment.
-type LoadPatternConfig struct {
-	// EndpointName defines the name of endpoint where to send the requests.
-	// It should match the name of endpoint declared in the specification of the pipeline.
-	EndpointName string `json:"endpointName"`
-	// LoadPatternRef defines s reference of the LoadPattern object.
-	LoadPatternRef corev1.ObjectReference `json:"loadPatternRef"`
+// DataSpec defines the data to be sent to the endpoint.
+type DataSpec struct {
+	// PlainText defines a plain text data.
+	PlainText string `json:"plainText,omitempty"`
+	// DataSetRef defines the reference of the DataSet object.
+	DataSetRef corev1.ObjectReference `json:"dataSetRef,omitempty"`
+}
+
+// EndpointSpec defines the DataSet and LoadPattern to be used for an endpoint.
+type EndpointSpec struct {
+	// EndpointName defines the name of endpoint.
+	// It should be the name of an existing endpoint defined in the Pipeline used in the Experiment.
+	EndpointName string `json:"endpointName,omitempty"`
+	// DataSpec defines the data to be sent to the endpoint.
+	DataSpec DataSpec `json:"dataSpec,omitempty"`
+	// LoadPatternRef defines the reference of the LoadPattern object.
+	LoadPatternRef corev1.ObjectReference `json:"loadPatternRef,omitempty"`
 }
 
 // ExperimentSpec defines the desired state of Experiment
 type ExperimentSpec struct {
-	// PipelineRef defines s reference of the Pipeline object.
-	PipelineRef corev1.ObjectReference `json:"pipelineRef"`
-	// LoadPatterns defines a list of configuration of name of endpoints and LoadPatterns.
-	LoadPatterns []LoadPatternConfig `json:"loadPatterns"`
+	// PipelineRef defines a reference of the Pipeline object.
+	PipelineRef corev1.ObjectReference `json:"pipelineRef,omitempty"`
+	// EndpointSpecs defines a list of configurations for the endpoints.
+	EndpointSpecs []EndpointSpec `json:"endpointSpecs,omitempty"`
 	// ScheduledTime defines the scheduled time for the Experiment.
 	ScheduledTime metav1.Time `json:"scheduledTime,omitempty"`
 }
@@ -28,9 +38,9 @@ type ExperimentSpec struct {
 type ExperimentStatus struct {
 	// ExperimentState defines the state of the Experiment.
 	ExperimentState string `json:"experimentState,omitempty"`
-	// Protocols defines a map of name of endpoint (key) to request protocol (value).
+	// Protocols defines the map of name of endpoint (key) to request protocol (value).
 	Protocols map[string]string `json:"protocols,omitempty"`
-	// Tags defines the a map of key-value pair that use for tagging cloud resources.
+	// Tags defines the map of key-value pair that use for tagging cloud resources.
 	Tags map[string]string `json:"tags,omitempty"`
 	// Duration defines the duration of the K6 load generator.
 	Duration map[string]metav1.Duration `json:"duration,omitempty"`
@@ -40,7 +50,7 @@ type ExperimentStatus struct {
 	EndTime *metav1.Time `json:"endTime,omitempty"`
 	// CloudVendor defines the cloud service provider which the pipeline-under-test is deployed.
 	CloudVendor string `json:"cloudVendor,omitempty"`
-	// EnableCostCalculation defines teh flag of cost calculation.
+	// EnableCostCalculation defines the flag of cost calculation.
 	EnableCostCalculation bool `json:"enableCostCalculation,omitempty"`
 }
 
