@@ -119,11 +119,11 @@ func (r *SimulationReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		experimentNames = append(experimentNames, fmt.Sprintf("%s.%s", experiment.Namespace, experiment.Name))
 		experimentList.Items = append(experimentList.Items, *experiment)
 
-		for _, loadPatternConfig := range experiment.Spec.LoadPatterns {
+		for _, endpointSpec := range experiment.Spec.EndpointSpecs {
 			loadPattern := &windtunnelv1alpha1.LoadPattern{}
 			if err := r.Get(ctx, types.NamespacedName{
-				Namespace: loadPatternConfig.LoadPatternRef.Namespace,
-				Name:      loadPatternConfig.LoadPatternRef.Name,
+				Namespace: endpointSpec.LoadPatternRef.Namespace,
+				Name:      endpointSpec.LoadPatternRef.Name,
 			}, loadPattern); err != nil {
 				return ctrl.Result{}, err
 			}

@@ -154,6 +154,21 @@ _Appears in:_
 
 
 
+#### DataSpec
+
+
+
+DataSpec defines the data to be sent to the endpoint.
+
+_Appears in:_
+- [EndpointSpec](#endpointspec)
+
+| Field | Description |
+| --- | --- |
+| `plainText` _string_ | PlainText defines a plain text data. |
+| `dataSetRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | DataSetRef defines the reference of the DataSet object. |
+
+
 #### DeploymentConfig
 
 
@@ -260,6 +275,22 @@ _Appears in:_
 | `filterRunning` _boolean_ | When true, the pods which are not running (e.g. either in Failed or Succeeded state) are dropped during the target discovery. <br /><br /> If unset, the filtering is enabled. <br /><br /> More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase |
 
 
+#### EndpointSpec
+
+
+
+EndpointSpec defines the DataSet and LoadPattern to be used for an endpoint.
+
+_Appears in:_
+- [ExperimentSpec](#experimentspec)
+
+| Field | Description |
+| --- | --- |
+| `endpointName` _string_ | EndpointName defines the name of endpoint. It should be the name of an existing endpoint defined in the Pipeline used in the Experiment. |
+| `dataSpec` _[DataSpec](#dataspec)_ | DataSpec defines the data to be sent to the endpoint. |
+| `loadPatternRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | LoadPatternRef defines the reference of the LoadPattern object. |
+
+
 #### Experiment
 
 
@@ -304,8 +335,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | PipelineRef defines s reference of the Pipeline object. |
-| `loadPatterns` _[LoadPatternConfig](#loadpatternconfig) array_ | LoadPatterns defines a list of configuration of name of endpoints and LoadPatterns. |
+| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | PipelineRef defines a reference of the Pipeline object. |
+| `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | EndpointSpecs defines a list of configurations for the endpoints. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta)_ | ScheduledTime defines the scheduled time for the Experiment. |
 
 
@@ -373,22 +404,6 @@ _Appears in:_
 | `url` _string_ | URL defines the absolute path for an entry point of the Pipeline. |
 | `method` _string_ | Method defines the HTTP method used for the endpoint. |
 | `headers` _object (keys:string, values:string)_ | Headers defines a map of HTTP headers. |
-| `body` _[HTTPBodySpec](#httpbodyspec)_ | Body defines the configurations of the HTTP request body. |
-
-
-#### HTTPBodySpec
-
-
-
-HTTPBodySpec defines the configurations of the HTTP request body. User can specify either Data or DataSetRef, but not both fields.
-
-_Appears in:_
-- [HTTP](#http)
-
-| Field | Description |
-| --- | --- |
-| `data` _string_ |  |
-| `dataSetRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ |  |
 
 
 #### LoadPattern
@@ -406,21 +421,6 @@ _Appears in:_
 | `kind` _string_ | `LoadPattern`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[LoadPatternSpec](#loadpatternspec)_ | Spec defines the specification of the LoadPattern. |
-
-
-#### LoadPatternConfig
-
-
-
-LoadPatternConfig defines the configuration of the load pattern in the experiment.
-
-_Appears in:_
-- [ExperimentSpec](#experimentspec)
-
-| Field | Description |
-| --- | --- |
-| `endpointName` _string_ | EndpointName defines the name of endpoint where to send the requests. It should match the name of endpoint declared in the specification of the pipeline. |
-| `loadPatternRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | LoadPatternRef defines s reference of the LoadPattern object. |
 
 
 #### LoadPatternList

@@ -42,7 +42,7 @@ bundle: manifests kustomize ## Create bundle.yaml for all resources.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default > bundle.yaml
 	cat config/external/cert-manager-bundle.yaml >> bundle.yaml
-	cat config/samples/windtunnel_v1alpha1_plantdcore.yaml >> bundle.yaml
+	cat config/external/plantdcore.yaml >> bundle.yaml
 
 .PHONY: help
 help: ## Display this help.

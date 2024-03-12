@@ -27,8 +27,6 @@ type HTTP struct {
 	Method string `json:"method,omitempty"`
 	// Headers defines a map of HTTP headers.
 	Headers map[string]string `json:"headers,omitempty"`
-	// Body defines the configurations of the HTTP request body.
-	Body HTTPBodySpec `json:"body,omitempty"`
 }
 
 // WebSocket defines the configurations of websocket protocol.
@@ -53,13 +51,6 @@ type GRPC struct {
 	Params map[string]string `json:"params,omitempty"`
 	// Placeholder.
 	Request map[string]string `json:"request,omitempty"`
-}
-
-// HTTPBodySpec defines the configurations of the HTTP request body.
-// User can specify either Data or DataSetRef, but not both fields.
-type HTTPBodySpec struct {
-	Data       string                 `json:"data,omitempty"`
-	DataSetRef corev1.ObjectReference `json:"dataSetRef,omitempty"`
 }
 
 // Endpoint defines the configuration of the endpoint.
