@@ -327,8 +327,6 @@ spec:
               thanosStatus:
                 description: Thanos status
                 type: string
-            required:
-            - thanosStatus
             type: object
         type: object
     served: true

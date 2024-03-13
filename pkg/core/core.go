@@ -386,19 +386,25 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 					RunAsGroup:   ptr.To(config.GetInt64("plantDCore.prometheus.securityContext.runAsGroup")),
 				},
 			},
+			Thanos: &monitoringv1.ThanosSpec{
+				BaseImage: ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosBaseImage")),
+				Version:   ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosVersion")),
+				ObjectStorageConfig: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name"),
+					},
+					Key: config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
+				},
+			},
 			EnableAdminAPI: false,
 		},
 	}
 	if plantDCore.Spec.ThanosEnabled {
-		prometheus.Spec.Thanos = &monitoringv1.ThanosSpec{
-			BaseImage: ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosBaseImage")),
-			Version:   ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosVersion")),
-			ObjectStorageConfig: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name"),
-				},
-				Key: config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
+		prometheus.Spec.Thanos.ObjectStorageConfig = &corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name"),
 			},
+			Key: config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
 		}
 	}
 	return prometheus
@@ -425,7 +431,6 @@ func GetPrometheusService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Ser
 			Selector: prometheusLabels,
 		},
 	}
-
 	return service
 }
 
@@ -567,7 +572,8 @@ func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *apps
 								"query",
 								fmt.Sprintf("--http-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.httpPort")),
 								fmt.Sprintf("--grpc-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.grpcPort")),
-								fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosQuerier.storeUrl")),
+								fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosQuerier.url")),
+								fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosStore.url")),
 							},
 							Ports: []corev1.ContainerPort{
 								{
@@ -586,4 +592,96 @@ func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *apps
 		},
 	}
 	return deployment
+}
+
+// GetThanosStoreStatefulSet Thanos Store Stateful Set
+func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.StatefulSet {
+	volumeClaimSpec := corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{"ReadWriteOnce"},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: resource.MustParse(config.GetString("plantDCore.prometheus.thanosStore.volumeSize")),
+			},
+		},
+	}
+	volumeClaimTemplates := []corev1.PersistentVolumeClaim{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "thanos-data",
+			},
+			Spec: volumeClaimSpec,
+		},
+	}
+
+	return &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetString("plantDCore.prometheus.thanosStore.name"),
+			Namespace: plantDCore.Namespace,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			ServiceName: "thanos-store",
+			Replicas:    ptr.To(config.GetInt32("plantDCore.prometheus.thanosStore.replicas")),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  config.GetString("plantDCore.prometheus.thanosStore.name"),
+							Image: config.GetString("plantDCore.prometheus.thanosStore.image"),
+							Args: []string{
+								"store",
+								fmt.Sprintf("--data-dir=%s", config.GetString("plantDCore.prometheus.thanosStore.dataDir")),
+								"--objstore.config=$(OBJSTORE_CONFIG)",
+							},
+							Ports: []corev1.ContainerPort{
+								{Name: "grpc", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.httpPort")},
+								{Name: "http", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.httpPort")},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{Name: "thanos-data", MountPath: config.GetString("plantDCore.prometheus.thanosStore.dataDir")},
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "OBJSTORE_CONFIG",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name")},
+											Key:                  config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			VolumeClaimTemplates: volumeClaimTemplates,
+		},
+	}
+}
+func GetThanosStoreService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetString("plantDCore.prometheus.thanosStore.serviceName"),
+			Namespace: plantDCore.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "grpc",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       config.GetInt32("plantDCore.prometheus.thanosStore.grpcPort"),
+					TargetPort: intstr.FromInt32(config.GetInt32("plantDCore.prometheus.thanosStore.grpcPort")),
+				},
+			},
+			Selector: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
+		},
+	}
+	return service
 }

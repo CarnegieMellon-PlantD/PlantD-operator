@@ -22,7 +22,7 @@ var (
 )
 
 func init() {
-	promUrl = config.GetString("database.prometheus.url")
+	promUrl = config.GetString("database.prometheus.thanosUrl")
 	redisAddr = fmt.Sprintf("%s:%d", config.GetString("database.redis.host"), config.GetInt("database.redis.port"))
 }
 

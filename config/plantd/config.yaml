@@ -71,7 +71,19 @@ plantDCore:
       replicas: 1
       httpPort: 9090
       grpcPort: 10901
-      storeUrl: thanos-sidecar-grpc.plantd-operator-system.svc.cluster.local:10901
+      url: thanos-sidecar-grpc.plantd-operator-system.svc.cluster.local:10901
+    thanosStore:
+      name: thanos-store
+      serviceName: thanos-store-grpc
+      labels:
+        app: thanos-store
+      image: quay.io/thanos/thanos:v0.34.0
+      replicas: 1
+      volumeSize: 1Gi
+      dataDir: /thanos-data
+      httpPort: 10902
+      grpcPort: 10901
+      url: thanos-store-grpc.plantd-operator-system.svc.cluster.local:10901
     thanosSidecarService:
       portName: grpc
       port: 10901
@@ -261,6 +273,7 @@ database:
   prometheus:
     # Ensure Prometheus service name, namespace, and port are correct
     url: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090
+    thanosUrl: http://thanos-querier.plantd-operator-system.svc.cluster.local:9090
   redis:
     # Ensure Redis service name, namespace, and port are correct
     host: redis-service.plantd-operator-system.svc.cluster.local
