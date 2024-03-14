@@ -33,9 +33,7 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-)
 
-const (
 	// AllKinds lists all available object kinds, except PlantDCore.
 	AllKinds = []string{"Schema", "DataSet", "LoadPattern", "Pipeline", "Experiment", "CostExporter", "TrafficModel", "DigitalTwin", "Simulation"}
 )
