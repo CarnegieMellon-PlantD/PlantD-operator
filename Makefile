@@ -23,7 +23,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 .PHONY: all
-all: build
+all: build bundle docs
 
 ##@ General
 
@@ -44,12 +44,6 @@ bundle: manifests kustomize ## Create bundle.yaml for all resources.
 	cat config/external/cert-manager-bundle.yaml >> bundle.yaml
 	cat config/external/plantdcore.yaml >> bundle.yaml
 
-.PHONY: help
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
-##@ Development
-
 .PHONY: docs
 docs: crd-ref-docs ## Generate CRD reference documentation.
 	$(CRD_REF_DOCS) \
@@ -57,6 +51,12 @@ docs: crd-ref-docs ## Generate CRD reference documentation.
     --output-path=./docs/api/crd-api-reference.md \
     --config=./docs/api/config.yaml \
     --renderer=markdown
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+##@ Development
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
