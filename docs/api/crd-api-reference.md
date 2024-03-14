@@ -19,10 +19,14 @@ Package v1alpha1 contains API Schema definitions for the windtunnel v1alpha1 API
 - [ExperimentList](#experimentlist)
 - [LoadPattern](#loadpattern)
 - [LoadPatternList](#loadpatternlist)
+- [NetCost](#netcost)
+- [NetCostList](#netcostlist)
 - [Pipeline](#pipeline)
 - [PipelineList](#pipelinelist)
 - [PlantDCore](#plantdcore)
 - [PlantDCoreList](#plantdcorelist)
+- [Scenario](#scenario)
+- [ScenarioList](#scenariolist)
 - [Schema](#schema)
 - [SchemaList](#schemalist)
 - [Simulation](#simulation)
@@ -115,6 +119,22 @@ _Appears in:_
 | `kind` _string_ | `DataSet`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[DataSetSpec](#datasetspec)_ | Spec defines the specifications of the DataSet. |
+
+
+#### DataSetConfig
+
+
+
+DataSetConfig defines the parameters to generate DataSet
+
+_Appears in:_
+- [ScenarioSpec](#scenariospec)
+
+| Field | Description |
+| --- | --- |
+| `compressPerSchema` _boolean_ |  |
+| `compressedFileFormat` _string_ |  |
+| `fileFormat` _string_ |  |
 
 
 #### DataSetList
@@ -470,6 +490,59 @@ _Appears in:_
 
 
 
+#### NetCost
+
+
+
+NetCost is the Schema for the netcosts API
+
+_Appears in:_
+- [NetCostList](#netcostlist)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `NetCost`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[NetCostSpec](#netcostspec)_ |  |
+
+
+#### NetCostList
+
+
+
+NetCostList contains a list of NetCost
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `NetCostList`
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `items` _[NetCost](#netcost) array_ |  |
+
+
+#### NetCostSpec
+
+
+
+NetCostSpec defines the desired state of NetCost
+
+_Appears in:_
+- [NetCost](#netcost)
+
+| Field | Description |
+| --- | --- |
+| `netCostPerMB` _string_ | NetCostPerMB defines the cost per MB of data transfer. |
+| `rawDataStoreCostPerMB` _string_ | RawDataStoreCostPerMB defines the cost per MB of raw data storage. |
+| `processedDataStoreCostPerMB` _string_ | ProcessedDataStoreCostPerMB defines the cost per MB of processed data storage. |
+| `rawDataRetentionPolicyMonths` _integer_ | RawDataRetentionPolicyMonths defines the months raw data is retained. |
+| `processedDataRetentionPolicyMonths` _integer_ | ProcessedDataRetentionPolicyMonths defines the months processed data is retained. |
+
+
+
+
 #### Pipeline
 
 
@@ -574,6 +647,7 @@ _Appears in:_
 | `studio` _[DeploymentConfig](#deploymentconfig)_ | StudioConfig defines the desire state of PlantD Studio |
 | `prometheus` _[PrometheusConfig](#prometheusconfig)_ | PrometheusConfig defines the desire state of Prometheus |
 | `redis` _[DeploymentConfig](#deploymentconfig)_ | RedisConfig defines the desire state of Redis |
+| `thanosEnabled` _boolean_ | ThanosEnabled defines if Thanos is enabled (True / False) |
 
 
 
@@ -592,6 +666,75 @@ _Appears in:_
 | `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | ScrapeInterval defines the desired time length between scrapings |
 | `replicas` _integer_ | Replicas defines the desired number of replicas |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#resourcerequirements-v1-core)_ | Resources defines the resource requirements per replica |
+
+
+#### Scenario
+
+
+
+Scenario is the Schema for the scenarios API
+
+_Appears in:_
+- [ScenarioList](#scenariolist)
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `Scenario`
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `spec` _[ScenarioSpec](#scenariospec)_ |  |
+
+
+#### ScenarioList
+
+
+
+ScenarioList contains a list of Scenario
+
+
+
+| Field | Description |
+| --- | --- |
+| `apiVersion` _string_ | `windtunnel.plantd.org/v1alpha1`
+| `kind` _string_ | `ScenarioList`
+| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
+| `items` _[Scenario](#scenario) array_ |  |
+
+
+#### ScenarioSpec
+
+
+
+ScenarioSpec defines the desired state of Scenario
+
+_Appears in:_
+- [Scenario](#scenario)
+
+| Field | Description |
+| --- | --- |
+| `dataSetConfig` _[DataSetConfig](#datasetconfig)_ | DataSetConfig defines the parameters to generate DataSet. |
+| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectreference-v1-core)_ | PipelineRef defines the reference to the Pipeline object. |
+| `tasks` _[ScenarioTask](#scenariotask) array_ | Tasks defines the list of tasks to be executed in the Scenario. |
+
+
+
+
+#### ScenarioTask
+
+
+
+ScenarioTask defines the task to be executed in the Scenario
+
+_Appears in:_
+- [ScenarioSpec](#scenariospec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ | Name defines the name of the task. |
+| `sizeKB` _integer_ | SizeKB defines the size of a single upload in KB. |
+| `sendingDevices` _object (keys:string, values:integer)_ | SendingDevices defines the range of the devices to send the data. |
+| `pushFrequencyPerMonth` _object (keys:string, values:integer)_ | PushFrequencyPerMonth defines the range of how many times the data is pushed per month. |
+| `monthsRelevant` _integer array_ | MonthsRelevant defines the months the task is relevant. |
 
 
 #### Schema

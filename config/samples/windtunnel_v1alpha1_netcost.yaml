@@ -1,0 +1,12 @@
+apiVersion: windtunnel.plantd.org/v1alpha1
+kind: NetCost
+metadata:
+  labels:
+    app.kubernetes.io/name: netcost
+    app.kubernetes.io/instance: netcost-sample
+    app.kubernetes.io/part-of: plantd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: plantd-operator
+  name: netcost-sample
+spec:
+  # TODO(user): Add fields here

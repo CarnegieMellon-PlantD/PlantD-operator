@@ -10,4 +10,6 @@ resources:
 - windtunnel_v1alpha1_trafficmodel.yaml
 - windtunnel_v1alpha1_digitaltwin.yaml
 - windtunnel_v1alpha1_simulation.yaml
+- windtunnel_v1alpha1_netcost.yaml
+- windtunnel_v1alpha1_scenario.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

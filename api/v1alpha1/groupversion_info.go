@@ -25,15 +25,17 @@ import (
 )
 
 var (
-	// GroupVersion is group version used to register these objects.
+	// GroupVersion is group version used to register these objects
 	GroupVersion = schema.GroupVersion{Group: "windtunnel.plantd.org", Version: "v1alpha1"}
 
-	// AllKinds lists all available object kinds, except PlantDCore.
-	AllKinds = []string{"Schema", "DataSet", "LoadPattern", "Pipeline", "Experiment", "CostExporter", "TrafficModel", "DigitalTwin", "Simulation"}
-
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
+)
+
+const (
+	// AllKinds lists all available object kinds, except PlantDCore.
+	AllKinds = []string{"Schema", "DataSet", "LoadPattern", "Pipeline", "Experiment", "CostExporter", "TrafficModel", "DigitalTwin", "Simulation"}
 )
