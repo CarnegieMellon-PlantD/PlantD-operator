@@ -35,24 +35,36 @@ spec:
             description: NetCostSpec defines the desired state of NetCost
             properties:
               netCostPerMB:
+                anyOf:
+                - type: integer
+                - type: string
                 description: NetCostPerMB defines the cost per MB of data transfer.
-                type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               processedDataRetentionPolicyMonths:
                 description: ProcessedDataRetentionPolicyMonths defines the months
                   processed data is retained.
                 type: integer
-              processedDataStoreCostPerMB:
-                description: ProcessedDataStoreCostPerMB defines the cost per MB of
-                  processed data storage.
-                type: string
+              processedDataStoreCostPerMBMonth:
+                anyOf:
+                - type: integer
+                - type: string
+                description: ProcessedDataStoreCostPerMBMonth defines the cost per
+                  MB per month of processed data storage.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               rawDataRetentionPolicyMonths:
                 description: RawDataRetentionPolicyMonths defines the months raw data
                   is retained.
                 type: integer
-              rawDataStoreCostPerMB:
-                description: RawDataStoreCostPerMB defines the cost per MB of raw
-                  data storage.
-                type: string
+              rawDataStoreCostPerMBMonth:
+                anyOf:
+                - type: integer
+                - type: string
+                description: RawDataStoreCostPerMBMonth defines the cost per MB per
+                  month of raw data storage.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             type: object
           status:
             description: NetCostStatus defines the observed state of NetCost

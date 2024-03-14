@@ -17,17 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NetCostSpec defines the desired state of NetCost
 type NetCostSpec struct {
 	// NetCostPerMB defines the cost per MB of data transfer.
-	NetCostPerMB string `json:"netCostPerMB,omitempty"`
-	// RawDataStoreCostPerMB defines the cost per MB of raw data storage.
-	RawDataStoreCostPerMB string `json:"rawDataStoreCostPerMB,omitempty"`
-	// ProcessedDataStoreCostPerMB defines the cost per MB of processed data storage.
-	ProcessedDataStoreCostPerMB string `json:"processedDataStoreCostPerMB,omitempty"`
+	NetCostPerMB resource.Quantity `json:"netCostPerMB,omitempty"`
+	// RawDataStoreCostPerMBMonth defines the cost per MB per month of raw data storage.
+	RawDataStoreCostPerMBMonth resource.Quantity `json:"rawDataStoreCostPerMBMonth,omitempty"`
+	// ProcessedDataStoreCostPerMBMonth defines the cost per MB per month of processed data storage.
+	ProcessedDataStoreCostPerMBMonth resource.Quantity `json:"processedDataStoreCostPerMBMonth,omitempty"`
 	// RawDataRetentionPolicyMonths defines the months raw data is retained.
 	RawDataRetentionPolicyMonths int `json:"rawDataRetentionPolicyMonths,omitempty"`
 	// ProcessedDataRetentionPolicyMonths defines the months processed data is retained.

@@ -108,9 +108,13 @@ spec:
                       description: SendingDevices defines the range of the devices
                         to send the data.
                       type: object
-                    sizeKB:
-                      description: SizeKB defines the size of a single upload in KB.
-                      type: integer
+                    size:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      description: Size defines the size of a single upload in bytes.
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
                   type: object
                 type: array
             required:

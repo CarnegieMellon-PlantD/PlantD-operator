@@ -534,9 +534,9 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `netCostPerMB` _string_ | NetCostPerMB defines the cost per MB of data transfer. |
-| `rawDataStoreCostPerMB` _string_ | RawDataStoreCostPerMB defines the cost per MB of raw data storage. |
-| `processedDataStoreCostPerMB` _string_ | ProcessedDataStoreCostPerMB defines the cost per MB of processed data storage. |
+| `netCostPerMB` _[Quantity](#quantity)_ | NetCostPerMB defines the cost per MB of data transfer. |
+| `rawDataStoreCostPerMBMonth` _[Quantity](#quantity)_ | RawDataStoreCostPerMBMonth defines the cost per MB per month of raw data storage. |
+| `processedDataStoreCostPerMBMonth` _[Quantity](#quantity)_ | ProcessedDataStoreCostPerMBMonth defines the cost per MB per month of processed data storage. |
 | `rawDataRetentionPolicyMonths` _integer_ | RawDataRetentionPolicyMonths defines the months raw data is retained. |
 | `processedDataRetentionPolicyMonths` _integer_ | ProcessedDataRetentionPolicyMonths defines the months processed data is retained. |
 
@@ -731,7 +731,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `name` _string_ | Name defines the name of the task. |
-| `sizeKB` _integer_ | SizeKB defines the size of a single upload in KB. |
+| `size` _[Quantity](#quantity)_ | Size defines the size of a single upload in bytes. |
 | `sendingDevices` _object (keys:string, values:integer)_ | SendingDevices defines the range of the devices to send the data. |
 | `pushFrequencyPerMonth` _object (keys:string, values:integer)_ | PushFrequencyPerMonth defines the range of how many times the data is pushed per month. |
 | `monthsRelevant` _integer array_ | MonthsRelevant defines the months the task is relevant. |

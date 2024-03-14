@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,8 +33,8 @@ type DataSetConfig struct {
 type ScenarioTask struct {
 	// Name defines the name of the task.
 	Name string `json:"name,omitempty"`
-	// SizeKB defines the size of a single upload in KB.
-	SizeKB int `json:"sizeKB,omitempty"`
+	// Size defines the size of a single upload in bytes.
+	Size resource.Quantity `json:"size,omitempty"`
 	// SendingDevices defines the range of the devices to send the data.
 	SendingDevices map[string]int `json:"sendingDevices,omitempty"`
 	// PushFrequencyPerMonth defines the range of how many times the data is pushed per month.
