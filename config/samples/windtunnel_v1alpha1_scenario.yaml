@@ -1,0 +1,12 @@
+apiVersion: windtunnel.plantd.org/v1alpha1
+kind: Scenario
+metadata:
+  labels:
+    app.kubernetes.io/name: scenario
+    app.kubernetes.io/instance: scenario-sample
+    app.kubernetes.io/part-of: plantd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: plantd-operator
+  name: scenario-sample
+spec:
+  # TODO(user): Add fields here

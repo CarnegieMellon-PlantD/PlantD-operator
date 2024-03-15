@@ -34,6 +34,8 @@ const (
 	TrafficModelKind string = "TrafficModel"
 	DigitalTwinKind  string = "DigitalTwin"
 	SimulationKind   string = "Simulation"
+	NetCostKind      string = "NetCost"
+	ScenarioKind     string = "Scenario"
 )
 
 // ForObject returns a client.Object instance based on the provided kind.

@@ -85,6 +85,18 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Put("/simulations/{namespace}/{name}", updateObjectHandler(client, proxy.SimulationKind))
 		r.Delete("/simulations/{namespace}/{name}", deleteObjectHandler(client, proxy.SimulationKind))
 
+		r.Get("/netcosts", getObjectListHandler(client, proxy.NetCostKind))
+		r.Get("/netcosts/{namespace}/{name}", getObjectHandler(client, proxy.NetCostKind))
+		r.Post("/netcosts/{namespace}/{name}", createObjectHandler(client, proxy.NetCostKind))
+		r.Put("/netcosts/{namespace}/{name}", updateObjectHandler(client, proxy.NetCostKind))
+		r.Delete("/netcosts/{namespace}/{name}", deleteObjectHandler(client, proxy.NetCostKind))
+
+		r.Get("/scenarios", getObjectListHandler(client, proxy.ScenarioKind))
+		r.Get("/scenarios/{namespace}/{name}", getObjectHandler(client, proxy.ScenarioKind))
+		r.Post("/scenarios/{namespace}/{name}", createObjectHandler(client, proxy.ScenarioKind))
+		r.Put("/scenarios/{namespace}/{name}", updateObjectHandler(client, proxy.ScenarioKind))
+		r.Delete("/scenarios/{namespace}/{name}", deleteObjectHandler(client, proxy.ScenarioKind))
+
 		r.Get("/plantdcores/{namespace}/{name}", getObjectHandler(client, proxy.PlantDCoreKind))
 		r.Put("/plantdcores/{namespace}/{name}", updateObjectHandler(client, proxy.PlantDCoreKind))
 

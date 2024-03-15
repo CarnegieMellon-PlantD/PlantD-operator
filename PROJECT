@@ -96,4 +96,21 @@ resources:
   kind: TrafficModel
   path: github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: plantd.org
+  group: windtunnel
+  kind: NetCost
+  path: github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: plantd.org
+  group: windtunnel
+  kind: Scenario
+  path: github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"
