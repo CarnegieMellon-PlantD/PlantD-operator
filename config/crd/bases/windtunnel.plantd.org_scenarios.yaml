@@ -123,6 +123,11 @@ spec:
             type: object
           status:
             description: ScenarioStatus defines the observed state of Scenario
+            properties:
+              isPopulated:
+                description: IsPopulated defines whether the Scenario has populated
+                  the resources.
+                type: boolean
             type: object
         type: object
     served: true

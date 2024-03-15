@@ -54,7 +54,10 @@ type ScenarioSpec struct {
 }
 
 // ScenarioStatus defines the observed state of Scenario
-type ScenarioStatus struct{}
+type ScenarioStatus struct {
+	// IsPopulated defines whether the Scenario has populated the resources.
+	IsPopulated bool `json:"isPopulated,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
