@@ -61,6 +61,10 @@ func ForObject(kind string) (client.Object, error) {
 		return &windtunnelv1alpha1.DigitalTwin{}, nil
 	case SimulationKind:
 		return &windtunnelv1alpha1.Simulation{}, nil
+	case NetCostKind:
+		return &windtunnelv1alpha1.NetCost{}, nil
+	case ScenarioKind:
+		return &windtunnelv1alpha1.Scenario{}, nil
 	}
 	return nil, fmt.Errorf("failed to find resource of kind \"%s\"", kind)
 }
