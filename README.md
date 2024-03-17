@@ -29,7 +29,7 @@ To install the Prometheus Operator and K6 Operator, run the following commands:
 curl https://raw.githubusercontent.com/grafana/k6-operator/main/bundle.yaml | kubectl create -f -
 
 # Install the Prometheus Operator
-curl https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml | kubectl create -f -
+curl -L https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.72.0/bundle.yaml | kubectl create -f -
 ```
 
 ### CLI Commands
