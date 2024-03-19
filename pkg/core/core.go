@@ -389,12 +389,6 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 			Thanos: &monitoringv1.ThanosSpec{
 				BaseImage: ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosBaseImage")),
 				Version:   ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosVersion")),
-				ObjectStorageConfig: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name"),
-					},
-					Key: config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
-				},
 			},
 			EnableAdminAPI: false,
 		},
@@ -549,6 +543,16 @@ func GetThanosSidecarService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.
 	return service
 }
 func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.Deployment {
+	containerArgs := []string{
+		"query",
+		fmt.Sprintf("--http-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.httpPort")),
+		fmt.Sprintf("--grpc-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.grpcPort")),
+		fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosQuerier.url")),
+	}
+	if plantDCore.Spec.ThanosEnabled {
+		containerArgs = append(containerArgs, fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosStore.url")))
+	}
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "thanos-querier",
@@ -568,13 +572,7 @@ func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *apps
 						{
 							Name:  "thanos-querier",
 							Image: config.GetString("plantDCore.prometheus.thanosQuerier.image"),
-							Args: []string{
-								"query",
-								fmt.Sprintf("--http-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.httpPort")),
-								fmt.Sprintf("--grpc-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.grpcPort")),
-								fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosQuerier.url")),
-								fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosStore.url")),
-							},
+							Args:  containerArgs,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
