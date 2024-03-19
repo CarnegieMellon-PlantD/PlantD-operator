@@ -41,9 +41,7 @@ type Schema struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specifications of the Schema.
-	Spec SchemaSpec `json:"spec,omitempty"`
-	// Status defines the status of the Schema.
+	Spec   SchemaSpec   `json:"spec,omitempty"`
 	Status SchemaStatus `json:"status,omitempty"`
 }
 
@@ -53,9 +51,7 @@ type Schema struct {
 type SchemaList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of Schemas.
-	Items []Schema `json:"items"`
+	Items           []Schema `json:"items"`
 }
 
 func init() {

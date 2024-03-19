@@ -69,9 +69,7 @@ type DataSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specifications of the DataSet.
-	Spec DataSetSpec `json:"spec,omitempty"`
-	// Status defines the status of the DataSet.
+	Spec   DataSetSpec   `json:"spec,omitempty"`
 	Status DataSetStatus `json:"status,omitempty"`
 }
 
@@ -81,9 +79,7 @@ type DataSet struct {
 type DataSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of DataSets.
-	Items []DataSet `json:"items"`
+	Items           []DataSet `json:"items"`
 }
 
 func init() {

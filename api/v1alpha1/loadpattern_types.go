@@ -37,9 +37,7 @@ type LoadPattern struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specification of the LoadPattern.
-	Spec LoadPatternSpec `json:"spec,omitempty"`
-	// Status defines the status of the LoadPattern.
+	Spec   LoadPatternSpec   `json:"spec,omitempty"`
 	Status LoadPatternStatus `json:"status,omitempty"`
 }
 
@@ -49,9 +47,7 @@ type LoadPattern struct {
 type LoadPatternList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of LoadPatterns.
-	Items []LoadPattern `json:"items"`
+	Items           []LoadPattern `json:"items"`
 }
 
 func init() {

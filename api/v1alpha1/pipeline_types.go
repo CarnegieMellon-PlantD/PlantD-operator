@@ -126,9 +126,7 @@ type Pipeline struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specifications of the Pipeline.
-	Spec PipelineSpec `json:"spec,omitempty"`
-	// Status defines the status of the Pipeline.
+	Spec   PipelineSpec   `json:"spec,omitempty"`
 	Status PipelineStatus `json:"status,omitempty"`
 }
 
@@ -138,9 +136,7 @@ type Pipeline struct {
 type PipelineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of Pipelines.
-	Items []Pipeline `json:"items"`
+	Items           []Pipeline `json:"items"`
 }
 
 func init() {

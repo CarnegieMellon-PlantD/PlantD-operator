@@ -65,9 +65,7 @@ type Experiment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specifications of the Experiment.
-	Spec ExperimentSpec `json:"spec,omitempty"`
-	// Status defines the status of the Experiment.
+	Spec   ExperimentSpec   `json:"spec,omitempty"`
 	Status ExperimentStatus `json:"status,omitempty"`
 }
 
@@ -77,9 +75,7 @@ type Experiment struct {
 type ExperimentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of Experiments.
-	Items []Experiment `json:"items"`
+	Items           []Experiment `json:"items"`
 }
 
 func init() {
