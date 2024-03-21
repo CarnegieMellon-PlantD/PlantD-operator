@@ -812,7 +812,7 @@ func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.De
 							},
 							Env: []corev1.EnvVar{
 								{Name: "PROMETHEUS_SERVER_ENDPOINT", Value: config.GetString("database.prometheus.url")},
-								{Name: "CLOUD_PROVIDER_API_KEY", Value: config.GetString("opencost.deployment.cloudProviderAPIKey")},
+								{Name: "CLOUD_PROVIDER_API_KEY", Value: ""},
 								{Name: "CLUSTER_ID", Value: "cluster-one"},
 								{Name: "LOG_LEVEL", Value: "debug"},
 							},
@@ -914,21 +914,25 @@ func GetCadvisorServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monit
 					Interval:        "30s",
 					Port:            "https-metrics",
 					Scheme:          "https",
-					//TLSConfig:       &monitoringv1.TLSConfig{InsecureSkipVerify: true},
+					TLSConfig:       &monitoringv1.TLSConfig{SafeTLSConfig: monitoringv1.SafeTLSConfig{InsecureSkipVerify: true}},
 				},
 				{
 					BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
 					Port:            "https-metrics",
 					Scheme:          "https",
-					//TLSConfig:       &monitoringv1.TLSConfig{InsecureSkipVerify: true},
-					HonorLabels: true,
-					Interval:    "30s",
-					Path:        "/metrics/cadvisor",
+					TLSConfig:       &monitoringv1.TLSConfig{SafeTLSConfig: monitoringv1.SafeTLSConfig{InsecureSkipVerify: true}},
+					HonorLabels:     true,
+					Interval:        "30s",
+					Path:            "/metrics/cadvisor",
 				},
 			},
 			JobLabel: "kubelet",
-			//ToDo: NamespaceSelector: matchNames,
-			Selector: metav1.LabelSelector{MatchLabels: config.GetStringMapString("cadvisor.cadvisorServiceMonitor.selector")},
+			NamespaceSelector: monitoringv1.NamespaceSelector{
+				MatchNames: []string{config.GetString("opencost.cadvisorServiceMonitor.namespaceSelector")},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: config.GetStringMapString("opencost.cadvisorServiceMonitor.selector"),
+			},
 		},
 	}
 	return serviceMonitor

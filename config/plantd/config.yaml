@@ -4,7 +4,7 @@ pvc.requests.storage: 10Gi
 costService:
   image: ghcr.io/carnegiemellon-plantd/costexporter:latest
   opencost:
-    url: http://opencost.opencost.svc.cluster.local:9003
+    url: http://opencost.plantd-operator-system.svc.cluster.local:9003
 digitalTwin:
   image: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
 dataGenerator:
@@ -111,8 +111,6 @@ opencost:
     runAsUser: 1001
     labels:
       app: opencost
-    env:
-      cloudProviderAPIKey: AIzaSyD29bGxmHAVEOBYtgd8sYM2gM2ekfxQX4U
   service:
     port: 9003
     ui-port: 9000
@@ -131,6 +129,7 @@ opencost:
       component: plantd-metrics-endpoint
     selector:
       k8s-app: kubelet
+    namespaceSelector: kube-system
 
 k6:
   arguments: --out experimental-prometheus-rw
