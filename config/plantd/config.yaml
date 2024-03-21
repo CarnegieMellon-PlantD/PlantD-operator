@@ -98,6 +98,40 @@ plantDCore:
     serviceName: redis-service
     port: 6379
     targetPort: 6379
+
+opencost:
+  serviceAccount: opencost
+  clusterRole: opencost
+  deployment:
+    image: quay.io/kubecost1/kubecost-cost-model:latest
+    ui-image: quay.io/kubecost1/opencost-ui:1.105.2
+    replicas: 1
+    maxSurge: 1
+    maxUnavailable: 1
+    runAsUser: 1001
+    labels:
+      app: opencost
+    env:
+      cloudProviderAPIKey: AIzaSyD29bGxmHAVEOBYtgd8sYM2gM2ekfxQX4U
+  service:
+    port: 9003
+    ui-port: 9000
+    labels:
+      plantd-opencost: opencost
+      experiment: test1
+  opencostServiceMonitor:
+    name: opencost-service-monitor
+    labels:
+      component: plantd-metrics-endpoint
+    selector:
+      plantd-opencost: opencost
+  cadvisorServiceMonitor:
+    name: cadvisor-service-monitor
+    labels:
+      component: plantd-metrics-endpoint
+    selector:
+      k8s-app: kubelet
+
 k6:
   arguments: --out experimental-prometheus-rw
   remoteWriteURL:
