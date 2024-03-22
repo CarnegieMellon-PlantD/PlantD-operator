@@ -25,3 +25,4 @@ Dockerfile.cross
 *.swo
 *~
 test
+.DS_Store

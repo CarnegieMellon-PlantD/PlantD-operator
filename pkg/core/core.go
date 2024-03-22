@@ -683,3 +683,262 @@ func GetThanosStoreService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Se
 	}
 	return service
 }
+
+// Opencost resources
+func GetOpencostRBACResources(plantDCore *windtunnelv1alpha1.PlantDCore) (*corev1.ServiceAccount, *rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetString("opencost.serviceAccount"),
+			Namespace: plantDCore.Namespace,
+		},
+	}
+
+	clusterRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: config.GetString("opencost.clusterRole"),
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{
+					"configmaps",
+					"deployments",
+					"nodes",
+					"pods",
+					"services",
+					"resourcequotas",
+					"replicationcontrollers",
+					"limitranges",
+					"persistentvolumeclaims",
+					"persistentvolumes",
+					"namespaces",
+					"endpoints",
+				},
+				Verbs: []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"extensions"},
+				Resources: []string{"daemonsets", "deployments", "replicasets"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"apps"},
+				Resources: []string{"statefulsets", "deployments", "daemonsets", "replicasets"},
+				Verbs:     []string{"list", "watch"},
+			},
+			{
+				APIGroups: []string{"batch"},
+				Resources: []string{"cronjobs", "jobs"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"autoscaling"},
+				Resources: []string{"horizontalpodautoscalers"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"policy"},
+				Resources: []string{"poddisruptionbudgets"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"storage.k8s.io"},
+				Resources: []string{"storageclasses"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+		},
+	}
+
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: config.GetString("opencost.clusterRole"),
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     config.GetString("opencost.clusterRole"),
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      config.GetString("opencost.clusterRole"),
+				Namespace: plantDCore.Namespace,
+			},
+		},
+	}
+	return sa, clusterRole, clusterRoleBinding
+}
+func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.Deployment {
+	labels := config.GetStringMapString("opencost.deployment.labels")
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "opencost",
+			Namespace: plantDCore.Namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: ptr.To(config.GetInt32("opencost.deployment.replicas")),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxSurge:       ptr.To(intstr.FromInt32(config.GetInt32("opencost.deployment.maxSurge"))),
+					MaxUnavailable: ptr.To(intstr.FromInt32(config.GetInt32("opencost.deployment.maxUnavailable"))),
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					RestartPolicy:      corev1.RestartPolicyAlways,
+					ServiceAccountName: "opencost",
+					Containers: []corev1.Container{
+						{
+							Name:  "opencost",
+							Image: config.GetString("opencost.deployment.image"),
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resourceQuantity("10m"),
+									corev1.ResourceMemory: resourceQuantity("55M"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resourceQuantity("999m"),
+									corev1.ResourceMemory: resourceQuantity("1G"),
+								},
+							},
+							Env: []corev1.EnvVar{
+								{Name: "PROMETHEUS_SERVER_ENDPOINT", Value: config.GetString("database.prometheus.url")},
+								{Name: "CLOUD_PROVIDER_API_KEY", Value: ""},
+								{Name: "CLUSTER_ID", Value: "cluster-one"},
+								{Name: "LOG_LEVEL", Value: "debug"},
+							},
+							ImagePullPolicy: corev1.PullAlways,
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: ptr.To(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								Privileged:             ptr.To(false),
+								ReadOnlyRootFilesystem: ptr.To(true),
+								RunAsUser:              ptr.To(config.GetInt64("opencost.deployment.runAsUser")),
+							},
+						},
+						{
+							Name:  "opencost-ui",
+							Image: config.GetString("opencost.deployment.ui-image"),
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resourceQuantity("10m"),
+									corev1.ResourceMemory: resourceQuantity("55M"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resourceQuantity("999m"),
+									corev1.ResourceMemory: resourceQuantity("1G"),
+								},
+							},
+							ImagePullPolicy: corev1.PullAlways,
+						},
+					},
+				},
+			},
+		},
+	}
+	return deployment
+}
+func GetOpencostService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
+	labels := config.GetStringMapString("opencost.service.labels")
+
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "opencost",
+			Namespace: plantDCore.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: labels,
+			Type:     corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "opencost",
+					Port:       config.GetInt32("opencost.service.port"),
+					TargetPort: intstr.FromInt32(config.GetInt32("opencost.service.port")),
+				},
+				{
+					Name:       "opencost-ui",
+					Port:       config.GetInt32("opencost.service.ui-port"),
+					TargetPort: intstr.FromInt32(config.GetInt32("opencost.service.ui-port")),
+				},
+			},
+		},
+	}
+	return service
+}
+func GetOpencostServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv1.ServiceMonitor {
+	serviceMonitor := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetString("opencost.opencostServiceMonitor.name"),
+			Namespace: plantDCore.Namespace,
+			Labels:    config.GetStringMapString("opencost.opencostServiceMonitor.labels"),
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Port:        "opencost",
+					HonorLabels: true,
+				},
+			},
+			JobLabel: "experiment",
+			Selector: metav1.LabelSelector{
+				MatchLabels: config.GetStringMapString("opencost.opencostServiceMonitor.selector"),
+			},
+		},
+	}
+	return serviceMonitor
+}
+func GetCadvisorServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv1.ServiceMonitor {
+	serviceMonitor := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetString("opencost.cadvisorServiceMonitor.name"),
+			Namespace: plantDCore.Namespace,
+			Labels:    config.GetStringMapString("cadvisor.cadvisorServiceMonitor.labels"),
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+					HonorLabels:     true,
+					Interval:        "30s",
+					Port:            "https-metrics",
+					Scheme:          "https",
+					TLSConfig:       &monitoringv1.TLSConfig{SafeTLSConfig: monitoringv1.SafeTLSConfig{InsecureSkipVerify: true}},
+				},
+				{
+					BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+					Port:            "https-metrics",
+					Scheme:          "https",
+					TLSConfig:       &monitoringv1.TLSConfig{SafeTLSConfig: monitoringv1.SafeTLSConfig{InsecureSkipVerify: true}},
+					HonorLabels:     true,
+					Interval:        "30s",
+					Path:            "/metrics/cadvisor",
+				},
+			},
+			JobLabel: "kubelet",
+			NamespaceSelector: monitoringv1.NamespaceSelector{
+				MatchNames: []string{config.GetString("opencost.cadvisorServiceMonitor.namespaceSelector")},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: config.GetStringMapString("opencost.cadvisorServiceMonitor.selector"),
+			},
+		},
+	}
+	return serviceMonitor
+}
+
+func resourceQuantity(quantityStr string) resource.Quantity {
+	quantity, _ := resource.ParseQuantity(quantityStr)
+	return quantity
+}

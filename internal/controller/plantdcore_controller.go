@@ -317,6 +317,14 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	curThanosStoreStatefulSet := &appsv1.StatefulSet{}
 	curThanosStoreService := &corev1.Service{}
 
+	curOpencostServiceAccount := &corev1.ServiceAccount{}
+	curOpencostClusterRole := &rbacv1.ClusterRole{}
+	curOpencostClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+	curOpencostDeployment := &appsv1.Deployment{}
+	curOpencostService := &corev1.Service{}
+	curOpencostServiceMonitor := &monitoringv1.ServiceMonitor{}
+	curCadvisorServiceMonitor := &monitoringv1.ServiceMonitor{}
+
 	desiredKubeProxyDeployment := core.GetKubeProxyDeployment(plantDCore)
 	desiredKubeProxyService := core.GetKubeProxyService(plantDCore)
 	desiredStudioDeployment := core.GetStudioDeployment(plantDCore)
@@ -332,6 +340,13 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	desiredThanosSidecarService := core.GetThanosSidecarService(plantDCore)
 	desiredThanosStoreStatefulSet := core.GetThanosStoreStatefulSet(plantDCore)
 	desiredThanosStoreService := core.GetThanosStoreService(plantDCore)
+
+	desriedOpencostServiceAccount, desiredOpencostClusterRole, desiredOpencostClusterRoleBinding :=
+		core.GetOpencostRBACResources(plantDCore)
+	desiredOpencostDeployment := core.GetOpencostDeployment(plantDCore)
+	desiredOpencostService := core.GetOpencostService(plantDCore)
+	desiredOpencostServiceMonitor := core.GetOpencostServiceMonitor(plantDCore)
+	desiredCadvisorServiceMonitor := core.GetCadvisorServiceMonitor(plantDCore)
 
 	isAllReady := true
 
@@ -516,6 +531,56 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Info("created Thanos Store Service")
 			isAllReady = false
 		}
+	}
+
+	if result, err := r.reconcileObject(ctx, plantDCore, curOpencostServiceAccount, desriedOpencostServiceAccount, false); err != nil {
+		logger.Error(err, "failed to reconcile opencost Service Account")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created opencost Service Account")
+		isAllReady = false
+	}
+	if result, err := r.reconcileClusterObject(ctx, curOpencostClusterRole, desiredOpencostClusterRole, false); err != nil {
+		logger.Error(err, "failed to reconcile opencost Cluster Role")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created opencost Cluster Role")
+		isAllReady = false
+	}
+	if result, err := r.reconcileClusterObject(ctx, curOpencostClusterRoleBinding, desiredOpencostClusterRoleBinding, false); err != nil {
+		logger.Error(err, "failed to reconcile opencost Cluster Role Binding")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created opencost Cluster Role Binding")
+		isAllReady = false
+	}
+	if result, err := r.reconcileObject(ctx, plantDCore, curOpencostDeployment, desiredOpencostDeployment, false); err != nil {
+		logger.Error(err, "failed to reconcile opencost Deplpoyment")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created opencost Deployment")
+		isAllReady = false
+	}
+	if result, err := r.reconcileObject(ctx, plantDCore, curOpencostService, desiredOpencostService, false); err != nil {
+		logger.Error(err, "failed to reconcile opencost Service")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created opencost Service")
+		isAllReady = false
+	}
+	if result, err := r.reconcileObject(ctx, plantDCore, curOpencostServiceMonitor, desiredOpencostServiceMonitor, false); err != nil {
+		logger.Error(err, "failed to reconcile opencost ServiceMonitor")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created opencost ServiceMonitor")
+		isAllReady = false
+	}
+	if result, err := r.reconcileObject(ctx, plantDCore, curCadvisorServiceMonitor, desiredCadvisorServiceMonitor, false); err != nil {
+		logger.Error(err, "failed to reconcile cadvisor ServiceMonitor")
+		return ctrl.Result{}, err
+	} else if result == ReconcilerCreated {
+		logger.Info("created cadvisor ServiceMonitor")
+		isAllReady = false
 	}
 
 	// Update object status
