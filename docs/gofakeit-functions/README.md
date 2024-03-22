@@ -48,4 +48,5 @@ It will create a file called `gofakeit-functions.md` in the `docs/gofakeit-funct
 ```shell
 popd
 kill $(lsof -t -i :8080)
+rm ${GOBIN}/gofakeitserver
 ```
