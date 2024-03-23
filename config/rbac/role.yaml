@@ -197,6 +197,7 @@ rules:
   resources:
   - clusterrolebindings
   verbs:
+  - bind
   - create
   - delete
   - get
@@ -211,6 +212,7 @@ rules:
   verbs:
   - create
   - delete
+  - escalate
   - get
   - list
   - patch
