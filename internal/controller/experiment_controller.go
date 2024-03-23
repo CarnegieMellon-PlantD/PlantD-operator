@@ -503,7 +503,7 @@ func (r *ExperimentReconciler) CreateK6WithDataSet(ctx context.Context, exp *win
 
 	testRun.Spec.Script = k6v1alpha1.K6Script{
 		VolumeClaim: k6v1alpha1.K6VolumeClaim{
-			Name: utils.GetPVCName(dataset.Name, dataset.Generation),
+			Name: utils.GetDataSetPVCName(dataset.Name, dataset.Generation),
 			File: config.GetString("k6.config.script"), // TODO: Streamline the reading from configuration file.
 		},
 	}

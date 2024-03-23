@@ -42,7 +42,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Experiment.
+            description: ExperimentSpec defines the desired state of Experiment
             properties:
               endpointSpecs:
                 description: EndpointSpecs defines a list of configurations for the
@@ -187,7 +187,7 @@ spec:
                 type: string
             type: object
           status:
-            description: Status defines the status of the Experiment.
+            description: ExperimentStatus defines the observed state of Experiment
             properties:
               cloudVendor:
                 description: CloudVendor defines the cloud service provider which

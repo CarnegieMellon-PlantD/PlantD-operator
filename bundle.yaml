@@ -54,7 +54,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the CostExporter.
+            description: CostExporterSpec defines the desired state of CostExporter
             properties:
               cloudServiceProvider:
                 description: CloudServiceProvider defines the target cloud service
@@ -104,7 +104,7 @@ spec:
                 x-kubernetes-map-type: atomic
             type: object
           status:
-            description: Status defines the status of the CostExporter.
+            description: CostExporterStatus defines the observed state of CostExporter
             properties:
               jobCompletionTime:
                 description: JobCompletionTime defines the completion time of the
@@ -156,9 +156,6 @@ spec:
     - jsonPath: .status.pvcStatus
       name: VolumeStatus
       type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
@@ -180,104 +177,102 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the DataSet.
+            description: DataSetSpec defines the desired state of DataSet.
             properties:
               compressPerSchema:
-                description: CompressPerSchema defines the flag of compression. If
-                  you wish files from all the different schemas to compressed into
-                  one compressed file leave this field as false. If you wish to have
-                  a different compressed file for every schema, mark this field as
-                  true.
+                description: Flag for compression behavior. Takes effect only if `compressedFileFormat`
+                  is set. When set to `false` (default), files from all Schemas will
+                  be compressed into a single compressed file in each repetition.
+                  When set to `true`, files from each Schema will be compressed into
+                  a separate compressed file in each repetition.
                 type: boolean
               compressedFileFormat:
-                description: CompressedFileFormat defines the file format for the
-                  compressed files. Each file inside the compressed file is of "fileFormat"
-                  format specified above. This is the output format if specified for
-                  the files.
+                description: Format of the compressed file containing output files.
+                  Available value is `zip`. Leave empty to disable compression.
                 type: string
               fileFormat:
-                description: FileFormat defines the file format of the each file containing
-                  the generated data. This may or may not be the output file format
-                  based on whether you want to compress these files.
+                description: Format of the output file containing generated data.
+                  Available values are `csv` and `binary`.
                 type: string
               numFiles:
-                description: NumberOfFiles defines the total number of output files
-                  irrespective of compression. Unless "compressPerSchema" is false,
-                  this field is applicable per schema.
+                description: Number of repetitions of the data generation process.
+                  If `compressedFileFormat` is unset, this is the number of files
+                  for each Schema. If `compressedFileFormat` is set and `compressPerSchema`
+                  is `false`, this is the number of compressed files for each Schema.
+                  If `compressedFileFormat` is set and `compressPerSchema` is `true`,
+                  this is the total number of compressed files.
                 format: int32
                 type: integer
               parallelJobs:
-                description: ParallelJobs defines the number of parallel jobs when
-                  generating the dataset.
+                description: Number of parallel jobs when generating the dataset.
                 format: int32
                 type: integer
               schemas:
-                description: Schemas defines a list of Schemas.
+                description: List of Schemas in the DataSet.
                 items:
-                  description: SchemaSelector defines a list of Schemas and the required
-                    numbers and format.
+                  description: SchemaSelector defines the reference to a Schema and
+                    its usage in the DataSet.
                   properties:
                     name:
-                      description: Name defines the name of the Schame. Should match
-                        the name of existing Schema in the same namespace as the DataSet.
+                      description: Name of the Schema. Note that the Schema must be
+                        present in the same namespace as the DataSet.
                       type: string
                     numFilesPerCompressedFile:
                       additionalProperties:
                         type: integer
-                      description: NumberOfFilesPerCompressedFile defines the number
-                        of intermediate files to be compressed into a single compressed
-                        file. A random number is picked from the specified range.
+                      description: Range of number of files to be generated in the
+                        compressed file. Take effect only if `compressedFileFormat`
+                        is set in the DataSet. Should be a map containing `min` and
+                        `max` keys. A random number is picked from the specified range.
                       type: object
                     numRecords:
                       additionalProperties:
                         type: integer
-                      description: NumRecords defines the number of records to be
-                        generated in each output file. A random number is picked from
-                        the specified range.
+                      description: Range of number of rows to be generated in each
+                        output file. Should be a map containing `min` and `max` keys.
+                        For each output file, a random number is picked from the specified
+                        range.
                       type: object
                   required:
                   - name
                   type: object
                 type: array
             required:
-            - fileFormat
             - numFiles
             - schemas
             type: object
           status:
-            description: Status defines the status of the DataSet.
+            description: DataSetStatus defines the observed state of DataSet.
             properties:
               completionTime:
-                description: CompletionTime defines the duration of the data generating
-                  job.
+                description: Time when the data generating job completed.
                 format: date-time
                 type: string
               errorCount:
-                description: ErrorCount defines the number of errors raised by the
-                  controller or data generating job.
+                description: Number of errors occurred.
+                format: int32
                 type: integer
               errors:
                 additionalProperties:
                   items:
                     type: string
                   type: array
-                description: Errors defines the map of error messages.
+                description: List of errors occurred, which is a map from error type
+                  to list of error messages.
                 type: object
               jobStatus:
-                description: JobStatus defines the status of the data generating job.
+                description: Status of the data generating job.
                 type: string
               lastGeneration:
-                description: LastGeneration defines the last generation of the DataSet
-                  object.
+                description: Last generation of the DataSet object. For internal use
+                  only.
                 format: int64
                 type: integer
               pvcStatus:
-                description: PVCStatus defines the status of the PVC mount to the
-                  data generating pod.
+                description: Status of the PVC of the data generating job.
                 type: string
               startTime:
-                description: StartTime defines the start time of the data generating
-                  job.
+                description: Time when the data generating job started.
                 format: date-time
                 type: string
             type: object
@@ -320,7 +315,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the DigitalTwin.
+            description: DigitalTwinSpec defines the desired state of DigitalTwin
             properties:
               experiments:
                 description: Experiments contains the list of Experiment object references
@@ -392,7 +387,7 @@ spec:
                 type: string
             type: object
           status:
-            description: Status defines the status of the DigitalTwin.
+            description: DigitalTwinStatus defines the observed state of DigitalTwin
             type: object
         type: object
     served: true
@@ -443,7 +438,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Experiment.
+            description: ExperimentSpec defines the desired state of Experiment
             properties:
               endpointSpecs:
                 description: EndpointSpecs defines a list of configurations for the
@@ -588,7 +583,7 @@ spec:
                 type: string
             type: object
           status:
-            description: Status defines the status of the Experiment.
+            description: ExperimentStatus defines the observed state of Experiment
             properties:
               cloudVendor:
                 description: CloudVendor defines the cloud service provider which
@@ -665,7 +660,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specification of the LoadPattern.
+            description: LoadPatternSpec defines the desired state of LoadPattern
             properties:
               maxVUs:
                 description: MaxVUs defines the maximum virtual users for the K6 load
@@ -703,7 +698,7 @@ spec:
             - startRate
             type: object
           status:
-            description: Status defines the status of the LoadPattern.
+            description: LoadPatternStatus defines the observed state of LoadPattern
             type: object
         type: object
     served: true
@@ -827,7 +822,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Pipeline.
+            description: PipelineSpec defines the desired state of Pipeline
             properties:
               cloudVendor:
                 description: State which cloud service provider the pipeline is deployed.
@@ -2279,7 +2274,7 @@ spec:
             - pipelineEndpoints
             type: object
           status:
-            description: Status defines the status of the Pipeline.
+            description: PipelineStatus defines the observed state of Pipeline
             properties:
               pipelineState:
                 description: PipelineState defines the state of the Pipeline.
@@ -2340,7 +2335,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the PlantDCore.
+            description: PlantDCoreSpec defines the desired state of PlantDCore
             properties:
               kubeProxy:
                 description: KubeProxyConfig defines the desire state of PlantD Kube
@@ -2590,7 +2585,7 @@ spec:
                 type: boolean
             type: object
           status:
-            description: Status defines the status of the PlantDCore.
+            description: PlantDCoreStatus defines the observed state of PlantDCore
             properties:
               kubeProxyReady:
                 description: KubeProxyReady shows if the PlantD Kube Proxy is ready
@@ -2798,42 +2793,52 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Schema.
+            description: SchemaSpec defines the desired state of Schema.
             properties:
               columns:
-                description: Columns defines a list of column specifications.
+                description: List of columns in the Schema.
                 items:
-                  description: Column defines the metadata of the column data.
+                  description: ColumnSpec defines the column in Schema.
                   properties:
                     formula:
-                      description: Formula defines the formula applies to the column
-                        data.
+                      description: Formula to be applied for populating the data in
+                        the column. This field has precedence over the `type` fields.
                       properties:
                         args:
-                          description: Args defines the arugments for calling the
-                            formula.
+                          description: Arguments to be passed to the formula. Used
+                            together with the `name` field. See https://plantd.org/docs/reference/formulas
+                            for available values.
                           items:
                             type: string
                           type: array
                         name:
-                          description: Name defines the name of the formula. Should
-                            match the name with one of the provided formulas.
+                          description: Name of the formula. Used together with the
+                            `args` field. See https://plantd.org/docs/reference/formulas
+                            for available values.
                           type: string
                       required:
                       - name
                       type: object
                     name:
-                      description: Name defines the name of the column.
+                      description: Name of the column.
                       type: string
                     params:
                       additionalProperties:
                         type: string
-                      description: Params defines the parameters for constructing
-                        the data give certain data type.
+                      description: Map of parameters for generating the data in the
+                        column. Used together with the `type` field. For any parameters
+                        not provided but required by the data type, the default value
+                        will be used, if available. Will ignore any parameters not
+                        used by the data type. See https://plantd.org/docs/reference/types-and-params
+                        for available values.
                       type: object
                     type:
-                      description: Type defines the data type of the column. Should
-                        match the type with one of the provided types.
+                      description: Data type of the random data to be generated in
+                        the column. Used together with the `params` field. It should
+                        be a valid function name in gofakeit, which can be parsed
+                        by gofakeit.GetFuncLookup(). `formula` field has precedence
+                        over this field. See https://plantd.org/docs/reference/types-and-params
+                        for available values.
                       type: string
                   required:
                   - name
@@ -2843,7 +2848,7 @@ spec:
             - columns
             type: object
           status:
-            description: Status defines the status of the Schema.
+            description: SchemaStatus defines the observed state of Schema.
             type: object
         type: object
     served: true
@@ -2897,7 +2902,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Simulation.
+            description: SimulationSpec defines the desired state of Simulation
             properties:
               digitalTwinRef:
                 description: DigitalTwinRef defines the DigitalTwin object reference
@@ -2980,7 +2985,7 @@ spec:
             - trafficModelRef
             type: object
           status:
-            description: Status defines the status of the Simulation.
+            description: SimulationStatus defines the observed state of Simulation
             properties:
               digitalTwinState:
                 description: DigitalTwinState is the state of the DigitalTwin.
@@ -3364,12 +3369,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - datasets/finalizers
-  verbs:
-  - update
 - apiGroups:
   - windtunnel.plantd.org
   resources:

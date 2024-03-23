@@ -10,8 +10,7 @@ digitalTwin:
 dataGenerator:
   path: /test # Default path where k6 looks for the files
   image: ghcr.io/carnegiemellon-plantd/datagenerator:latest
-  restartPolicy: Never
-  backoffLimit: 1
+  backoffLimit: 0
   requests.cpu: 1
   limits.cpu: 1
 plantDCore:

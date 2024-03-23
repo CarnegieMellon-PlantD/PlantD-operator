@@ -259,12 +259,6 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
-  - datasets/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
   - datasets/status
   verbs:
   - get

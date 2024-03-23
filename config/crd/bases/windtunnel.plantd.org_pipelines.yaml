@@ -39,7 +39,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Pipeline.
+            description: PipelineSpec defines the desired state of Pipeline
             properties:
               cloudVendor:
                 description: State which cloud service provider the pipeline is deployed.
@@ -1491,7 +1491,7 @@ spec:
             - pipelineEndpoints
             type: object
           status:
-            description: Status defines the status of the Pipeline.
+            description: PipelineStatus defines the observed state of Pipeline
             properties:
               pipelineState:
                 description: PipelineState defines the state of the Pipeline.

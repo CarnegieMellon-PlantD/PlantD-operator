@@ -42,7 +42,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the CostExporter.
+            description: CostExporterSpec defines the desired state of CostExporter
             properties:
               cloudServiceProvider:
                 description: CloudServiceProvider defines the target cloud service
@@ -92,7 +92,7 @@ spec:
                 x-kubernetes-map-type: atomic
             type: object
           status:
-            description: Status defines the status of the CostExporter.
+            description: CostExporterStatus defines the observed state of CostExporter
             properties:
               jobCompletionTime:
                 description: JobCompletionTime defines the completion time of the

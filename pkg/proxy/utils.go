@@ -12,7 +12,6 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -166,7 +165,7 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 	if dataset.Spec.CompressedFileFormat != "" {
 		// Compressed file format is specified
 		if dataset.Spec.CompressedFileFormat != "zip" {
-			return "", nil, errors.OperationUndefinedError(dataset.Spec.CompressedFileFormat)
+			return "", nil, datagen.OperationUndefinedError(dataset.Spec.CompressedFileFormat)
 		}
 		if dataset.Spec.FileFormat == "csv" {
 			// Generate CSV files and compress them into a ZIP archive
@@ -221,7 +220,7 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 			}
 			return "zip", bytes.NewBuffer(b), nil
 		} else {
-			return "", nil, errors.OperationUndefinedError(dataset.Spec.FileFormat)
+			return "", nil, datagen.OperationUndefinedError(dataset.Spec.FileFormat)
 		}
 
 	} else {
@@ -273,7 +272,7 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 			return "bin", buf, nil
 
 		} else {
-			return "", nil, errors.OperationUndefinedError(dataset.Spec.FileFormat)
+			return "", nil, datagen.OperationUndefinedError(dataset.Spec.FileFormat)
 		}
 	}
 }

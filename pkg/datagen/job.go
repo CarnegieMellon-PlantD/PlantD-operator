@@ -1,25 +1,12 @@
 package datagen
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
-	"strconv"
-	"time"
-
-	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
-
-	"go.uber.org/zap"
-	kbatch "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/brianvoe/gofakeit/v6"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
+	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 )
 
 // DataGeneratorJob is an interface for generating data.
@@ -114,8 +101,6 @@ func (dg *BuildBasedDataGeneratorJob) GenerateData() error {
 		}
 	}
 
-	startTime := time.Now()
-
 	// Generate data for each repeat
 	for i := dg.RepeatStart; i < dg.RepeatEnd; i++ {
 		// Build data for each schema
@@ -131,135 +116,6 @@ func (dg *BuildBasedDataGeneratorJob) GenerateData() error {
 			return err
 		}
 	}
-	endTime := time.Now()
 
-	dgDuration := endTime.Sub(startTime)
-	zap.S().Info(dgDuration)
 	return nil
-}
-
-// CreateJobByDataSet creates a Kubernetes Job based on the DataSet configuration.
-func CreateJobByDataSet(jobName string, pvcName string, dataGenerator *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
-	// Calculate static step size and parallel jobs
-	staticStepSize := dataGenerator.Spec.NumberOfFiles / dataGenerator.Spec.ParallelJobs
-	parallelJobs := dataGenerator.Spec.ParallelJobs
-
-	// Get backoff limit and completion mode from configuration
-	backoffLimit := config.GetInt32("dataGenerator.backoffLimit")
-	completionMode := kbatch.IndexedCompletion
-
-	// Get data generator name and volume name
-	dgName := dataGenerator.Name
-	volumeName := utils.GetVolumeName(dgName)
-
-	// Marshal dataset and schema map to JSON
-	datasetBytes, err := json.Marshal(*dataGenerator)
-	if err != nil {
-		return nil, err
-	}
-
-	schemaMapBytes, err := json.Marshal(schemaMap)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the Kubernetes Job object
-	job := &kbatch.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels:      make(map[string]string),
-			Annotations: make(map[string]string),
-			Name:        jobName,
-			Namespace:   dataGenerator.Namespace,
-		},
-		Spec: kbatch.JobSpec{
-			CompletionMode: &completionMode,
-			Completions:    &parallelJobs,
-			Parallelism:    &parallelJobs,
-			BackoffLimit:   &backoffLimit,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:  jobName,
-							Image: config.GetString("dataGenerator.image"),
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU: resource.MustParse(config.GetString("dataGenerator.requests.cpu")),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU: resource.MustParse(config.GetString("dataGenerator.limits.cpu")),
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "JOB_STEP_SIZE",
-									Value: strconv.FormatInt(int64(staticStepSize), 10),
-								},
-								{
-									Name:  "MAX_REPEAT",
-									Value: strconv.FormatInt(int64(dataGenerator.Spec.NumberOfFiles), 10),
-								},
-								{
-									Name:  "DG_NAMESPACE",
-									Value: dataGenerator.Namespace,
-								},
-								{
-									Name:  "DG_NAME",
-									Value: dgName,
-								},
-								{
-									Name:  "DATASET",
-									Value: string(datasetBytes),
-								},
-								{
-									Name:  "SCHEMA_MAP",
-									Value: string(schemaMapBytes),
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      volumeName,
-									MountPath: path,
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: volumeName,
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: pvcName,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return job, nil
-}
-
-// CreatePVC creates a PersistentVolumeClaim for the data generator job.
-func CreatePVC(name types.NamespacedName) *corev1.PersistentVolumeClaim {
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name.Name,
-			Namespace: name.Namespace,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse(config.GetString("pvc.requests.storage")),
-				},
-			},
-		},
-	}
-
-	return pvc
 }

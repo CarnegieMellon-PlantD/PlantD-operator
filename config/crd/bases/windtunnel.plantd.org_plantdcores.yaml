@@ -45,7 +45,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the PlantDCore.
+            description: PlantDCoreSpec defines the desired state of PlantDCore
             properties:
               kubeProxy:
                 description: KubeProxyConfig defines the desire state of PlantD Kube
@@ -295,7 +295,7 @@ spec:
                 type: boolean
             type: object
           status:
-            description: Status defines the status of the PlantDCore.
+            description: PlantDCoreStatus defines the observed state of PlantDCore
             properties:
               kubeProxyReady:
                 description: KubeProxyReady shows if the PlantD Kube Proxy is ready

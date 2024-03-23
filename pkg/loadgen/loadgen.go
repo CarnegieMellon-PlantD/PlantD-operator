@@ -124,7 +124,7 @@ func CreateCopyPod(dataset *windtunnelv1alpha1.DataSet, configMap *corev1.Config
 					Name: "pvc-volume",
 					VolumeSource: corev1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: utils.GetPVCName(dataset.Name, dataset.Generation),
+							ClaimName: utils.GetDataSetPVCName(dataset.Name, dataset.Generation),
 						},
 					},
 				},

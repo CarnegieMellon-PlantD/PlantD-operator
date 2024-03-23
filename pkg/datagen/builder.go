@@ -6,16 +6,13 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
 
 	"github.com/brianvoe/gofakeit/v6"
 )
 
-var path string
-
-func init() {
+var (
 	path = config.GetString("dataGenerator.path")
-}
+)
 
 type ColumnBuilder struct {
 	Name          string
@@ -26,7 +23,7 @@ type ColumnBuilder struct {
 }
 
 type SchemaBuilder struct {
-	ColBulders                     []*ColumnBuilder
+	ColBuilders                    []*ColumnBuilder
 	ParentPath                     string
 	SchemaName                     string
 	NumRecords                     int
@@ -42,15 +39,15 @@ type OutputBuilder struct {
 }
 
 // PutParams creates a gofakeit.MapParams instance based on the provided column and parameters.
-func PutParams(in windtunnelv1alpha1.Column, params []gofakeit.Param) *gofakeit.MapParams {
+func PutParams(in windtunnelv1alpha1.ColumnSpec, params []gofakeit.Param) *gofakeit.MapParams {
 	out := gofakeit.NewMapParams()
 	for _, param := range params {
-		filed := param.Field
-		v, ok := in.Params[filed]
+		field := param.Field
+		v, ok := in.Params[field]
 		if ok {
-			out.Add(filed, v)
+			out.Add(field, v)
 		} else {
-			out.Add(filed, param.Default)
+			out.Add(field, param.Default)
 		}
 	}
 	return out
@@ -60,8 +57,8 @@ func PutParams(in windtunnelv1alpha1.Column, params []gofakeit.Param) *gofakeit.
 func NewSchemaBuilder(schema *windtunnelv1alpha1.Schema) (*SchemaBuilder, error) {
 	numCol := len(schema.Spec.Columns)
 	schBldr := SchemaBuilder{
-		ColBulders: make([]*ColumnBuilder, numCol),
-		SchemaName: schema.Name,
+		ColBuilders: make([]*ColumnBuilder, numCol),
+		SchemaName:  schema.Name,
 	}
 	colNames := make([]string, numCol)
 	for i, col := range schema.Spec.Columns {
@@ -71,10 +68,10 @@ func NewSchemaBuilder(schema *windtunnelv1alpha1.Schema) (*SchemaBuilder, error)
 		if info != nil {
 			infoParams = PutParams(col, info.Params)
 		} else if formula == nil {
-			return nil, errors.ColumnError(col.Name)
+			return nil, ColumnError(col.Name)
 		}
 
-		schBldr.ColBulders[i] = &ColumnBuilder{
+		schBldr.ColBuilders[i] = &ColumnBuilder{
 			Name:          col.Name,
 			Info:          info,
 			InfoMapParams: infoParams,
@@ -82,7 +79,7 @@ func NewSchemaBuilder(schema *windtunnelv1alpha1.Schema) (*SchemaBuilder, error)
 			FormulaArgs:   col.Formula.Args,
 		}
 
-		colNames[i] = GetKey(&schBldr, schBldr.ColBulders[i])
+		colNames[i] = GetKey(&schBldr, schBldr.ColBuilders[i])
 	}
 
 	PutColumnNames(schema.Name, colNames)
@@ -107,8 +104,8 @@ func NewOutputBuilder(output *windtunnelv1alpha1.DataSet) (*OutputBuilder, error
 	}
 	for i, sch := range output.Spec.Schemas {
 		outputBuilder.SchBuilders[i] = GetSchemaBuilder(sch.Name)
-		if outputBuilder.SchBuilders[i].ColBulders == nil {
-			return nil, errors.SchemaUndefinedError(sch.Name)
+		if outputBuilder.SchBuilders[i].ColBuilders == nil {
+			return nil, SchemaUndefinedError(sch.Name)
 		}
 		minRec := sch.NumRecords["min"]
 
@@ -121,17 +118,17 @@ func NewOutputBuilder(output *windtunnelv1alpha1.DataSet) (*OutputBuilder, error
 
 	outputBuilder.Operations[0] = GetOpLookups(output.Spec.FileFormat)
 	if outputBuilder.Operations[0] == nil {
-		return nil, errors.OperationUndefinedError(output.Spec.FileFormat)
+		return nil, OperationUndefinedError(output.Spec.FileFormat)
 	}
 
 	if output.Spec.CompressedFileFormat != "" {
 		outputBuilder.Operations[0] = GetOpLookups(output.Spec.FileFormat + "@cache")
 		if outputBuilder.Operations[0] == nil {
-			return nil, errors.OperationUndefinedError(output.Spec.FileFormat + "@cache")
+			return nil, OperationUndefinedError(output.Spec.FileFormat + "@cache")
 		}
 		outputBuilder.Operations[1] = GetOpLookups(output.Spec.FileFormat + "->" + output.Spec.CompressedFileFormat)
 		if outputBuilder.Operations[1] == nil {
-			return nil, errors.OperationUndefinedError(output.Spec.FileFormat + "->" + output.Spec.CompressedFileFormat)
+			return nil, OperationUndefinedError(output.Spec.FileFormat + "->" + output.Spec.CompressedFileFormat)
 		}
 	}
 
@@ -141,7 +138,7 @@ func NewOutputBuilder(output *windtunnelv1alpha1.DataSet) (*OutputBuilder, error
 
 // Build generates fake data based on the provided SchemaBuilder.
 func (schBldr *SchemaBuilder) Build(r *rand.Rand) error {
-	for _, colBldr := range schBldr.ColBulders {
+	for _, colBldr := range schBldr.ColBuilders {
 		var fakeData interface{}
 		var err error
 		key := GetKey(schBldr, colBldr)
@@ -164,7 +161,6 @@ func (schBldr *SchemaBuilder) Build(r *rand.Rand) error {
 				}
 				PutFakeData(key, i, fakeData)
 			}
-
 		}
 	}
 	return nil

@@ -137,6 +137,28 @@ _Appears in:_
 | `fileFormat` _string_ |  |
 
 
+#### DataSetErrorType
+
+_Underlying type:_ _string_
+
+DataSetErrorType defines the type of error occurred.
+
+_Appears in:_
+- [DataSetStatus](#datasetstatus)
+
+
+
+#### DataSetJobStatus
+
+_Underlying type:_ _string_
+
+DataSetJobStatus defines the status of the data generating job.
+
+_Appears in:_
+- [DataSetStatus](#datasetstatus)
+
+
+
 #### DataSetList
 
 
@@ -164,12 +186,12 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `fileFormat` _string_ | FileFormat defines the file format of the each file containing the generated data. This may or may not be the output file format based on whether you want to compress these files. |
-| `compressedFileFormat` _string_ | CompressedFileFormat defines the file format for the compressed files. Each file inside the compressed file is of "fileFormat" format specified above. This is the output format if specified for the files. |
-| `compressPerSchema` _boolean_ | CompressPerSchema defines the flag of compression. If you wish files from all the different schemas to compressed into one compressed file leave this field as false. If you wish to have a different compressed file for every schema, mark this field as true. |
-| `numFiles` _integer_ | NumberOfFiles defines the total number of output files irrespective of compression. Unless "compressPerSchema" is false, this field is applicable per schema. |
-| `schemas` _[SchemaSelector](#schemaselector) array_ | Schemas defines a list of Schemas. |
-| `parallelJobs` _integer_ | ParallelJobs defines the number of parallel jobs when generating the dataset. |
+| `fileFormat` _string_ | Format of the output file containing generated data. Available values are `csv` and `binary`. |
+| `compressedFileFormat` _string_ | Format of the compressed file containing output files. Available value is `zip`. Leave empty to disable compression. |
+| `compressPerSchema` _boolean_ | Flag for compression behavior. Takes effect only if `compressedFileFormat` is set. When set to `false` (default), files from all Schemas will be compressed into a single compressed file in each repetition. When set to `true`, files from each Schema will be compressed into a separate compressed file in each repetition. |
+| `numFiles` _integer_ | Number of repetitions of the data generation process. If `compressedFileFormat` is unset, this is the number of files for each Schema. If `compressedFileFormat` is set and `compressPerSchema` is `false`, this is the number of compressed files for each Schema. If `compressedFileFormat` is set and `compressPerSchema` is `true`, this is the total number of compressed files. |
+| `schemas` _[SchemaSelector](#schemaselector) array_ | List of Schemas in the DataSet. |
+| `parallelJobs` _integer_ | Number of parallel jobs when generating the dataset. |
 
 
 
@@ -774,16 +796,16 @@ SchemaList contains a list of Schema
 
 
 
-SchemaSelector defines a list of Schemas and the required numbers and format.
+SchemaSelector defines the reference to a Schema and its usage in the DataSet.
 
 _Appears in:_
 - [DataSetSpec](#datasetspec)
 
 | Field | Description |
 | --- | --- |
-| `name` _string_ | Name defines the name of the Schame. Should match the name of existing Schema in the same namespace as the DataSet. |
-| `numRecords` _object (keys:string, values:integer)_ | NumRecords defines the number of records to be generated in each output file. A random number is picked from the specified range. |
-| `numFilesPerCompressedFile` _object (keys:string, values:integer)_ | NumberOfFilesPerCompressedFile defines the number of intermediate files to be compressed into a single compressed file. A random number is picked from the specified range. |
+| `name` _string_ | Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet. |
+| `numRecords` _object (keys:string, values:integer)_ | Range of number of rows to be generated in each output file. Should be a map containing `min` and `max` keys. For each output file, a random number is picked from the specified range. |
+| `numFilesPerCompressedFile` _object (keys:string, values:integer)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. Should be a map containing `min` and `max` keys. A random number is picked from the specified range. |
 
 
 #### SchemaSpec

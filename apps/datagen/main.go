@@ -8,7 +8,6 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 func main() {
@@ -17,7 +16,7 @@ func main() {
 	maxRepeat, _ := strconv.Atoi(os.Getenv("MAX_REPEAT"))
 
 	repeatStart := jobIndex * stepSize
-	repeatEnd := utils.MinInt(repeatStart+stepSize, maxRepeat)
+	repeatEnd := min(repeatStart+stepSize, maxRepeat)
 
 	dataGeneratorNamespace := os.Getenv("DG_NAMESPACE")
 	dataGeneratorName := os.Getenv("DG_NAME")

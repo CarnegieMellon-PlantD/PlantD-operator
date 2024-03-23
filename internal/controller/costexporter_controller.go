@@ -177,7 +177,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		case corev1.PodSucceeded:
 			log.Info("Pod has succeeded")
 			costExporter.Status.JobCompletionTime = &metav1.Time{Time: time.Now()}
-			costExporter.Status.JobStatus = SUCCESS
+			costExporter.Status.JobStatus = "SUCCESS" // TODO: replace it
 
 			if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 				Namespace: costExporter.Namespace,
@@ -194,12 +194,12 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// The Pod has succeeded
 			// You can handle this case here
 		case corev1.PodFailed:
-			costExporter.Status.JobStatus = FAILED
+			costExporter.Status.JobStatus = "FAILED" // TODO: replace it
 			log.Info("Pod has failed")
 			// The Pod has failed
 			// You can handle this case here
 		default:
-			costExporter.Status.JobStatus = RUNNING
+			costExporter.Status.JobStatus = "RUNNING" // TODO: replace it
 			// The Pod is still running or in an unknown state
 			// You can handle this case here
 		}

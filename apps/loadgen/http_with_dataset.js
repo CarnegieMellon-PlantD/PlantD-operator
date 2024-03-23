@@ -51,7 +51,7 @@ function filepathPerCompressedArray() {
   return arr;
 }
 
-function filepathPerCompressedPerSechmaArray() {
+function filepathPerCompressedPerSchemaArray() {
   const n = numSchemas * numFiles;
   const arr = new Array(n);
   for (let i = 0; i < numSchemas; i++) {
@@ -75,7 +75,7 @@ if (compressedFileFormat === "") {
   dataCache = filePerSchemaArray()
 } else if (compressPerSchema === true) {
   maxIndex = numSchemas * numFiles - 1;
-  dataCache = filepathPerCompressedPerSechmaArray()
+  dataCache = filepathPerCompressedPerSchemaArray()
 } else {
   maxIndex = numFiles - 1;
   dataCache = filepathPerCompressedArray()

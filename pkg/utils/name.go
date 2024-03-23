@@ -6,15 +6,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetPVCName(ownerName string, Generation int64) string {
-	return fmt.Sprintf("%s-%d-pvc", ownerName, Generation)
+// GetDataSetJobName returns the name of the Job for the DataSet.
+func GetDataSetJobName(ownerName string, generation int64) string {
+	return fmt.Sprintf("%s-job-%d", ownerName, generation)
 }
 
-func GetJobName(ownerName string, funcName string, Generation int64) string {
-	return fmt.Sprintf("%s-%s-%d-job", ownerName, funcName, Generation)
+// GetDataSetPVCName returns the name of the PVC for the DataSet.
+func GetDataSetPVCName(ownerName string, generation int64) string {
+	return fmt.Sprintf("%s-pvc-%d", ownerName, generation)
 }
 
-func GetVolumeName(ownerName string) string {
+// GetDataSetVolumeName returns the name of the volume in the DataSet Job.
+func GetDataSetVolumeName(ownerName string) string {
 	return fmt.Sprintf("%s-volume", ownerName)
 }
 

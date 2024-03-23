@@ -4,8 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
-
 	"github.com/brianvoe/gofakeit/v6"
 )
 
@@ -57,7 +55,7 @@ func AddInt(seqNum int, args ...string) (interface{}, error) {
 			if v, ok := fakeData.(int); ok {
 				sum += v
 			} else {
-				return nil, errors.TypeError(param)
+				return nil, TypeError(param)
 			}
 		} else {
 			return nil, err
@@ -74,7 +72,7 @@ func AddFloat(seqNum int, args ...string) (interface{}, error) {
 			if v, ok := fakeData.(float64); ok {
 				sum += v
 			} else {
-				return nil, errors.TypeError(param)
+				return nil, TypeError(param)
 			}
 		} else {
 			return nil, err
@@ -91,7 +89,7 @@ func AddString(seqNum int, args ...string) (interface{}, error) {
 			if v, ok := fakeData.(string); ok {
 				sum += v
 			} else {
-				return nil, errors.TypeError(param)
+				return nil, TypeError(param)
 			}
 		} else {
 			return nil, err
@@ -108,7 +106,7 @@ func And(seqNum int, args ...string) (interface{}, error) {
 			if v, ok := fakeData.(bool); ok {
 				res = res && v
 			} else {
-				return nil, errors.TypeError(param)
+				return nil, TypeError(param)
 			}
 		} else {
 			return nil, err
@@ -125,7 +123,7 @@ func Or(seqNum int, args ...string) (interface{}, error) {
 			if v, ok := fakeData.(bool); ok {
 				res = res || v
 			} else {
-				return nil, errors.TypeError(param)
+				return nil, TypeError(param)
 			}
 		} else {
 			return nil, err
@@ -142,7 +140,7 @@ func XOrInt(seqNum int, args ...string) (interface{}, error) {
 			if v, ok := fakeData.(int); ok {
 				res ^= v
 			} else {
-				return nil, errors.TypeError(param)
+				return nil, TypeError(param)
 			}
 		} else {
 			return nil, err
@@ -154,7 +152,7 @@ func XOrInt(seqNum int, args ...string) (interface{}, error) {
 // Copy retrieves a value from the fake data cache.
 func Copy(seqNum int, args ...string) (interface{}, error) {
 	if len(args) != 1 {
-		return nil, errors.NumParamError(len(args))
+		return nil, NumParamError(len(args))
 	}
 	if fakeData, err := GetFakeData(args[0], seqNum); err == nil {
 		return fakeData, nil
@@ -178,7 +176,7 @@ func ToUnixMilli(seqNum int, args ...string) (interface{}, error) {
 			}
 			return t.UnixMilli(), nil
 		} else {
-			return nil, errors.TypeError(args[0])
+			return nil, TypeError(args[0])
 		}
 	} else {
 		return nil, err
@@ -189,18 +187,18 @@ func ToUnixMilli(seqNum int, args ...string) (interface{}, error) {
 func AddRandomTimeMs(seqNum int, args ...string) (interface{}, error) {
 	min, err := strconv.Atoi(args[1])
 	if err != nil {
-		return nil, errors.FormulaArgsError("AddRandomTimeMs.min")
+		return nil, FormulaArgsError("AddRandomTimeMs.min")
 	}
 	max, err := strconv.Atoi(args[2])
 	if err != nil {
-		return nil, errors.FormulaArgsError("AddRandomTimeMs.max")
+		return nil, FormulaArgsError("AddRandomTimeMs.max")
 	}
 	randomNum := gofakeit.Number(min, max)
 	if fakeData, err := GetFakeData(args[0], seqNum); err == nil {
 		if v, ok := fakeData.(int64); ok {
 			return v + int64(randomNum), nil
 		} else {
-			return nil, errors.TypeError(args[0])
+			return nil, TypeError(args[0])
 		}
 	} else {
 		return nil, err
@@ -211,18 +209,18 @@ func AddRandomTimeMs(seqNum int, args ...string) (interface{}, error) {
 func AddRandomNumber(seqNum int, args ...string) (interface{}, error) {
 	min, err := strconv.Atoi(args[1])
 	if err != nil {
-		return nil, errors.FormulaArgsError("AddRandomNumber.min")
+		return nil, FormulaArgsError("AddRandomNumber.min")
 	}
 	max, err := strconv.Atoi(args[2])
 	if err != nil {
-		return nil, errors.FormulaArgsError("AddRandomNumber.max")
+		return nil, FormulaArgsError("AddRandomNumber.max")
 	}
 	randomNum := gofakeit.Number(min, max)
 	if fakeData, err := GetFakeData(args[0], seqNum); err == nil {
 		if v, ok := fakeData.(int); ok {
 			return v + randomNum, nil
 		} else {
-			return nil, errors.TypeError(args[0])
+			return nil, TypeError(args[0])
 		}
 	} else {
 		return nil, err

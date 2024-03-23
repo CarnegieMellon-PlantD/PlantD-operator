@@ -1,7 +1,5 @@
 package datagen
 
-import "github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/errors"
-
 type SchemaBuilderCache map[string]*SchemaBuilder
 type ColumnNamesCache map[string][]string
 type FakeDataCache map[string][]interface{} // key is schema name + column name
@@ -39,11 +37,11 @@ func GetKey(schBldr *SchemaBuilder, colBldr *ColumnBuilder) string {
 func NewFakeDataCache(outputBuilder *OutputBuilder) {
 	mapLen := 0
 	for _, schBldr := range outputBuilder.SchBuilders {
-		mapLen += len(schBldr.ColBulders) + 1
+		mapLen += len(schBldr.ColBuilders) + 1
 	}
 	fakeDataCache = make(FakeDataCache, mapLen)
 	for _, schBldr := range outputBuilder.SchBuilders {
-		for _, colBldr := range schBldr.ColBulders {
+		for _, colBldr := range schBldr.ColBuilders {
 			fakeDataCache[GetKey(schBldr, colBldr)] = make([]interface{}, schBldr.NumRecords)
 		}
 		fakeDataCache[schBldr.SchemaName] = make([]interface{}, schBldr.NumRecords)
@@ -85,9 +83,9 @@ func PutFakeData(key string, recordID int, v interface{}) {
 func GetFakeData(key string, recordID int) (interface{}, error) {
 	if colDataList, ok := fakeDataCache[key]; ok {
 		if recordID >= len(colDataList) {
-			return nil, errors.OutOfIndexError(key)
+			return nil, OutOfIndexError(key)
 		}
 		return colDataList[recordID], nil
 	}
-	return nil, errors.ResourceNotFoundError(key)
+	return nil, ResourceNotFoundError(key)
 }
