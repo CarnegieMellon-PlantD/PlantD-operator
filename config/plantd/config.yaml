@@ -1,6 +1,5 @@
 name: PlantD
 version: 1.0.0
-pvc.requests.storage: 10Gi
 costService:
   image: ghcr.io/carnegiemellon-plantd/costexporter:latest
   opencost:
@@ -8,11 +7,15 @@ costService:
 digitalTwin:
   image: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
 dataGenerator:
-  path: /test # Default path where k6 looks for the files
+  # Image name of the data generator
   image: ghcr.io/carnegiemellon-plantd/datagenerator:latest
+  # Maximum number of backoff retries the for the data generatitor
   backoffLimit: 0
-  requests.cpu: 1
-  limits.cpu: 1
+  cpu.request: 250m
+  cpu.limit: 1000m
+  storageSize: 10Gi
+  # We use the default path where K6 looks for files, do not change it
+  path: /test
 plantDCore:
   serviceAccountName: plantd-operator-controller-manager
   kubeProxy:

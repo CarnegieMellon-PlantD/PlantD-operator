@@ -198,6 +198,9 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	lastJobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Status.LastGeneration)
 	lastJob := &kbatch.Job{}
 	if err := r.Get(ctx, client.ObjectKey{Name: lastJobName, Namespace: dataSet.Namespace}, lastJob); err == nil {
+		// By default, the Pod of the Job will be reserved after the Job is deleted,
+		// and Kubernetes will raise a warning.
+		// Set the propagation policy to "Background" to avoid the warning and delete the Pod.
 		propagationPolicy := metav1.DeletePropagationBackground
 		if err := r.Delete(ctx, lastJob, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
 			logger.Error(err, "Cannot delete Job from last generation.")

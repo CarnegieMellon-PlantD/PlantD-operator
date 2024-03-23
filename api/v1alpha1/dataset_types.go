@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DataSetJobStatus defines the status of the data generating job.
+// DataSetJobStatus defines the status of the data generator job.
 type DataSetJobStatus string
 
 const (
@@ -49,7 +49,7 @@ type DataSetSpec struct {
 	// When set to `true`, files from each Schema will be compressed into a separate compressed
 	// file in each repetition.
 	CompressPerSchema bool `json:"compressPerSchema,omitempty"`
-	// Number of repetitions of the data generation process.
+	// Number of files to be generated.
 	// If `compressedFileFormat` is unset, this is the number of files for each Schema.
 	// If `compressedFileFormat` is set and `compressPerSchema` is `false`, this is the number of
 	// compressed files for each Schema.
@@ -64,13 +64,13 @@ type DataSetSpec struct {
 
 // DataSetStatus defines the observed state of DataSet.
 type DataSetStatus struct {
-	// Status of the data generating job.
+	// Status of the data generator job.
 	JobStatus DataSetJobStatus `json:"jobStatus,omitempty"`
-	// Status of the PVC of the data generating job.
+	// Status of the PVC of the data generator job.
 	PVCStatus v1.PersistentVolumeClaimPhase `json:"pvcStatus,omitempty"`
-	// Time when the data generating job started.
+	// Time when the data generator job started.
 	StartTime *metav1.Time `json:"startTime,omitempty"`
-	// Time when the data generating job completed.
+	// Time when the data generator job completed.
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 	// Number of errors occurred.
 	ErrorCount int32 `json:"errorCount,omitempty"`

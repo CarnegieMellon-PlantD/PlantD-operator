@@ -18,9 +18,9 @@ import (
 var (
 	image        = config.GetString("dataGenerator.image")
 	backoffLimit = config.GetInt32("dataGenerator.backoffLimit")
-	cpuRequest   = config.GetString("dataGenerator.requests.cpu")
-	cpuLimit     = config.GetString("dataGenerator.limits.cpu")
-	storageSize  = config.GetString("pvc.requests.storage")
+	cpuRequest   = config.GetString("dataGenerator.cpu.request")
+	cpuLimit     = config.GetString("dataGenerator.cpu.limit")
+	storageSize  = config.GetString("dataGenerator.storageSize")
 )
 
 // CreateJobByDataSet creates a Job based on the DataSet configuration.
