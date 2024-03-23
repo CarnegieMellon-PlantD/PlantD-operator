@@ -154,7 +154,7 @@ func Copy(seqNum int, args ...string) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, NumParamError(len(args))
 	}
-	if fakeData, err := GetFakeData(args[0], seqNum); err == nil {
+	if fakeData, err := GetFakeDataFromRandomRecord(args[0]); err == nil {
 		return fakeData, nil
 	} else {
 		return nil, err

@@ -1,5 +1,7 @@
 package datagen
 
+import "github.com/brianvoe/gofakeit/v6"
+
 type SchemaBuilderCache map[string]*SchemaBuilder
 type ColumnNamesCache map[string][]string
 type FakeDataCache map[string][]interface{} // key is schema name + column name
@@ -85,6 +87,15 @@ func GetFakeData(key string, recordID int) (interface{}, error) {
 		if recordID >= len(colDataList) {
 			return nil, OutOfIndexError(key)
 		}
+		return colDataList[recordID], nil
+	}
+	return nil, ResourceNotFoundError(key)
+}
+
+// GetFakeDataFromRandomRecord retrieves fake data from the fake data cache for a specific key and a random record ID.
+func GetFakeDataFromRandomRecord(key string) (interface{}, error) {
+	if colDataList, ok := fakeDataCache[key]; ok {
+		recordID := gofakeit.Number(0, len(colDataList)-1)
 		return colDataList[recordID], nil
 	}
 	return nil, ResourceNotFoundError(key)
