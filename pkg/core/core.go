@@ -637,7 +637,7 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 								"--objstore.config=$(OBJSTORE_CONFIG)",
 							},
 							Ports: []corev1.ContainerPort{
-								{Name: "grpc", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.httpPort")},
+								{Name: "grpc", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.grpcPort")},
 								{Name: "http", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.httpPort")},
 							},
 							VolumeMounts: []corev1.VolumeMount{
