@@ -6,6 +6,8 @@ import boto3
 import yaml
 import argparse
 
+NAMESPACE = "plantd-operator-system"
+IAM_POLICY_NAME = "plantd-thanos-s3"
 
 # 1. Create S3 bucket for Thanos
 def create_s3_bucket(bucket_name):
@@ -13,7 +15,7 @@ def create_s3_bucket(bucket_name):
     s3_client.create_bucket(Bucket=bucket_name)
 
 # 2. Create IAM policy to access the bucket
-def create_policy(policy_name):
+def create_policy(policy_name, bucket_name):
     # Create the IAM policy document
     policy_document = {
         "Version": "2012-10-17",
@@ -23,14 +25,12 @@ def create_policy(policy_name):
                 "Action": [
                     "s3:PutObject",
                     "s3:GetObject",
-                    "s3:AbortMultipartUpload",
                     "s3:ListBucket",
                     "s3:DeleteObject",
-                    "s3:ListMultipartUploadParts"
                 ],
                 "Resource": [
-                    "arn:aws:s3:::plantd-thanos",
-                    "arn:aws:s3:::plantd-thanos/*"
+                    "arn:aws:s3:::{}".format(bucket_name),
+                    "arn:aws:s3:::{}/*".format(bucket_name)
                 ]
             }
         ]
@@ -102,16 +102,14 @@ if __name__ == "__main__":
         aws_secret_access_key=secret_key
     )
 
-    namespace = "plantd-operator-system"
     identity = boto3.client('sts').get_caller_identity()
     username = identity['Arn'].split('/')[-1]
     account_id = identity['Account']
     print(username, account_id)
 
     create_s3_bucket(bucket_name)
-    policy_name = 'plantd-thanos-s3-1'
-    policy_arn = create_policy(policy_name)
+    policy_arn = create_policy(IAM_POLICY_NAME, bucket_name)
     if policy_arn is None:
-        policy_arn = 'arn:aws:iam::{}:policy/{}'.format(account_id, policy_name)
+        policy_arn = 'arn:aws:iam::{}:policy/{}'.format(account_id, IAM_POLICY_NAME)
     attach_policy_to_user(policy_arn, username)
-    create_k8s_secret(access_key, secret_key, bucket_name, namespace)
+    create_k8s_secret(access_key, secret_key, bucket_name, NAMESPACE)
