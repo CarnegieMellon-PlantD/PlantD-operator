@@ -1,6 +1,6 @@
 package datagen
 
-import "github.com/brianvoe/gofakeit/v6"
+import "github.com/brianvoe/gofakeit/v7"
 
 type SchemaBuilderCache map[string]*SchemaBuilder
 type ColumnNamesCache map[string][]string
@@ -43,10 +43,13 @@ func NewFakeDataCache(outputBuilder *OutputBuilder) {
 	}
 	fakeDataCache = make(FakeDataCache, mapLen)
 	for _, schBldr := range outputBuilder.SchBuilders {
+		// Initialize per-column cache
 		for _, colBldr := range schBldr.ColBuilders {
-			fakeDataCache[GetKey(schBldr, colBldr)] = make([]interface{}, schBldr.NumRecords)
+			fakeDataCache[GetKey(schBldr, colBldr)] = make([]interface{}, schBldr.TotalNumRecords)
 		}
-		fakeDataCache[schBldr.SchemaName] = make([]interface{}, schBldr.NumRecords)
+
+		// Initialize per-Schema cache
+		fakeDataCache[schBldr.SchemaName] = make([]interface{}, schBldr.TotalNumRecords)
 	}
 }
 
@@ -93,9 +96,9 @@ func GetFakeData(key string, recordID int) (interface{}, error) {
 }
 
 // GetFakeDataFromRandomRecord retrieves fake data from the fake data cache for a specific key and a random record ID.
-func GetFakeDataFromRandomRecord(key string) (interface{}, error) {
+func GetFakeDataFromRandomRecord(faker *gofakeit.Faker, key string) (interface{}, error) {
 	if colDataList, ok := fakeDataCache[key]; ok {
-		recordID := gofakeit.Number(0, len(colDataList)-1)
+		recordID := faker.Number(0, len(colDataList)-1)
 		return colDataList[recordID], nil
 	}
 	return nil, ResourceNotFoundError(key)

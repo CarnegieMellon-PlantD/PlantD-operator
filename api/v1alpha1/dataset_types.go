@@ -2,7 +2,10 @@ package v1alpha1
 
 import (
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 // DataSetJobStatus defines the status of the data generator job.
@@ -27,19 +30,22 @@ type SchemaSelector struct {
 	// Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet.
 	Name string `json:"name"`
 	// Range of number of rows to be generated in each output file.
-	// Should be a map containing `min` and `max` keys. For each output file, a random number is picked
-	// from the specified range.
-	NumRecords map[string]int `json:"numRecords,omitempty"`
+	NumRecords utils.IntRange `json:"numRecords"`
 	// Range of number of files to be generated in the compressed file.
 	// Take effect only if `compressedFileFormat` is set in the DataSet.
-	// Should be a map containing `min` and `max` keys. A random number is picked from the specified range.
-	NumberOfFilesPerCompressedFile map[string]int `json:"numFilesPerCompressedFile,omitempty"`
+	NumFilesPerCompressedFile utils.IntRange `json:"numFilesPerCompressedFile,omitempty"`
 }
 
 // DataSetSpec defines the desired state of DataSet.
 type DataSetSpec struct {
+	// Image of the data generator job.
+	Image string `json:"image,omitempty"`
+	// Number of parallel jobs when generating the dataset.
+	ParallelJobs int32 `json:"parallelJobs,omitempty"`
+	// Size of the PVC for the data generator job.
+	StorageSize resource.Quantity `json:"storageSize,omitempty"`
 	// Format of the output file containing generated data. Available values are `csv` and `binary`.
-	FileFormat string `json:"fileFormat,omitempty"`
+	FileFormat string `json:"fileFormat"`
 	// Format of the compressed file containing output files. Available value is `zip`.
 	// Leave empty to disable compression.
 	CompressedFileFormat string `json:"compressedFileFormat,omitempty"`
@@ -58,8 +64,6 @@ type DataSetSpec struct {
 	NumberOfFiles int32 `json:"numFiles"`
 	// List of Schemas in the DataSet.
 	Schemas []SchemaSelector `json:"schemas"`
-	// Number of parallel jobs when generating the dataset.
-	ParallelJobs int32 `json:"parallelJobs,omitempty"`
 }
 
 // DataSetStatus defines the observed state of DataSet.
@@ -82,11 +86,11 @@ type DataSetStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
-// +kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
 // +kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
 // +kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
 // +kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
+// +kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
+// +kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
 
 // DataSet is the Schema for the datasets API
 type DataSet struct {

@@ -184,7 +184,7 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 					return "", nil, err
 				}
 
-				numberOfFilesPerCompressedFile := dataset.Spec.Schemas[i].NumberOfFilesPerCompressedFile
+				numberOfFilesPerCompressedFile := dataset.Spec.Schemas[i].NumFilesPerCompressedFile
 				numberOfFilesPerCompressedFileMap[schemaName] = numberOfFilesPerCompressedFile
 			}
 
@@ -209,7 +209,7 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace string, da
 				if err != nil {
 					return "", nil, err
 				}
-				numberOfFilesPerCompressedFile := dataset.Spec.Schemas[i].NumberOfFilesPerCompressedFile
+				numberOfFilesPerCompressedFile := dataset.Spec.Schemas[i].NumFilesPerCompressedFile
 				numberOfFilesPerCompressedFileMap[schemaName] = numberOfFilesPerCompressedFile
 			}
 

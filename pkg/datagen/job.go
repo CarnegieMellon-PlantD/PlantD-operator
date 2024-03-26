@@ -4,59 +4,59 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/brianvoe/gofakeit/v7"
+	"github.com/brianvoe/gofakeit/v7/source"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 )
 
 // DataGeneratorJob is an interface for generating data.
 type DataGeneratorJob interface {
-	GenerateData() error
+	GenerateData(path string) error
 }
 
-// JobConfig holds the configuration for a data generator job.
-type JobConfig struct {
+// BuilderBasedDataGeneratorJob is a data generator job based on the build strategy.
+type BuilderBasedDataGeneratorJob struct {
 	RepeatStart int
 	RepeatEnd   int
-}
-
-// BuildBasedDataGeneratorJob is a data generator job based on the Build strategy.
-type BuildBasedDataGeneratorJob struct {
-	RepeatStart int
-	RepeatEnd   int
-	Namespace   string
+	DGNamespace string
 	DGName      string
-	Dataset     *windtunnelv1alpha1.DataSet
+	DataSet     *windtunnelv1alpha1.DataSet
 	SchemaMap   map[string]*windtunnelv1alpha1.Schema
 }
 
-// NewBuildBasedDataGeneratorJob creates a new BuildBasedDataGeneratorJob instance.
-func NewBuildBasedDataGeneratorJob(start int, end int, dgNamespace string, dgName string, dataset *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) DataGeneratorJob {
-	return &BuildBasedDataGeneratorJob{
+// NewBuilderBasedDataGeneratorJob creates a new BuilderBasedDataGeneratorJob instance.
+func NewBuilderBasedDataGeneratorJob(start int, end int, dgNamespace string, dgName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) DataGeneratorJob {
+	return &BuilderBasedDataGeneratorJob{
 		RepeatStart: start,
 		RepeatEnd:   end,
-		Namespace:   dgNamespace,
+		DGNamespace: dgNamespace,
 		DGName:      dgName,
-		Dataset:     dataset,
+		DataSet:     dataSet,
 		SchemaMap:   schemaMap,
 	}
 }
 
-// MakeOutputDir creates the output directory for a schema in the dataset.
-func MakeOutputDir(dataGeneratorConfig *windtunnelv1alpha1.DataSet, seqNum int) error {
-	schPath := filepath.Join(path, dataGeneratorConfig.Spec.Schemas[seqNum].Name)
+// MakeOutputDir creates the output directory for a Schema in the DataSet.
+func MakeOutputDir(dataSet *windtunnelv1alpha1.DataSet, schemaIdx int, path string) error {
+	schPath := filepath.Join(path, dataSet.Spec.Schemas[schemaIdx].Name)
+
+	// Remove any existing directory
 	err := os.RemoveAll(schPath)
 	if err != nil {
 		return err
 	}
+
+	// Create new directory
 	err = os.MkdirAll(schPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// ApplyOperations applies the operations defined in the output builder to generate the final output.
+// ApplyOperations applies the operations defined in the OutputBuilder to generate the final output.
 func ApplyOperations(outputBuilder *OutputBuilder, seqNum int) error {
 	var err error
 	for _, op := range outputBuilder.Operations {
@@ -68,12 +68,15 @@ func ApplyOperations(outputBuilder *OutputBuilder, seqNum int) error {
 	return nil
 }
 
-// GenerateData generates the data using the Build strategy.
-func (dg *BuildBasedDataGeneratorJob) GenerateData() error {
+// GenerateData generates the data using the build strategy.
+func (dg *BuilderBasedDataGeneratorJob) GenerateData(path string) error {
 	var err error
 
-	// Create schema builders and populate the schema builder cache
-	for _, schemaSelector := range dg.Dataset.Spec.Schemas {
+	// Initiate faker for gofakeit
+	faker := gofakeit.NewFaker(source.NewCrypto(), true)
+
+	// Create SchemaBuilders and put them to cache
+	for _, schemaSelector := range dg.DataSet.Spec.Schemas {
 		schemaName := schemaSelector.Name
 		schemaObj := dg.SchemaMap[schemaName]
 		schBldr, err := NewSchemaBuilder(schemaObj)
@@ -83,29 +86,30 @@ func (dg *BuildBasedDataGeneratorJob) GenerateData() error {
 		PutSchemaBuilder(schemaName, schBldr)
 	}
 
-	// Create the output builder
-	outputBuilder, err := NewOutputBuilder(dg.Dataset)
+	// Create the OutputBuilder
+	outputBuilder, err := NewOutputBuilder(dg.DataSet, path)
 	if err != nil {
 		return err
 	}
 
-	// Set the seed for random number generation
-	seed := gofakeit.New(0).Rand
-
-	// Create output directories for each schema
-	scheNum := len(outputBuilder.SchBuilders)
-	for i := 0; i < scheNum; i++ {
-		err := MakeOutputDir(dg.Dataset, i)
-		if err != nil {
-			return err
+	// Create output directories for each Schema if compression is disabled
+	if dg.DataSet.Spec.CompressedFileFormat == "" {
+		numSchema := len(outputBuilder.SchBuilders)
+		for i := 0; i < numSchema; i++ {
+			err := MakeOutputDir(dg.DataSet, i, path)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	// Generate data for each repeat
 	for i := dg.RepeatStart; i < dg.RepeatEnd; i++ {
-		// Build data for each schema
+		// Initialize the randomness and cache for each SchemaBuilder
+		outputBuilder.SetRandomnessAndCache(faker, dg.DataSet)
+		// Build data for each Schema
 		for _, schBldr := range outputBuilder.SchBuilders {
-			err := schBldr.Build(seed)
+			err := schBldr.Build(faker)
 			if err != nil {
 				return err
 			}

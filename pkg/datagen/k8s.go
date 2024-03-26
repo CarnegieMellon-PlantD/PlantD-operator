@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
@@ -16,24 +16,24 @@ import (
 )
 
 var (
-	image        = config.GetString("dataGenerator.image")
-	backoffLimit = config.GetInt32("dataGenerator.backoffLimit")
-	cpuRequest   = config.GetString("dataGenerator.cpu.request")
-	cpuLimit     = config.GetString("dataGenerator.cpu.limit")
-	storageSize  = config.GetString("dataGenerator.storageSize")
+	defaultImage       = config.GetString("dataGenerator.defaultImage")
+	backoffLimit       = config.GetInt32("dataGenerator.backoffLimit")
+	path               = config.GetString("dataGenerator.path")
+	defaultStorageSize = config.GetString("dataGenerator.defaultStorageSize")
 )
 
 // CreateJobByDataSet creates a Job based on the DataSet configuration.
 func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
-	// Calculate static step size and parallel jobs
-	staticStepSize := dataSet.Spec.NumberOfFiles / dataSet.Spec.ParallelJobs
-	parallelJobs := dataSet.Spec.ParallelJobs
+	// Calculate number of parallel jobs and step size
+	numParallelJobs := dataSet.Spec.ParallelJobs
+	stepSize := dataSet.Spec.NumberOfFiles / dataSet.Spec.ParallelJobs
 
-	completionMode := kbatch.IndexedCompletion
+	image := dataSet.Spec.Image
+	if image == "" {
+		image = defaultImage
+	}
 
-	// Get data generator name and volume name
-	dgName := dataSet.Name
-	volumeName := utils.GetDataSetVolumeName(dgName)
+	volumeName := utils.GetDataSetVolumeName(dataSet.Name)
 
 	// Marshal dataset and schema map to JSON
 	datasetBytes, err := json.Marshal(dataSet)
@@ -55,9 +55,9 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 			Namespace:   dataSet.Namespace,
 		},
 		Spec: kbatch.JobSpec{
-			CompletionMode: &completionMode,
-			Completions:    &parallelJobs,
-			Parallelism:    &parallelJobs,
+			CompletionMode: ptr.To(kbatch.IndexedCompletion),
+			Completions:    &numParallelJobs,
+			Parallelism:    &numParallelJobs,
 			BackoffLimit:   &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
@@ -66,21 +66,13 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 						{
 							Name:  jobName,
 							Image: image,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU: resource.MustParse(cpuRequest),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU: resource.MustParse(cpuLimit),
-								},
-							},
 							Env: []corev1.EnvVar{
 								{
 									Name:  "JOB_STEP_SIZE",
-									Value: strconv.FormatInt(int64(staticStepSize), 10),
+									Value: strconv.FormatInt(int64(stepSize), 10),
 								},
 								{
-									Name:  "MAX_REPEAT",
+									Name:  "TOTAL_REPEAT",
 									Value: strconv.FormatInt(int64(dataSet.Spec.NumberOfFiles), 10),
 								},
 								{
@@ -89,7 +81,7 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 								},
 								{
 									Name:  "DG_NAME",
-									Value: dgName,
+									Value: dataSet.Name,
 								},
 								{
 									Name:  "DATASET",
@@ -98,6 +90,10 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 								{
 									Name:  "SCHEMA_MAP",
 									Value: string(schemaMapBytes),
+								},
+								{
+									Name:  "OUTPUT_PATH",
+									Value: path,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -126,11 +122,16 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 }
 
 // CreatePVC creates a PersistentVolumeClaim for the data generator job.
-func CreatePVC(name types.NamespacedName) *corev1.PersistentVolumeClaim {
+func CreatePVC(pvcName string, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
+	storageSize := dataSet.Spec.StorageSize
+	if storageSize.IsZero() {
+		storageSize = resource.MustParse(defaultStorageSize)
+	}
+
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name.Name,
-			Namespace: name.Namespace,
+			Name:      pvcName,
+			Namespace: dataSet.Namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -138,7 +139,7 @@ func CreatePVC(name types.NamespacedName) *corev1.PersistentVolumeClaim {
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse(storageSize),
+					corev1.ResourceStorage: storageSize,
 				},
 			},
 		},

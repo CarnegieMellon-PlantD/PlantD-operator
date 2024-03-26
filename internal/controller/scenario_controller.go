@@ -103,7 +103,7 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 							"min": 1,
 							"max": 1,
 						},
-						NumberOfFilesPerCompressedFile: map[string]int{
+						NumFilesPerCompressedFile: map[string]int{
 							"min": 1,
 							"max": 1,
 						},

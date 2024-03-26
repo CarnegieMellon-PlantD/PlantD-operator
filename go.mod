@@ -1,11 +1,12 @@
 module github.com/CarnegieMellon-PlantD/PlantD-operator
 
-go 1.21
+go 1.22
 
-toolchain go1.21.4
+toolchain go1.22.1
 
 require (
 	github.com/RedisTimeSeries/redistimeseries-go v1.4.4
+	github.com/brianvoe/gofakeit/v7 v7.0.2
 	github.com/cisco-open/k8s-objectmatcher v1.9.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/onsi/ginkgo/v2 v2.13.2

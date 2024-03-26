@@ -153,7 +153,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 
 	// Create a new PVC
 	newPVCName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation)
-	newPVC := datagen.CreatePVC(types.NamespacedName{Name: newPVCName, Namespace: dataSet.Namespace})
+	newPVC := datagen.CreatePVC(newPVCName, dataSet)
 	if err := ctrl.SetControllerReference(dataSet, newPVC, r.Scheme); err != nil {
 		logger.Error(err, "Cannot set controller reference for PVC.")
 		return ctrl.Result{}, err
