@@ -627,6 +627,11 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 					Labels: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
 				},
 				Spec: corev1.PodSpec{
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser:  ptr.To(config.GetInt64("plantDCore.prometheus.thanosStore.securityContext.runAsUser")),
+						RunAsGroup: ptr.To(config.GetInt64("plantDCore.prometheus.thanosStore.securityContext.runAsGroup")),
+						FSGroup:    ptr.To(config.GetInt64("plantDCore.prometheus.thanosStore.securityContext.fsGroup")),
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  config.GetString("plantDCore.prometheus.thanosStore.name"),
