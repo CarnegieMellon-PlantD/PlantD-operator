@@ -84,6 +84,10 @@ plantDCore:
       httpPort: 10902
       grpcPort: 10901
       url: thanos-store-grpc.plantd-operator-system.svc.cluster.local:10901
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65532
+        runAsUser: 65534
     thanosSidecarService:
       portName: grpc
       port: 10901
