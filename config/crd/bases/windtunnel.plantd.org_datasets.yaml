@@ -15,12 +15,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.startTime
-      name: StartTime
-      type: string
-    - jsonPath: .status.completionTime
-      name: CompletionTime
-      type: string
     - jsonPath: .status.jobStatus
       name: JobStatus
       type: string
@@ -30,6 +24,12 @@ spec:
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
+    - jsonPath: .status.startTime
+      name: StartTime
+      type: string
+    - jsonPath: .status.completionTime
+      name: CompletionTime
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -65,18 +65,22 @@ spec:
                 description: Format of the output file containing generated data.
                   Available values are `csv` and `binary`.
                 type: string
+              image:
+                description: Image of the data generator job.
+                type: string
               numFiles:
-                description: Number of repetitions of the data generation process.
-                  If `compressedFileFormat` is unset, this is the number of files
-                  for each Schema. If `compressedFileFormat` is set and `compressPerSchema`
-                  is `false`, this is the number of compressed files for each Schema.
-                  If `compressedFileFormat` is set and `compressPerSchema` is `true`,
-                  this is the total number of compressed files.
+                description: Number of files to be generated. If `compressedFileFormat`
+                  is unset, this is the number of files for each Schema. If `compressedFileFormat`
+                  is set and `compressPerSchema` is `false`, this is the number of
+                  compressed files for each Schema. If `compressedFileFormat` is set
+                  and `compressPerSchema` is `true`, this is the total number of compressed
+                  files.
                 format: int32
                 type: integer
-              parallelJobs:
+              parallelism:
                 description: Number of parallel jobs when generating the dataset.
                 format: int32
+                minimum: 1
                 type: integer
               schemas:
                 description: List of Schemas in the DataSet.
@@ -89,26 +93,52 @@ spec:
                         present in the same namespace as the DataSet.
                       type: string
                     numFilesPerCompressedFile:
-                      additionalProperties:
-                        type: integer
                       description: Range of number of files to be generated in the
                         compressed file. Take effect only if `compressedFileFormat`
-                        is set in the DataSet. Should be a map containing `min` and
-                        `max` keys. A random number is picked from the specified range.
+                        is set in the DataSet.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                     numRecords:
-                      additionalProperties:
-                        type: integer
                       description: Range of number of rows to be generated in each
-                        output file. Should be a map containing `min` and `max` keys.
-                        For each output file, a random number is picked from the specified
-                        range.
+                        output file.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                   required:
                   - name
+                  - numRecords
                   type: object
                 type: array
+              storageSize:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size of the PVC for the data generator job.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             required:
+            - fileFormat
             - numFiles
             - schemas
             type: object
@@ -116,7 +146,7 @@ spec:
             description: DataSetStatus defines the observed state of DataSet.
             properties:
               completionTime:
-                description: Time when the data generating job completed.
+                description: Time when the data generator job completed.
                 format: date-time
                 type: string
               errorCount:
@@ -132,7 +162,7 @@ spec:
                   to list of error messages.
                 type: object
               jobStatus:
-                description: Status of the data generating job.
+                description: Status of the data generator job.
                 type: string
               lastGeneration:
                 description: Last generation of the DataSet object. For internal use
@@ -140,10 +170,10 @@ spec:
                 format: int64
                 type: integer
               pvcStatus:
-                description: Status of the PVC of the data generating job.
+                description: Status of the PVC of the data generator job.
                 type: string
               startTime:
-                description: Time when the data generating job started.
+                description: Time when the data generator job started.
                 format: date-time
                 type: string
             type: object

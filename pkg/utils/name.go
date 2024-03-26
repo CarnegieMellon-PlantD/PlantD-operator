@@ -7,18 +7,18 @@ import (
 )
 
 // GetDataSetJobName returns the name of the Job for the DataSet.
-func GetDataSetJobName(ownerName string, generation int64) string {
-	return fmt.Sprintf("%s-job-%d", ownerName, generation)
+func GetDataSetJobName(dataSetName string, generation int64) string {
+	return fmt.Sprintf("%s-%d-job", dataSetName, generation)
 }
 
 // GetDataSetPVCName returns the name of the PVC for the DataSet.
-func GetDataSetPVCName(ownerName string, generation int64) string {
-	return fmt.Sprintf("%s-pvc-%d", ownerName, generation)
+func GetDataSetPVCName(dataSetName string, generation int64) string {
+	return fmt.Sprintf("%s-%d-pvc", dataSetName, generation)
 }
 
 // GetDataSetVolumeName returns the name of the volume in the DataSet Job.
-func GetDataSetVolumeName(ownerName string) string {
-	return fmt.Sprintf("%s-volume", ownerName)
+func GetDataSetVolumeName(dataSetName string) string {
+	return fmt.Sprintf("%s-volume", dataSetName)
 }
 
 func GetNamespacedName(obj client.Object) string {

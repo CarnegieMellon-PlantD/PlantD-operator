@@ -2,10 +2,11 @@ name: PlantD
 version: 1.0.0
 dataGenerator:
   defaultImage: ghcr.io/carnegiemellon-plantd/datagenerator:latest
+  defaultParallelism: 1
   backoffLimit: 0
+  defaultStorageSize: 2Gi
   # We use the default path where K6 looks for files, do not change it
   path: /test
-  defaultStorageSize: 2Gi
 costService:
   image: ghcr.io/carnegiemellon-plantd/costexporter:latest
   opencost:

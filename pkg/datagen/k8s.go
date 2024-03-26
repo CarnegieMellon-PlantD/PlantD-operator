@@ -17,16 +17,20 @@ import (
 
 var (
 	defaultImage       = config.GetString("dataGenerator.defaultImage")
+	defaultParallelism = config.GetInt32("dataGenerator.defaultParallelism")
 	backoffLimit       = config.GetInt32("dataGenerator.backoffLimit")
-	path               = config.GetString("dataGenerator.path")
 	defaultStorageSize = config.GetString("dataGenerator.defaultStorageSize")
+	path               = config.GetString("dataGenerator.path")
 )
 
 // CreateJobByDataSet creates a Job based on the DataSet configuration.
 func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
 	// Calculate number of parallel jobs and step size
-	numParallelJobs := dataSet.Spec.ParallelJobs
-	stepSize := dataSet.Spec.NumberOfFiles / dataSet.Spec.ParallelJobs
+	parallelism := dataSet.Spec.Parallelism
+	if parallelism == 0 {
+		parallelism = defaultParallelism
+	}
+	stepSize := dataSet.Spec.NumberOfFiles / parallelism
 
 	image := dataSet.Spec.Image
 	if image == "" {
@@ -56,8 +60,8 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 		},
 		Spec: kbatch.JobSpec{
 			CompletionMode: ptr.To(kbatch.IndexedCompletion),
-			Completions:    &numParallelJobs,
-			Parallelism:    &numParallelJobs,
+			Completions:    &parallelism,
+			Parallelism:    &parallelism,
 			BackoffLimit:   &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{

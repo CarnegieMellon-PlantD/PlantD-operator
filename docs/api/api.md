@@ -152,7 +152,7 @@ _Appears in:_
 
 _Underlying type:_ _string_
 
-DataSetJobStatus defines the status of the data generating job.
+DataSetJobStatus defines the status of the data generator job.
 
 _Appears in:_
 - [DataSetStatus](#datasetstatus)
@@ -186,12 +186,14 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `image` _string_ | Image of the data generator job. |
+| `parallelism` _integer_ | Number of parallel jobs when generating the dataset. |
+| `storageSize` _[Quantity](#quantity)_ | Size of the PVC for the data generator job. |
 | `fileFormat` _string_ | Format of the output file containing generated data. Available values are `csv` and `binary`. |
 | `compressedFileFormat` _string_ | Format of the compressed file containing output files. Available value is `zip`. Leave empty to disable compression. |
 | `compressPerSchema` _boolean_ | Flag for compression behavior. Takes effect only if `compressedFileFormat` is set. When set to `false` (default), files from all Schemas will be compressed into a single compressed file in each repetition. When set to `true`, files from each Schema will be compressed into a separate compressed file in each repetition. |
-| `numFiles` _integer_ | Number of repetitions of the data generation process. If `compressedFileFormat` is unset, this is the number of files for each Schema. If `compressedFileFormat` is set and `compressPerSchema` is `false`, this is the number of compressed files for each Schema. If `compressedFileFormat` is set and `compressPerSchema` is `true`, this is the total number of compressed files. |
+| `numFiles` _integer_ | Number of files to be generated. If `compressedFileFormat` is unset, this is the number of files for each Schema. If `compressedFileFormat` is set and `compressPerSchema` is `false`, this is the number of compressed files for each Schema. If `compressedFileFormat` is set and `compressPerSchema` is `true`, this is the total number of compressed files. |
 | `schemas` _[SchemaSelector](#schemaselector) array_ | List of Schemas in the DataSet. |
-| `parallelJobs` _integer_ | Number of parallel jobs when generating the dataset. |
 
 
 
@@ -804,8 +806,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `name` _string_ | Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet. |
-| `numRecords` _object (keys:string, values:integer)_ | Range of number of rows to be generated in each output file. Should be a map containing `min` and `max` keys. For each output file, a random number is picked from the specified range. |
-| `numFilesPerCompressedFile` _object (keys:string, values:integer)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. Should be a map containing `min` and `max` keys. A random number is picked from the specified range. |
+| `numRecords` _[IntRange](#intrange)_ | Range of number of rows to be generated in each output file. |
+| `numFilesPerCompressedFile` _[IntRange](#intrange)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. |
 
 
 #### SchemaSpec

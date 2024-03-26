@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 // ScenarioReconciler reconciles a Scenario object
@@ -94,18 +95,18 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				CompressPerSchema:    scenario.Spec.DataSetConfig.CompressPerSchema,
 				CompressedFileFormat: scenario.Spec.DataSetConfig.CompressedFileFormat,
 				FileFormat:           scenario.Spec.DataSetConfig.FileFormat,
-				ParallelJobs:         1,
+				Parallelism:          1,
 				NumberOfFiles:        int32(DATASET_SIZE),
 				Schemas: []windtunnelv1alpha1.SchemaSelector{
 					{
 						Name: task.Name,
-						NumRecords: map[string]int{
-							"min": 1,
-							"max": 1,
+						NumRecords: utils.IntRange{
+							Min: 1,
+							Max: 1,
 						},
-						NumFilesPerCompressedFile: map[string]int{
-							"min": 1,
-							"max": 1,
+						NumFilesPerCompressedFile: utils.IntRange{
+							Min: 1,
+							Max: 1,
 						},
 					},
 				},

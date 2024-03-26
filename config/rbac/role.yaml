@@ -67,7 +67,6 @@ rules:
   - list
   - patch
   - update
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -87,7 +86,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -147,7 +145,6 @@ rules:
   - list
   - patch
   - update
-  - watch
 - apiGroups:
   - k6.io
   resources:
@@ -397,13 +394,8 @@ rules:
   resources:
   - schemas
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - windtunnel.plantd.org
   resources:

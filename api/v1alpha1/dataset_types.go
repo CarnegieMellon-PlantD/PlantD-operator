@@ -41,7 +41,8 @@ type DataSetSpec struct {
 	// Image of the data generator job.
 	Image string `json:"image,omitempty"`
 	// Number of parallel jobs when generating the dataset.
-	ParallelJobs int32 `json:"parallelJobs,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	Parallelism int32 `json:"parallelism,omitempty"`
 	// Size of the PVC for the data generator job.
 	StorageSize resource.Quantity `json:"storageSize,omitempty"`
 	// Format of the output file containing generated data. Available values are `csv` and `binary`.

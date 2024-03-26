@@ -36,10 +36,10 @@ const (
 
 // +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=schemas,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=pods/log,verbs=get;list;watch
+// +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=schemas,verbs=get;list
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=pods/log,verbs=get;list
 
 func isJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
 	for _, c := range job.Status.Conditions {
@@ -138,7 +138,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	schemaMap := make(map[string]*windtunnelv1alpha1.Schema, len(dataSet.Spec.Schemas))
 	for _, schema := range dataSet.Spec.Schemas {
 		s := &windtunnelv1alpha1.Schema{}
-		schemaName := types.NamespacedName{Name: schema.Name, Namespace: dataSet.Namespace}
+		schemaName := types.NamespacedName{Namespace: dataSet.Namespace, Name: schema.Name}
 		if err := r.Get(ctx, schemaName, s); err != nil {
 			logger.Error(err, "Cannot get Schema: "+schemaName.String())
 			r.setControllerErrorStatus(dataSet, err.Error())
@@ -222,7 +222,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	dataSet.Status.LastGeneration = dataSet.Generation
 	dataSet.Status.JobStatus = windtunnelv1alpha1.DataSetJobRunning
 	if err := r.Status().Update(ctx, dataSet); err != nil {
-		logger.Error(err, "Cannot update the status of DataSet.")
+		logger.Error(err, "Cannot update the status.")
 		return ctrl.Result{}, err
 	}
 
@@ -311,7 +311,8 @@ func (r *DataSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Create or update PVC and Job
 	// dataSet.Generation is used to track the change in dataSet.Spec
 	// Once the spec is created/updated, we create new PVC & Job, delete the old PVC & Job
-	if dataSet.Status.LastGeneration != dataSet.Generation {
+	if dataSet.Status.LastGeneration < dataSet.Generation {
+		logger.Info(fmt.Sprintf("Generatation %d -> %d", dataSet.Status.LastGeneration, dataSet.Generation))
 		return r.reconcileCreatedOrUpdated(ctx, dataSet)
 	}
 
