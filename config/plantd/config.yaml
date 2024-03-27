@@ -114,13 +114,12 @@ opencost:
     maxUnavailable: 1
     runAsUser: 1001
     labels:
-      app: opencost
+      plantd-opencost: opencost
   service:
     port: 9003
-    ui-port: 9000
+    ui-port: 9090
     labels:
       plantd-opencost: opencost
-      experiment: test1
   opencostServiceMonitor:
     name: opencost-service-monitor
     labels:
