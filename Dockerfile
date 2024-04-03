@@ -30,4 +30,4 @@ COPY config/plantd/config.yaml .
 COPY apps/loadgen apps/loadgen
 USER 65532:65532
 
-ENTRYPOINT ["manager"]
+ENTRYPOINT ["./manager"]

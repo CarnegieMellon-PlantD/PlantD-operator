@@ -16,7 +16,7 @@ env:
   IMAGE_TAGS: |
     type=semver,pattern={{version}}
     type=sha,prefix=,suffix=,format=short
-  DOCKER_PLATFORMS: linux/amd64,linux/arm64
+  DOCKER_PLATFORMS: linux/amd64
 
 jobs:
   build-and-push-plantd-controller:

@@ -10,4 +10,4 @@ FROM scratch
 WORKDIR /workspace
 COPY --from=builder /workspace/datagen .
 COPY config/plantd/config.yaml .
-ENTRYPOINT ["datagen"]
+ENTRYPOINT ["./datagen"]

@@ -75,14 +75,6 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 									Value: strconv.FormatInt(int64(dataSet.Spec.NumberOfFiles), 10),
 								},
 								{
-									Name:  "DG_NAMESPACE",
-									Value: dataSet.Namespace,
-								},
-								{
-									Name:  "DG_NAME",
-									Value: dataSet.Name,
-								},
-								{
 									Name:  "DATASET",
 									Value: string(datasetBytes),
 								},

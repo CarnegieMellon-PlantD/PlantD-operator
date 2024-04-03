@@ -10,5 +10,5 @@ FROM scratch
 WORKDIR /workspace
 COPY --from=builder /workspace/proxy .
 COPY config/plantd/config.yaml .
-ENTRYPOINT ["proxy"]
+ENTRYPOINT ["./proxy"]
 EXPOSE 5000
