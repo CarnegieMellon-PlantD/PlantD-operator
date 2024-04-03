@@ -37,7 +37,7 @@ spec:
               columns:
                 description: List of columns in the Schema.
                 items:
-                  description: ColumnSpec defines the column in Schema.
+                  description: Column defines the column in Schema.
                   properties:
                     formula:
                       description: Formula to be applied for populating the data in

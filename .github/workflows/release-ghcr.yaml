@@ -74,7 +74,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: build/Dockerfile.PlantDProxy
+          file: build/PlantDProxy.dockerfile
           context: .
           platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
@@ -105,7 +105,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: build/Dockerfile.DataGenerator
+          file: build/DataGenerator.dockerfile
           context: .
           platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
@@ -136,7 +136,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: build/Dockerfile.DigitalTwin
+          file: build/DigitalTwin.dockerfile
           context: .
           platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true
@@ -167,7 +167,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          file: build/Dockerfile.CostExporter
+          file: build/CostExporter.dockerfile
           context: .
           platforms: ${{ env.DOCKER_PLATFORMS }}
           push: true

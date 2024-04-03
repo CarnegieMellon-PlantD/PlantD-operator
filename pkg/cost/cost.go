@@ -1,7 +1,6 @@
 package cost
 
 import (
-	"context"
 	"strconv"
 	"time"
 
@@ -12,23 +11,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var image string
+var (
+	image     = config.GetViper().GetString("costService.image")
+	redisHost = config.GetViper().GetString("database.redis.host")
+	redisPort = config.GetViper().GetInt64("database.redis.port")
+)
 
 func init() {
-	image = config.GetString("costService.image")
+	image = config.GetViper().GetString("costService.image")
 }
 
 // CreateJobByCostService creates a Kubernetes Job based on the Cost Service configuration.
-func CreateJobByCostService(ctx context.Context, jobName string, costService *windtunnelv1alpha1.CostExporter,
-	earliestTime time.Time) (*corev1.Pod, error) {
+func CreateJobByCostService(costService *windtunnelv1alpha1.CostExporter, jobName string, earliestTime time.Time) (*corev1.Pod, error) {
 
 	// Create the Kubernetes Job object
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      make(map[string]string),
-			Annotations: make(map[string]string),
-			Name:        jobName,
-			Namespace:   costService.Namespace,
+			Namespace: costService.Namespace,
+			Name:      jobName,
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
@@ -49,11 +49,11 @@ func CreateJobByCostService(ctx context.Context, jobName string, costService *wi
 						},
 						{
 							Name:  "REDIS_HOST",
-							Value: config.GetString("database.redis.host"),
+							Value: redisHost,
 						},
 						{
 							Name:  "REDIS_PORT",
-							Value: strconv.FormatInt(config.GetInt64("database.redis.port"), 10),
+							Value: strconv.FormatInt(redisPort, 10),
 						},
 						{
 							Name:  "CLOUD_SERVICE_PROVIDER",

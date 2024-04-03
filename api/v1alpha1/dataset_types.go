@@ -4,8 +4,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 // DataSetJobStatus defines the status of the data generator job.
@@ -30,10 +28,10 @@ type SchemaSelector struct {
 	// Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet.
 	Name string `json:"name"`
 	// Range of number of rows to be generated in each output file.
-	NumRecords utils.IntRange `json:"numRecords"`
+	NumRecords IntRange `json:"numRecords"`
 	// Range of number of files to be generated in the compressed file.
 	// Take effect only if `compressedFileFormat` is set in the DataSet.
-	NumFilesPerCompressedFile utils.IntRange `json:"numFilesPerCompressedFile,omitempty"`
+	NumFilesPerCompressedFile IntRange `json:"numFilesPerCompressedFile,omitempty"`
 }
 
 // DataSetSpec defines the desired state of DataSet.
@@ -41,16 +39,22 @@ type DataSetSpec struct {
 	// Image of the data generator job.
 	Image string `json:"image,omitempty"`
 	// Number of parallel jobs when generating the dataset.
+	// Default to 1.
 	// +kubebuilder:validation:Minimum=1
 	Parallelism int32 `json:"parallelism,omitempty"`
 	// Size of the PVC for the data generator job.
+	// Default to 2Gi.
 	StorageSize resource.Quantity `json:"storageSize,omitempty"`
-	// Format of the output file containing generated data. Available values are `csv` and `binary`.
+	// Format of the output file containing generated data.
+	// Available values are `csv` and `binary`.
+	// +kubebuilder.validation:Enum=csv;binary
 	FileFormat string `json:"fileFormat"`
-	// Format of the compressed file containing output files. Available value is `zip`.
-	// Leave empty to disable compression.
+	// Format of the compressed file containing output files.
+	// Available value is `zip`. Leave empty to disable compression.
+	// +kubebuilder:validation:Enum=zip
 	CompressedFileFormat string `json:"compressedFileFormat,omitempty"`
-	// Flag for compression behavior. Takes effect only if `compressedFileFormat` is set.
+	// Flag for compression behavior.
+	// Takes effect only if `compressedFileFormat` is set.
 	// When set to `false` (default), files from all Schemas will be compressed into a single
 	// compressed file in each repetition.
 	// When set to `true`, files from each Schema will be compressed into a separate compressed
@@ -71,7 +75,7 @@ type DataSetSpec struct {
 type DataSetStatus struct {
 	// Status of the data generator job.
 	JobStatus DataSetJobStatus `json:"jobStatus,omitempty"`
-	// Status of the PVC of the data generator job.
+	// Status of the PVC for the data generator job.
 	PVCStatus v1.PersistentVolumeClaimPhase `json:"pvcStatus,omitempty"`
 	// Time when the data generator job started.
 	StartTime *metav1.Time `json:"startTime,omitempty"`
@@ -89,9 +93,9 @@ type DataSetStatus struct {
 //+kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
 // +kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
-// +kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
 // +kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
 // +kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
+// +kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
 
 // DataSet is the Schema for the datasets API
 type DataSet struct {

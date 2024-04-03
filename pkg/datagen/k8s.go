@@ -12,20 +12,19 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
-	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 var (
-	defaultImage       = config.GetString("dataGenerator.defaultImage")
-	defaultParallelism = config.GetInt32("dataGenerator.defaultParallelism")
-	backoffLimit       = config.GetInt32("dataGenerator.backoffLimit")
-	defaultStorageSize = config.GetString("dataGenerator.defaultStorageSize")
-	path               = config.GetString("dataGenerator.path")
+	defaultImage       = config.GetViper().GetString("dataGenerator.defaultImage")
+	defaultParallelism = config.GetViper().GetInt32("dataGenerator.defaultParallelism")
+	backoffLimit       = config.GetViper().GetInt32("dataGenerator.backoffLimit")
+	defaultStorageSize = config.GetViper().GetString("dataGenerator.defaultStorageSize")
+	path               = config.GetViper().GetString("dataGenerator.path")
 )
 
-// CreateJobByDataSet creates a Job based on the DataSet configuration.
-func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
-	// Calculate number of parallel jobs and step size
+// CreateJob creates a Job based on the DataSet configuration.
+func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
+	// Calculate the number of parallel jobs and step size
 	parallelism := dataSet.Spec.Parallelism
 	if parallelism == 0 {
 		parallelism = defaultParallelism
@@ -36,8 +35,6 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 	if image == "" {
 		image = defaultImage
 	}
-
-	volumeName := utils.GetDataSetVolumeName(dataSet.Name)
 
 	// Marshal dataset and schema map to JSON
 	datasetBytes, err := json.Marshal(dataSet)
@@ -53,10 +50,8 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 	// Create the Kubernetes Job object
 	job := &kbatch.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      make(map[string]string),
-			Annotations: make(map[string]string),
-			Name:        jobName,
-			Namespace:   dataSet.Namespace,
+			Namespace: dataSet.Namespace,
+			Name:      jobName,
 		},
 		Spec: kbatch.JobSpec{
 			CompletionMode: ptr.To(kbatch.IndexedCompletion),
@@ -68,7 +63,7 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
-							Name:  jobName,
+							Name:  "data-generator",
 							Image: image,
 							Env: []corev1.EnvVar{
 								{
@@ -102,7 +97,7 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      volumeName,
+									Name:      "data-volume",
 									MountPath: path,
 								},
 							},
@@ -110,7 +105,7 @@ func CreateJobByDataSet(jobName string, pvcName string, dataSet *windtunnelv1alp
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: volumeName,
+							Name: "data-volume",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: pvcName,
@@ -134,8 +129,8 @@ func CreatePVC(pvcName string, dataSet *windtunnelv1alpha1.DataSet) *corev1.Pers
 
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pvcName,
 			Namespace: dataSet.Namespace,
+			Name:      pvcName,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{

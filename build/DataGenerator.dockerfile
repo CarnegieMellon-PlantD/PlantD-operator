@@ -7,6 +7,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -o datagen ./apps/datagen/main.go
 
 # Production Stage
 FROM scratch
-COPY --from=builder /workspace/datagen /datagen
-COPY ./config/plantd/ /etc/plantd/
-ENTRYPOINT ["/datagen"]
+WORKDIR /workspace
+COPY --from=builder /workspace/datagen .
+COPY config/plantd/config.yaml .
+ENTRYPOINT ["datagen"]

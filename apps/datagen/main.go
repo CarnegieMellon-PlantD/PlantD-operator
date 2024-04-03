@@ -29,9 +29,6 @@ func main() {
 	repeatStart := jobIndex * jobSize
 	repeatEnd := min(repeatStart+jobSize, totalRepeat)
 
-	dataGeneratorNamespace := os.Getenv("DG_NAMESPACE")
-	dataGeneratorName := os.Getenv("DG_NAME")
-
 	dataSetString := os.Getenv("DATASET")
 	var dataSet windtunnelv1alpha1.DataSet
 	if err := json.Unmarshal([]byte(dataSetString), &dataSet); err != nil {
@@ -46,7 +43,7 @@ func main() {
 
 	path := os.Getenv("OUTPUT_PATH")
 
-	job := datagen.NewBuilderBasedDataGeneratorJob(repeatStart, repeatEnd, dataGeneratorNamespace, dataGeneratorName, &dataSet, schemaMap)
+	job := datagen.NewBuilderBasedDataGeneratorJob(repeatStart, repeatEnd, &dataSet, schemaMap)
 	if err := job.GenerateData(path); err != nil {
 		log.Panic(err)
 	}

@@ -32,26 +32,40 @@ spec:
           metadata:
             type: object
           spec:
-            description: LoadPatternSpec defines the desired state of LoadPattern
+            description: LoadPatternSpec defines the desired state of LoadPattern.
             properties:
               maxVUs:
-                description: MaxVUs defines the maximum virtual users for the K6 load
-                  generator.
+                description: Maximum number of VUs to allow for allocation during
+                  Experiment. Equivalent to the "ramping-arrival-rate" executor's
+                  `maxVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                  for more details.
                 type: integer
               preAllocatedVUs:
-                description: PreAllocatedVUs defines pre-allocated virtual users for
-                  the K6 load generator.
+                description: Number of VUs to pre-allocate before Experiment start.
+                  Equivalent to the "ramping-arrival-rate" executor's `preAllocatedVUs`
+                  option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                  for more details.
+                minimum: 0
                 type: integer
               stages:
-                description: Stages defines a list of stages for the LoadPattern.
+                description: List of stages in the LoadPattern. Equivalent to the
+                  "ramping-arrival-rate" executor's `stages` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                  for more details.
                 items:
-                  description: Stage defines the stage configuration of the load.
+                  description: Stage defines how the load ramps up or down.
                   properties:
                     duration:
-                      description: Duration defines the duration of the current stage.
+                      description: Duration of the stage, also the time to reach the
+                        target load. Equivalent to the "ramping-arrival-rate" executor's
+                        `stages[].duration` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                        for more details.
                       type: string
                     target:
-                      description: Target defines the target requests per second.
+                      description: Target load to reach at the end of the stage. Equivalent
+                        to the "ramping-arrival-rate" executor's `stages[].target`
+                        option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                        for more details.
+                      minimum: 0
                       type: integer
                   required:
                   - duration
@@ -59,18 +73,23 @@ spec:
                   type: object
                 type: array
               startRate:
-                description: StartRate defines the initial requests per second when
-                  the K6 load generator starts.
+                description: Number of requests per `timeUnit` period at Experiment
+                  start. Equivalent to the "ramping-arrival-rate" executor's `startRate`
+                  option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                  for more details.
                 type: integer
               timeUnit:
-                description: TimeUnit defines the unit of the time for K6 load generator.
+                description: Period of time to apply to the `startRate` and `stages[].target`
+                  fields. Equivalent to the "ramping-arrival-rate" executor's `timeUnit`
+                  option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
+                  for more details.
                 type: string
             required:
             - stages
             - startRate
             type: object
           status:
-            description: LoadPatternStatus defines the observed state of LoadPattern
+            description: LoadPatternStatus defines the observed state of LoadPattern.
             type: object
         type: object
     served: true

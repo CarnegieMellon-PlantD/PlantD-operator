@@ -51,7 +51,7 @@ type OutputBuilder struct {
 }
 
 // PutParams creates a gofakeit.MapParams instance based on the provided column and parameters.
-func PutParams(in windtunnelv1alpha1.ColumnSpec, params []gofakeit.Param) *gofakeit.MapParams {
+func PutParams(in windtunnelv1alpha1.Column, params []gofakeit.Param) *gofakeit.MapParams {
 	out := gofakeit.NewMapParams()
 	for _, param := range params {
 		field := param.Field

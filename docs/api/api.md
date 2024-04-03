@@ -36,11 +36,11 @@ Package v1alpha1 contains API Schema definitions for the windtunnel v1alpha1 API
 
 
 
-#### ColumnSpec
+#### Column
 
 
 
-ColumnSpec defines the column in Schema.
+Column defines the column in Schema.
 
 _Appears in:_
 - [SchemaSpec](#schemaspec)
@@ -50,7 +50,7 @@ _Appears in:_
 | `name` _string_ | Name of the column. |
 | `type` _string_ | Data type of the random data to be generated in the column. Used together with the `params` field. It should be a valid function name in gofakeit, which can be parsed by gofakeit.GetFuncLookup(). `formula` field has precedence over this field. See https://plantd.org/docs/reference/types-and-params for available values. |
 | `params` _object (keys:string, values:string)_ | Map of parameters for generating the data in the column. Used together with the `type` field. For any parameters not provided but required by the data type, the default value will be used, if available. Will ignore any parameters not used by the data type. See https://plantd.org/docs/reference/types-and-params for available values. |
-| `formula` _[FormulaSpec](#formulaspec)_ | Formula to be applied for populating the data in the column. This field has precedence over the `type` fields. |
+| `formula` _[Formula](#formula)_ | Formula to be applied for populating the data in the column. This field has precedence over the `type` fields. |
 
 
 #### CostExporter
@@ -112,6 +112,7 @@ DataSet is the Schema for the datasets API
 
 _Appears in:_
 - [DataSetList](#datasetlist)
+- [ExperimentStatus](#experimentstatus)
 
 | Field | Description |
 | --- | --- |
@@ -187,8 +188,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `image` _string_ | Image of the data generator job. |
-| `parallelism` _integer_ | Number of parallel jobs when generating the dataset. |
-| `storageSize` _[Quantity](#quantity)_ | Size of the PVC for the data generator job. |
+| `parallelism` _integer_ | Number of parallel jobs when generating the dataset. Default to 1. |
+| `storageSize` _[Quantity](#quantity)_ | Size of the PVC for the data generator job. Default to 2Gi. |
 | `fileFormat` _string_ | Format of the output file containing generated data. Available values are `csv` and `binary`. |
 | `compressedFileFormat` _string_ | Format of the compressed file containing output files. Available value is `zip`. Leave empty to disable compression. |
 | `compressPerSchema` _boolean_ | Flag for compression behavior. Takes effect only if `compressedFileFormat` is set. When set to `false` (default), files from all Schemas will be compressed into a single compressed file in each repetition. When set to `true`, files from each Schema will be compressed into a separate compressed file in each repetition. |
@@ -202,15 +203,15 @@ _Appears in:_
 
 
 
-DataSpec defines the data to be sent to the endpoint.
+DataSpec defines the data to be sent to an endpoint.
 
 _Appears in:_
 - [EndpointSpec](#endpointspec)
 
 | Field | Description |
 | --- | --- |
-| `plainText` _string_ | PlainText defines a plain text data. |
-| `dataSetRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | DataSetRef defines the reference of the DataSet object. |
+| `plainText` _string_ | PlainText data to be sent. `dataSetRef` field has precedence over this field. |
+| `dataSetRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the DataSet to be sent. This field has precedence over the `plainText` field. |
 
 
 #### DeploymentConfig
@@ -279,60 +280,43 @@ _Appears in:_
 
 
 
-#### Endpoint
+#### EndpointDataOption
 
+_Underlying type:_ _string_
 
-
-Endpoint defines the configuration of the endpoint.
+EndpointDataOption defines the data option used by an EndpointSpec.
 
 _Appears in:_
-- [PipelineSpec](#pipelinespec)
+- [ExperimentStatus](#experimentstatus)
 
-| Field | Description |
-| --- | --- |
-| `name` _string_ | Name defines the name of the endpoint. It's required when it's for pipeline endpoint. |
-| `http` _[HTTP](#http)_ | HTTP defines the configuration of the HTTP request. It's mutually exclusive with WebSocket and GRPC. |
-| `websocket` _[WebSocket](#websocket)_ | WebSocket defines the configuration of the WebSocket connection. It's mutually exclusive with HTTP and GRPC. |
-| `grpc` _[GRPC](#grpc)_ | GRPC defines the configuration of the gRPC request. It's mutually exclusive with HTTP and WebSocket. |
-| `serviceRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | ServiceRef defines the Kubernetes Service that exposes metrics. |
-| `port` _string_ | Name of the Service port which this endpoint refers to. <br /><br /> It takes precedence over `targetPort`. |
-| `targetPort` _[IntOrString](https://pkg.go.dev/k8s.io/apimachinery/pkg/util/intstr#IntOrString)_ | Name or number of the target port of the `Pod` object behind the Service, the port must be specified with container port property. <br /><br /> Deprecated: use `port` instead. |
-| `path` _string_ | HTTP path from which to scrape for metrics. <br /><br /> If empty, Prometheus uses the default value (e.g. `/metrics`). |
-| `scheme` _string_ | HTTP scheme to use for scraping. <br /><br /> `http` and `https` are the expected values unless you rewrite the `__scheme__` label via relabeling. <br /><br /> If empty, Prometheus uses the default value `http`. |
-| `params` _object (keys:string, values:string array)_ | params define optional HTTP URL parameters. |
-| `interval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | Interval at which Prometheus scrapes the metrics from the target. <br /><br /> If empty, Prometheus uses the global scrape interval. |
-| `scrapeTimeout` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | Timeout after which Prometheus considers the scrape to be failed. <br /><br /> If empty, Prometheus uses the global scrape timeout unless it is less than the target's scrape interval value in which the latter is used. |
-| `tlsConfig` _[TLSConfig](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#TLSConfig)_ | TLS configuration to use when scraping the target. |
-| `bearerTokenFile` _string_ | File to read bearer token for scraping the target. <br /><br /> Deprecated: use `authorization` instead. |
-| `bearerTokenSecret` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#secretkeyselector-v1-core)_ | `bearerTokenSecret` specifies a key of a Secret containing the bearer token for scraping targets. The secret needs to be in the same namespace as the ServiceMonitor object and readable by the Prometheus Operator. <br /><br /> Deprecated: use `authorization` instead. |
-| `authorization` _[SafeAuthorization](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#SafeAuthorization)_ | `authorization` configures the Authorization header credentials to use when scraping the target. <br /><br /> Cannot be set at the same time as `basicAuth`, or `oauth2`. |
-| `honorLabels` _boolean_ | When true, `honorLabels` preserves the metric's labels when they collide with the target's labels. |
-| `honorTimestamps` _boolean_ | `honorTimestamps` controls whether Prometheus preserves the timestamps when exposed by the target. |
-| `trackTimestampsStaleness` _boolean_ | `trackTimestampsStaleness` defines whether Prometheus tracks staleness of the metrics that have an explicit timestamp present in scraped data. Has no effect if `honorTimestamps` is false. <br /><br /> It requires Prometheus >= v2.48.0. |
-| `basicAuth` _[BasicAuth](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#BasicAuth)_ | `basicAuth` configures the Basic Authentication credentials to use when scraping the target. <br /><br /> Cannot be set at the same time as `authorization`, or `oauth2`. |
-| `oauth2` _[OAuth2](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#OAuth2)_ | `oauth2` configures the OAuth2 settings to use when scraping the target. <br /><br /> It requires Prometheus >= 2.27.0. <br /><br /> Cannot be set at the same time as `authorization`, or `basicAuth`. |
-| `metricRelabelings` _[RelabelConfig](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#RelabelConfig) array_ | `metricRelabelings` configures the relabeling rules to apply to the samples before ingestion. |
-| `relabelings` _[RelabelConfig](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#RelabelConfig) array_ | `relabelings` configures the relabeling rules to apply the target's metadata labels. <br /><br /> The Operator automatically adds relabelings for a few standard Kubernetes fields. <br /><br /> The original scrape job's name is available via the `__tmp_prometheus_job_name` label. <br /><br /> More info: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config |
-| `proxyUrl` _string_ | `proxyURL` configures the HTTP Proxy URL (e.g. "http://proxyserver:2195") to go through when scraping the target. |
-| `followRedirects` _boolean_ | `followRedirects` defines whether the scrape requests should follow HTTP 3xx redirects. |
-| `enableHttp2` _boolean_ | `enableHttp2` can be used to disable HTTP2 when scraping the target. |
-| `filterRunning` _boolean_ | When true, the pods which are not running (e.g. either in Failed or Succeeded state) are dropped during the target discovery. <br /><br /> If unset, the filtering is enabled. <br /><br /> More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase |
+
+
+#### EndpointProtocol
+
+_Underlying type:_ _string_
+
+EndpointProtocol defines the protocol used by a PipelineEndpoint.
+
+_Appears in:_
+- [ExperimentStatus](#experimentstatus)
+
 
 
 #### EndpointSpec
 
 
 
-EndpointSpec defines the DataSet and LoadPattern to be used for an endpoint.
+EndpointSpec defines the test upon an endpoint.
 
 _Appears in:_
 - [ExperimentSpec](#experimentspec)
 
 | Field | Description |
 | --- | --- |
-| `endpointName` _string_ | EndpointName defines the name of endpoint. It should be the name of an existing endpoint defined in the Pipeline used in the Experiment. |
-| `dataSpec` _[DataSpec](#dataspec)_ | DataSpec defines the data to be sent to the endpoint. |
-| `loadPatternRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | LoadPatternRef defines the reference of the LoadPattern object. |
+| `endpointName` _string_ | Name of endpoint. It should be an existing endpoint defined in the Pipeline used by the Experiment. |
+| `dataSpec` _[DataSpec](#dataspec)_ | Data to be sent to the endpoint. |
+| `loadPatternRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | LoadPattern to follow for the endpoint. |
+| `storageSize` _[Quantity](#quantity)_ | Size of the PVC for the load generator job. Only effective when `dataSpec.dataSetRef` is set. Default to the PVC size of the DataSet. |
 
 
 #### Experiment
@@ -350,6 +334,17 @@ _Appears in:_
 | `kind` _string_ | `Experiment`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[ExperimentSpec](#experimentspec)_ |  |
+
+
+#### ExperimentJobStatus
+
+_Underlying type:_ _string_
+
+ExperimentJobStatus defines the status of the load generator job.
+
+_Appears in:_
+- [ExperimentStatus](#experimentstatus)
+
 
 
 #### ExperimentList
@@ -372,43 +367,28 @@ ExperimentList contains a list of Experiments.
 
 
 
-ExperimentSpec defines the desired state of Experiment
+ExperimentSpec defines the desired state of Experiment.
 
 _Appears in:_
 - [Experiment](#experiment)
 
 | Field | Description |
 | --- | --- |
-| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | PipelineRef defines a reference of the Pipeline object. |
-| `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | EndpointSpecs defines a list of configurations for the endpoints. |
-| `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | ScheduledTime defines the scheduled time for the Experiment. |
+| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
+| `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
+| `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
 
 
 
 
-#### ExtraMetrics
+#### Formula
 
 
 
-ExtraMetrics defines the configurations of getting extra metrics.
-
-_Appears in:_
-- [PipelineSpec](#pipelinespec)
-
-| Field | Description |
-| --- | --- |
-| `system` _[SystemMetrics](#systemmetrics)_ | System defines the configurfation of getting system metrics. |
-| `messageQueue` _[MessageQueueMetrics](#messagequeuemetrics)_ | MessageQueue defines the configurfation of getting message queue related metrics. |
-
-
-#### FormulaSpec
-
-
-
-FormulaSpec defines the formula in column.
+Formula defines the formula in column.
 
 _Appears in:_
-- [ColumnSpec](#columnspec)
+- [Column](#column)
 
 | Field | Description |
 | --- | --- |
@@ -416,38 +396,31 @@ _Appears in:_
 | `args` _string array_ | Arguments to be passed to the formula. Used together with the `name` field. See https://plantd.org/docs/reference/formulas for available values. |
 
 
-#### GRPC
-
-
-
-GRPC defines the configurations of gRPC protocol.
-
-_Appears in:_
-- [Endpoint](#endpoint)
-
-| Field | Description |
-| --- | --- |
-| `address` _string_ | Placeholder. |
-| `protoFiles` _string array_ | Placeholder. |
-| `url` _string_ | Placeholder. |
-| `params` _object (keys:string, values:string)_ | Placeholder. |
-| `request` _object (keys:string, values:string)_ | Placeholder. |
-
-
 #### HTTP
 
+_Underlying type:_ _[struct{URL string "json:\"url\""; Method string "json:\"method\""; Headers map[string]string "json:\"headers,omitempty\""}](#struct{url-string-"json:\"url\"";-method-string-"json:\"method\"";-headers-map[string]string-"json:\"headers,omitempty\""})_
 
-
-HTTP defines the configurations of HTTP protocol.
+HTTP defines the configurations of HTTP protocol in endpoint.
 
 _Appears in:_
-- [Endpoint](#endpoint)
+- [MetricsEndpoint](#metricsendpoint)
+- [PipelineEndpoint](#pipelineendpoint)
+
+
+
+#### IntRange
+
+
+
+IntRange defines a range using two non-negative integers as boundaries.
+
+_Appears in:_
+- [SchemaSelector](#schemaselector)
 
 | Field | Description |
 | --- | --- |
-| `url` _string_ | URL defines the absolute path for an entry point of the Pipeline. |
-| `method` _string_ | Method defines the HTTP method used for the endpoint. |
-| `headers` _object (keys:string, values:string)_ | Headers defines a map of HTTP headers. |
+| `min` _integer_ | Minimum value of the range. |
+| `max` _integer_ | Maximum value of the range. |
 
 
 #### LoadPattern
@@ -457,6 +430,7 @@ _Appears in:_
 LoadPattern is the Schema for the loadpatterns API
 
 _Appears in:_
+- [ExperimentStatus](#experimentstatus)
 - [LoadPatternList](#loadpatternlist)
 
 | Field | Description |
@@ -487,31 +461,37 @@ LoadPatternList contains a list of LoadPattern
 
 
 
-LoadPatternSpec defines the desired state of LoadPattern
+LoadPatternSpec defines the desired state of LoadPattern.
 
 _Appears in:_
 - [LoadPattern](#loadpattern)
 
 | Field | Description |
 | --- | --- |
-| `stages` _[Stage](#stage) array_ | Stages defines a list of stages for the LoadPattern. |
-| `preAllocatedVUs` _integer_ | PreAllocatedVUs defines pre-allocated virtual users for the K6 load generator. |
-| `startRate` _integer_ | StartRate defines the initial requests per second when the K6 load generator starts. |
-| `maxVUs` _integer_ | MaxVUs defines the maximum virtual users for the K6 load generator. |
-| `timeUnit` _string_ | TimeUnit defines the unit of the time for K6 load generator. |
+| `stages` _[Stage](#stage) array_ | List of stages in the LoadPattern. Equivalent to the "ramping-arrival-rate" executor's `stages` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+| `preAllocatedVUs` _integer_ | Number of VUs to pre-allocate before Experiment start. Equivalent to the "ramping-arrival-rate" executor's `preAllocatedVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+| `startRate` _integer_ | Number of requests per `timeUnit` period at Experiment start. Equivalent to the "ramping-arrival-rate" executor's `startRate` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+| `timeUnit` _string_ | Period of time to apply to the `startRate` and `stages[].target` fields. Equivalent to the "ramping-arrival-rate" executor's `timeUnit` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+| `maxVUs` _integer_ | Maximum number of VUs to allow for allocation during Experiment. Equivalent to the "ramping-arrival-rate" executor's `maxVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
 
 
 
 
-#### MessageQueueMetrics
+#### MetricsEndpoint
 
 
 
-MessageQueueMetrics defines the configurations of getting message queue related metrics.
+MetricsEndpoint defines the endpoint for metrics scraping in Pipeline.
 
 _Appears in:_
-- [ExtraMetrics](#extrametrics)
+- [PipelineSpec](#pipelinespec)
 
+| Field | Description |
+| --- | --- |
+| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Must be set if `inCluster` is set to `false` in the Pipeline. |
+| `serviceRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Service. Must be set if `inCluster` is set to `true` in the Pipeline. |
+| `port` _string_ | Name of the Service port to use. Default to "metrics". |
+| `path` _string_ | Path of the endpoint. Default to "/metrics". |
 
 
 #### NetCost
@@ -574,6 +554,7 @@ _Appears in:_
 Pipeline is the Schema for the pipelines API
 
 _Appears in:_
+- [ExperimentStatus](#experimentstatus)
 - [PipelineList](#pipelinelist)
 
 | Field | Description |
@@ -582,6 +563,33 @@ _Appears in:_
 | `kind` _string_ | `Pipeline`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[PipelineSpec](#pipelinespec)_ |  |
+
+
+#### PipelineAvailability
+
+_Underlying type:_ _string_
+
+PipelineAvailability defines the availability of the Pipeline.
+
+_Appears in:_
+- [PipelineStatus](#pipelinestatus)
+
+
+
+#### PipelineEndpoint
+
+
+
+PipelineEndpoint defines the endpoint for data ingestion in Pipeline.
+
+_Appears in:_
+- [ExperimentStatus](#experimentstatus)
+- [PipelineSpec](#pipelinespec)
+
+| Field | Description |
+| --- | --- |
+| `name` _string_ | Name of the endpoint. |
+| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. |
 
 
 #### PipelineList
@@ -604,21 +612,20 @@ PipelineList contains a list of Pipeline
 
 
 
-PipelineSpec defines the desired state of Pipeline
+PipelineSpec defines the desired state of Pipeline.
 
 _Appears in:_
 - [Pipeline](#pipeline)
 
 | Field | Description |
 | --- | --- |
-| `pipelineEndpoints` _[Endpoint](#endpoint) array_ | Endpoints for pipeline-under-test. |
-| `healthCheckEndpoints` _string array_ | Endpoints for health check. |
-| `metricsEndpoint` _[Endpoint](#endpoint)_ | Endpoints for metrics. |
-| `extraMetrics` _[ExtraMetrics](#extrametrics)_ | Extra metrics, such as CPU utilzation, I/O and etc. |
-| `inCluster` _boolean_ | In cluster flag. True indecates the pipeline-under-test is deployed in the same cluster as the plantD. Otherwise it should be False. |
-| `cloudVendor` _string_ | State which cloud service provider the pipeline is deployed. |
-| `enableCostCalculation` _boolean_ | Cost calculation flag. |
-| `experimentRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Internal usage. For experiment object to lock the pipeline object. |
+| `inCluster` _boolean_ | Whether the Pipeline is deployed within the cluster or not. When set to `true`, the Pipeline will be accessed by its Services. When set to `false`, Services of type ExternalName will be created to access the Pipeline. |
+| `pipelineEndpoints` _[PipelineEndpoint](#pipelineendpoint) array_ | List of endpoints for data ingestion. |
+| `metricsEndpoint` _[MetricsEndpoint](#metricsendpoint)_ | Endpoint for metrics scraping. |
+| `healthCheckURLs` _string array_ | List of URLs for health check. An HTTP GET request will be made to each URL, and all of them should return 200 OK to pass the health check. If the list is empty, no health check will be performed. |
+| `cloudProvider` _string_ | Cloud provider of the Pipeline. Available values are `aws`, `azure`, and `gcp`. |
+| `tags` _object (keys:string, values:string)_ | Map of tags to select cloud resources of the Pipeline. Equivalent to the tags in the cloud service provider. |
+| `enableCostCalculation` _boolean_ | Whether to enable cost calculation for the Pipeline. |
 
 
 
@@ -821,7 +828,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `columns` _[ColumnSpec](#columnspec) array_ | List of columns in the Schema. |
+| `columns` _[Column](#column) array_ | List of columns in the Schema. |
 
 
 
@@ -878,32 +885,13 @@ _Appears in:_
 
 #### Stage
 
+_Underlying type:_ _[struct{Target int "json:\"target\""; Duration string "json:\"duration\""}](#struct{target-int-"json:\"target\"";-duration-string-"json:\"duration\""})_
 
-
-Stage defines the stage configuration of the load.
+Stage defines how the load ramps up or down.
 
 _Appears in:_
 - [LoadPatternSpec](#loadpatternspec)
 
-| Field | Description |
-| --- | --- |
-| `target` _integer_ | Target defines the target requests per second. |
-| `duration` _string_ | Duration defines the duration of the current stage. |
-
-
-#### SystemMetrics
-
-
-
-SystemMetrics defines the configurations of getting system metrics.
-
-_Appears in:_
-- [ExtraMetrics](#extrametrics)
-
-| Field | Description |
-| --- | --- |
-| `tags` _object (keys:string, values:string)_ | Tags defines the tags for the resources of the pipeline-under-test in the cloud service provider. |
-| `secretRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | SecretRef defines the reference to the Kubernetes Secret object for authentication on the cloud service provider. |
 
 
 #### TrafficModel
@@ -953,21 +941,5 @@ _Appears in:_
 | `config` _string_ | Config defines the configuration of the TrafficModel. |
 
 
-
-
-#### WebSocket
-
-
-
-WebSocket defines the configurations of websocket protocol.
-
-_Appears in:_
-- [Endpoint](#endpoint)
-
-| Field | Description |
-| --- | --- |
-| `url` _string_ | Placeholder. |
-| `params` _object (keys:string, values:string)_ | Placeholder. |
-| `callback` _string_ | Placeholder. |
 
 

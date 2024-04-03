@@ -3,36 +3,48 @@ package utils
 import (
 	"fmt"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// GetNamespacedName returns the namespace and name of the resource in string representation.
+func GetNamespacedName(obj v1.Object) string {
+	return fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
+}
 
 // GetDataSetJobName returns the name of the Job for the DataSet.
 func GetDataSetJobName(dataSetName string, generation int64) string {
-	return fmt.Sprintf("%s-%d-job", dataSetName, generation)
+	return fmt.Sprintf("dataset-%s-%d", dataSetName, generation)
 }
 
 // GetDataSetPVCName returns the name of the PVC for the DataSet.
 func GetDataSetPVCName(dataSetName string, generation int64) string {
-	return fmt.Sprintf("%s-%d-pvc", dataSetName, generation)
+	return fmt.Sprintf("dataset-%s-%d", dataSetName, generation)
 }
 
-// GetDataSetVolumeName returns the name of the volume in the DataSet Job.
-func GetDataSetVolumeName(dataSetName string) string {
-	return fmt.Sprintf("%s-volume", dataSetName)
+// GetPipelineMetricsServiceName returns the name of the metrics Service for the Pipeline.
+// For out-cluster Pipeline only, for whom we need to create Service of type ExternalName.
+func GetPipelineMetricsServiceName(pipelineName string) string {
+	return fmt.Sprintf("%s-metrics", pipelineName)
 }
 
-func GetNamespacedName(obj client.Object) string {
-	return fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())
+// GetTestRunConfigMapName returns the name of the ConfigMap for the TestRun.
+func GetTestRunConfigMapName(experimentName string, endpointName string) string {
+	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
 }
 
-func GetTestRunName(expName string, endpointName string) string {
-	return fmt.Sprintf("%s-%s", expName, endpointName)
+// GetTestRunPVCName returns the name of the PVC for the TestRun.
+// For data option "dataSet" only, which requires a PVC.
+func GetTestRunPVCName(experimentName string, endpointName string) string {
+	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
 }
 
-func GetMetricsServiceName(pipelineName string) string {
-	return pipelineName + "-plantd-metrics"
+// GetTestRunCopierPodName returns the name of the copier Pod for the TestRun.
+// The copier Pod is used to copy the configuration and data for the TestRun.
+func GetTestRunCopierPodName(experimentName string, endpointName string) string {
+	return fmt.Sprintf("experiment-%s-%s-copier", experimentName, endpointName)
 }
 
-func GetPipelineEndpointServiceName(pipelineName string, endpointName string) string {
-	return fmt.Sprintf("%s-%s", pipelineName, endpointName)
+// GetTestRunName returns the name of the TestRun.
+func GetTestRunName(experimentName string, endpointName string) string {
+	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
 }

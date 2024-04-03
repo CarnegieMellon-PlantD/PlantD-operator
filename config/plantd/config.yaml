@@ -5,8 +5,35 @@ dataGenerator:
   defaultParallelism: 1
   backoffLimit: 0
   defaultStorageSize: 2Gi
-  # We use the default path where K6 looks for files, do not change it
-  path: /test
+  path: /test # Default path where K6 looks for files
+monitor:
+  service:
+    labelKeys:
+      pipeline: plantd-pipeline
+      experiment: plantd-experiment
+    portName: metrics
+  serviceMonitor:
+    labels:
+      app: plantd-monitor
+    endpoint:
+      defaultPort: metrics
+      defaultPath: /metrics
+loadGenerator:
+  filename:
+    script: script.js
+    endpoint: endpoint.json
+    plainText: plaintext.txt
+    dataSet: dataset.json
+    loadPattern: loadpattern.json
+  copier:
+    image: busybox:1.36.1
+  testRun:
+    remoteWriteArgs: --out experimental-prometheus-rw
+    remoteWriteEnvVar:
+      name: K6_PROMETHEUS_RW_SERVER_URL
+      value: http://prometheus-service.plantd-operator-system.svc:9090/api/v1/write
+
+
 costService:
   image: ghcr.io/carnegiemellon-plantd/costexporter:latest
   opencost:
@@ -38,8 +65,6 @@ plantDCore:
   prometheus:
     labels:
       prometheus: prometheus
-    serviceMonitorSelector:
-      component: plantd-metrics-endpoint
     serviceAccountName: prometheus
     clusterRoleName: plantd-prometheus-role
     clusterRoleBindingName: plantd-prometheus-role-binding
@@ -133,177 +158,7 @@ opencost:
       k8s-app: kubelet
     namespaceSelector: kube-system
 
-k6:
-  arguments: --out experimental-prometheus-rw
-  remoteWriteURL:
-    name: K6_PROMETHEUS_RW_SERVER_URL
-    # Ensure Prometheus service name, namespace, and port are correct
-    value: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090/api/v1/write
-  # Sync with `apps/loadgen/http_with_data.js`
-  script.http.withData: |
-    import http from 'k6/http';
-    import { check } from 'k6';
 
-    let loadpattern = JSON.parse(open('loadpattern.json'));
-    let pipeline = JSON.parse(open('pipeline.json'));
-    const url = pipeline.http.url;
-    const method = pipeline.http.method;
-    const data = JSON.stringify(pipeline.http.body.data || "");
-    const headers = pipeline.http.headers || {};
-    export let options = {
-      scenarios: {
-        ramping_arrival_rate: {
-          executor: 'ramping-arrival-rate',
-          startRate: loadpattern.startRate,
-          timeUnit: loadpattern.timeUnit,
-          preAllocatedVUs: loadpattern.preAllocatedVUs,
-          maxVUs: loadpattern.maxVUs,
-          stages: loadpattern.stages,
-        },
-      },
-      discardResponseBodies: true,
-      noVUConnectionReuse: true,
-    };
-
-    export default function () {
-      let res = http.request(method, url, data, {
-        headers: headers,
-      });
-      check(res, {
-        'status was 200': (r) => r.status === 200,
-      });
-    }
-  # Sync with `apps/loadgen/http_with_dataset.js`
-  script.http.withDataSet: |
-    import http from 'k6/http';
-    import { check } from 'k6';
-    import { randomIntBetween } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
-
-    let loadpattern = JSON.parse(open('loadpattern.json'));
-    let pipeline = JSON.parse(open('pipeline.json'));
-    let dataset = JSON.parse(open('dataset.json'));
-    const url = pipeline.http.url;
-    const method = pipeline.http.method;
-    const headers = pipeline.http.headers || {};
-    const numFiles = dataset.spec.numFiles;
-    const numSchemas = dataset.spec.schemas.length;
-    const compressedFileFormat = dataset.spec.compressedFileFormat || "";
-    const fileFormat = dataset.spec.fileFormat;
-    const compressPerSchema = dataset.spec.compressPerSchema || false;
-    const datasetName = dataset.metadata.name;
-    const fileExtention = {
-      zip: 'zip',
-      binary: 'bin'
-    };
-    let maxIndex;
-
-    const ext = fileExtention[fileFormat];
-
-    function filePerSchemaArray() {
-      const n = numSchemas * numFiles;
-      const arr = new Array(n);
-      for (let i = 0; i < numSchemas; i++) {
-        let k = i * numFiles;
-        let schemaName = dataset.spec.schemas[i].name;
-        for (let j = 0; j < numFiles; j++) {
-          const fname = `${schemaName}/${datasetName}_${schemaName}_${j}.${ext}`;
-          arr[k + j] = {
-            name: fname,
-            content: open(fname, 'b')
-          };
-        }
-      }
-      return arr;
-    }
-
-    function filepathPerCompressedArray() {
-      const arr = new Array(numFiles);
-      for (let i = 0; i < numFiles; i++) {
-        const fname = `${datasetName}_${i}.${compressedFileFormat}`;
-        arr[i] = {
-          name: fname,
-          content: open(fname, 'b')
-        };
-      }
-      return arr;
-    }
-
-    function filepathPerCompressedPerSechmaArray() {
-      const n = numSchemas * numFiles;
-      const arr = new Array(n);
-      for (let i = 0; i < numSchemas; i++) {
-        let k = i * numFiles;
-        let schemaName = dataset.spec.schemas[i].name;
-        for (let j = 0; j < numFiles; j++) {
-          const fname = `${schemaName}/${datasetName}_${schemaName}_${j}.${compressedFileFormat}`;
-          arr[k + j] = {
-            name: fname,
-            content: open(fname, 'b')
-          };
-        }
-      }
-      return arr;
-    }
-
-    let dataCache;
-
-    if (compressedFileFormat === "") {
-      maxIndex = numSchemas * numFiles - 1;
-      dataCache = filePerSchemaArray()
-    } else if (compressPerSchema === true) {
-      maxIndex = numSchemas * numFiles - 1;
-      dataCache = filepathPerCompressedPerSechmaArray()
-    } else {
-      maxIndex = numFiles - 1;
-      dataCache = filepathPerCompressedArray()
-    }
-
-    export let options = {
-      scenarios: {
-        ramping_arrival_rate: {
-          executor: 'ramping-arrival-rate',
-          startRate: loadpattern.startRate,
-          timeUnit: loadpattern.timeUnit,
-          preAllocatedVUs: loadpattern.preAllocatedVUs,
-          maxVUs: loadpattern.maxVUs,
-          stages: loadpattern.stages,
-        },
-      },
-      discardResponseBodies: true,
-      noVUConnectionReuse: true,
-    };
-
-    export default function () {
-      const i = randomIntBetween(0, maxIndex)
-      console.log(dataCache[i]['content'])
-      let payload = {
-        file: http.file(dataCache[i]['content'], dataCache[i]['name'], 'multipart/form-data'),
-      };
-      let res = http.request(method, url, payload, {
-        headers: headers,
-      });
-      check(res, {
-        'status was 200': (r) => r.status === 200,
-      });
-    }
-  config:
-    script: script.js
-    loadPattern: loadpattern.json
-    pipeline: pipeline.json
-    dataset: dataset.json
-monitor:
-  metricsService:
-    labels:
-      key: plantd-monitoring
-  serviceMonitor:
-    labels:
-      component: plantd-metrics-endpoint
-  pipelineEndpoint:
-    labels:
-      plantd-component: pipeline-endpoint
-  metrics:
-    port.name: metrics
-  jobLabel: experiment
 database:
   prometheus:
     # Ensure Prometheus service name, namespace, and port are correct

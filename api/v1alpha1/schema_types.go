@@ -4,8 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// FormulaSpec defines the formula in column.
-type FormulaSpec struct {
+// Formula defines the formula in column.
+type Formula struct {
 	// Name of the formula. Used together with the `args` field.
 	// See https://plantd.org/docs/reference/formulas for available values.
 	Name string `json:"name"`
@@ -14,8 +14,8 @@ type FormulaSpec struct {
 	Args []string `json:"args,omitempty"`
 }
 
-// ColumnSpec defines the column in Schema.
-type ColumnSpec struct {
+// Column defines the column in Schema.
+type Column struct {
 	// Name of the column.
 	Name string `json:"name"`
 	// Data type of the random data to be generated in the column. Used together with the `params` field.
@@ -30,13 +30,13 @@ type ColumnSpec struct {
 	Params map[string]string `json:"params,omitempty"`
 	// Formula to be applied for populating the data in the column.
 	// This field has precedence over the `type` fields.
-	Formula FormulaSpec `json:"formula,omitempty"`
+	Formula Formula `json:"formula,omitempty"`
 }
 
 // SchemaSpec defines the desired state of Schema.
 type SchemaSpec struct {
 	// List of columns in the Schema.
-	Columns []ColumnSpec `json:"columns"`
+	Columns []Column `json:"columns"`
 }
 
 // SchemaStatus defines the observed state of Schema.

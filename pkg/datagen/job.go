@@ -19,19 +19,15 @@ type DataGeneratorJob interface {
 type BuilderBasedDataGeneratorJob struct {
 	RepeatStart int
 	RepeatEnd   int
-	DGNamespace string
-	DGName      string
 	DataSet     *windtunnelv1alpha1.DataSet
 	SchemaMap   map[string]*windtunnelv1alpha1.Schema
 }
 
 // NewBuilderBasedDataGeneratorJob creates a new BuilderBasedDataGeneratorJob instance.
-func NewBuilderBasedDataGeneratorJob(start int, end int, dgNamespace string, dgName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) DataGeneratorJob {
+func NewBuilderBasedDataGeneratorJob(start, end int, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) DataGeneratorJob {
 	return &BuilderBasedDataGeneratorJob{
 		RepeatStart: start,
 		RepeatEnd:   end,
-		DGNamespace: dgNamespace,
-		DGName:      dgName,
 		DataSet:     dataSet,
 		SchemaMap:   schemaMap,
 	}

@@ -21,15 +21,15 @@ spec:
     - jsonPath: .status.pvcStatus
       name: VolumeStatus
       type: string
-    - jsonPath: .status.errorCount
-      name: ErrorCount
-      type: integer
     - jsonPath: .status.startTime
       name: StartTime
       type: string
     - jsonPath: .status.completionTime
       name: CompletionTime
       type: string
+    - jsonPath: .status.errorCount
+      name: ErrorCount
+      type: integer
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -60,6 +60,8 @@ spec:
               compressedFileFormat:
                 description: Format of the compressed file containing output files.
                   Available value is `zip`. Leave empty to disable compression.
+                enum:
+                - zip
                 type: string
               fileFormat:
                 description: Format of the output file containing generated data.
@@ -79,6 +81,7 @@ spec:
                 type: integer
               parallelism:
                 description: Number of parallel jobs when generating the dataset.
+                  Default to 1.
                 format: int32
                 minimum: 1
                 type: integer
@@ -134,7 +137,8 @@ spec:
                 anyOf:
                 - type: integer
                 - type: string
-                description: Size of the PVC for the data generator job.
+                description: Size of the PVC for the data generator job. Default to
+                  2Gi.
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
             required:
@@ -170,7 +174,7 @@ spec:
                 format: int64
                 type: integer
               pvcStatus:
-                description: Status of the PVC of the data generator job.
+                description: Status of the PVC for the data generator job.
                 type: string
               startTime:
                 description: Time when the data generator job started.

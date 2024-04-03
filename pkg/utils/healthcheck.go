@@ -3,68 +3,27 @@ package utils
 import (
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 )
 
 const (
-	healthCheckTimeout time.Duration = 5 * time.Second
+	timeout time.Duration = 30 * time.Second
 )
 
-func GetHostname(serviceURL string) (string, error) {
-	u, err := url.Parse(serviceURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing URL: %v", err)
-	}
-	return u.Hostname(), nil
-}
-
-func GetPort(serviceURL string) (int32, error) {
-	u, err := url.Parse(serviceURL)
-	if err != nil {
-		return -1, fmt.Errorf("error parsing URL: %v", err)
-	}
-	if sPort := u.Port(); sPort != "" {
-		port, err := strconv.Atoi(sPort)
-		if err != nil {
-			return -1, err
-		}
-		return int32(port), nil
-	}
-	switch u.Scheme {
-	case "http":
-		return 80, nil
-	case "https":
-		return 443, nil
-	default:
-		return -1, fmt.Errorf("cannot get the default port of scheme %s", u.Scheme)
-	}
-}
-
-func CheckHTTPHealth(url string) (bool, error) {
+func CheckHealth(url string) error {
 	client := http.Client{
-		Timeout: healthCheckTimeout,
+		Timeout: timeout,
 	}
 
 	resp, err := client.Get(url)
 	if err != nil {
-		return false, err
+		return err
 	}
-
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("expected status OK but got %d from %s", resp.StatusCode, url)
+		return fmt.Errorf("expected status code 200 but got %d", resp.StatusCode)
 	}
 
-	return true, nil
-}
-
-func GetHTTPPath(metricsURL string) (string, error) {
-	u, err := url.Parse(metricsURL)
-	if err != nil {
-		return "", fmt.Errorf("error parsing URL: %v", err)
-	}
-	return u.Path, nil
+	return nil
 }

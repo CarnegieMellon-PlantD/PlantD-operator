@@ -305,7 +305,7 @@ func CSVAtCache2ZipAtFileBySchema(schemaName string, seqNum int, numFilesPerComp
 					return err
 				}
 			} else {
-				return TypeError("CSVAtCache2ZipAtFile")
+				return TypeError(fmt.Sprintf("file %d, row %d", i, j))
 			}
 		}
 	}
@@ -383,7 +383,7 @@ func BinaryAtCache2ZipAtFileBySchema(schemaName string, seqNum int, numFilesPerC
 				if v, ok := bCol.([]byte); ok {
 					row = append(row, v...)
 				} else {
-					return TypeError(key)
+					return TypeError(fmt.Sprintf("file %d, row %d, col %s", i, j, key))
 				}
 			}
 			rows = append(rows, row...)
