@@ -2,20 +2,20 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { randomIntBetween } from "https://jslib.k6.io/k6-utils/1.4.0/index.js";
 
-let endpoint = JSON.parse(open('endpoint.json'));
-let dataset = JSON.parse(open('dataset.json'));
-let loadpattern = JSON.parse(open('loadpattern.json'));
+const endpoint = JSON.parse(open('endpoint.json'));
+const dataSet = JSON.parse(open('dataset.json'));
+const loadPattern = JSON.parse(open('loadpattern.json'));
 
 const url = endpoint.http.url;
 const method = endpoint.http.method;
 const headers = endpoint.http.headers || {};
 
-const dataSetName = dataset.metadata.name;
-const numFiles = dataset.spec.numFiles;
-const numSchemas = dataset.spec.schemas.length;
-const compressedFileFormat = dataset.spec.compressedFileFormat || "";
-const fileFormat = dataset.spec.fileFormat;
-const compressPerSchema = dataset.spec.compressPerSchema || false;
+const dataSetName = dataSet.metadata.name;
+const numFiles = dataSet.spec.numFiles;
+const numSchemas = dataSet.spec.schemas.length;
+const compressedFileFormat = dataSet.spec.compressedFileFormat || "";
+const fileFormat = dataSet.spec.fileFormat;
+const compressPerSchema = dataSet.spec.compressPerSchema || false;
 
 const fileExtensions = {
   csv: 'csv',
@@ -28,9 +28,26 @@ function filePerSchemaArray() {
   const arr = new Array(n);
   for (let i = 0; i < numSchemas; i++) {
     let k = i * numFiles;
-    const schemaName = dataset.spec.schemas[i].name;
+    const schemaName = dataSet.spec.schemas[i].name;
     for (let j = 0; j < numFiles; j++) {
       const fname = `${schemaName}/${dataSetName}_${schemaName}_${j}.${ext}`;
+      arr[k + j] = {
+        name: fname,
+        content: open(fname, 'b')
+      };
+    }
+  }
+  return arr;
+}
+
+function filePerCompressedPerSchemaArray() {
+  const n = numSchemas * numFiles;
+  const arr = new Array(n);
+  for (let i = 0; i < numSchemas; i++) {
+    let k = i * numFiles;
+    let schemaName = dataSet.spec.schemas[i].name;
+    for (let j = 0; j < numFiles; j++) {
+      const fname = `${dataSetName}_${schemaName}_${j}.${compressedFileFormat}`;
       arr[k + j] = {
         name: fname,
         content: open(fname, 'b')
@@ -52,23 +69,6 @@ function filePerCompressedArray() {
   return arr;
 }
 
-function filePerCompressedPerSchemaArray() {
-  const n = numSchemas * numFiles;
-  const arr = new Array(n);
-  for (let i = 0; i < numSchemas; i++) {
-    let k = i * numFiles;
-    let schemaName = dataset.spec.schemas[i].name;
-    for (let j = 0; j < numFiles; j++) {
-      const fname = `${dataSetName}_${schemaName}_${j}.${compressedFileFormat}`;
-      arr[k + j] = {
-        name: fname,
-        content: open(fname, 'b')
-      };
-    }
-  }
-  return arr;
-}
-
 let maxIndex;
 let dataCache;
 if (compressedFileFormat === "") {
@@ -82,15 +82,15 @@ if (compressedFileFormat === "") {
   dataCache = filePerCompressedArray()
 }
 
-export let options = {
+export const options = {
   scenarios: {
-    ramping_arrival_rate: {
+    sendDataSet: {
       executor: 'ramping-arrival-rate',
-      startRate: loadpattern.startRate,
-      timeUnit: loadpattern.timeUnit,
-      preAllocatedVUs: loadpattern.preAllocatedVUs,
-      maxVUs: loadpattern.maxVUs,
-      stages: loadpattern.stages,
+      startRate: loadPattern.spec.startRate,
+      timeUnit: loadPattern.spec.timeUnit,
+      preAllocatedVUs: loadPattern.spec.preAllocatedVUs,
+      maxVUs: loadPattern.spec.maxVUs,
+      stages: loadPattern.spec.stages,
     },
   },
   discardResponseBodies: true,

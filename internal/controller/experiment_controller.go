@@ -27,7 +27,8 @@ const (
 )
 
 var (
-	filenameScript = config.GetViper().GetString("loadGenerator.filename.script")
+	filenameScript                   = config.GetViper().GetString("loadGenerator.filename.script")
+	metricsServiceLabelKeyExperiment = config.GetViper().GetString("monitor.service.labelKeys.experiment")
 )
 
 // ExperimentReconciler reconciles a Experiment object
@@ -128,7 +129,14 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted {
-
+		stop, result, err := r.reconcileCompleted(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
+			return result, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -297,6 +305,36 @@ func (r *ExperimentReconciler) reconcileWaitingPipeline(ctx context.Context, exp
 		logger.Error(err, "Cannot update the status of Pipeline")
 		return true, ctrl.Result{}, err
 	}
+
+	// Set the Experiment label for the metrics Service
+	metricsService := &corev1.Service{}
+	var metricsServiceName types.NamespacedName
+	if experiment.Status.Pipeline.Spec.InCluster {
+		metricsServiceName = types.NamespacedName{
+			Namespace: experiment.Status.Pipeline.Spec.MetricsEndpoint.ServiceRef.Namespace,
+			Name:      experiment.Status.Pipeline.Spec.MetricsEndpoint.ServiceRef.Name,
+		}
+	} else {
+		metricsServiceName = types.NamespacedName{
+			Namespace: experiment.Status.Pipeline.Namespace,
+			Name:      utils.GetPipelineMetricsServiceName(experiment.Status.Pipeline.Name),
+		}
+	}
+	if err := r.Get(ctx, metricsServiceName, metricsService); err != nil {
+		logger.Error(err, fmt.Sprintf("Cannot get metrics Service: %s", metricsServiceName))
+		experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+		experiment.Status.Error = fmt.Sprintf("Cannot find metrics Service: %s", err)
+		return true, ctrl.Result{}, nil
+	}
+	if metricsService.Labels == nil {
+		metricsService.Labels = make(map[string]string, 1)
+	}
+	metricsService.Labels[metricsServiceLabelKeyExperiment] = experiment.Name
+	if err := r.Update(ctx, metricsService); err != nil {
+		logger.Error(err, fmt.Sprintf("Cannot add Experiment label to metrics Service: %s", metricsServiceName))
+		return true, ctrl.Result{}, err
+	}
+	logger.Info(fmt.Sprintf("Added Experiment label to metrics Service: %s", metricsServiceName))
 
 	// Pipeline is in "Ready" status and locked, proceed to the next step
 	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentInitializing
@@ -515,8 +553,8 @@ func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experimen
 		return true, ctrl.Result{}, err
 	}
 
-	// Proceed to the next step
-	return false, ctrl.Result{}, nil
+	// Stop the current reconciliation loop anyway
+	return true, ctrl.Result{}, nil
 }
 
 // getPipelineEndpoint finds the PipelineEndpoint with the given name in the Pipeline.

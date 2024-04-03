@@ -7,18 +7,18 @@ let loadPattern = JSON.parse(open('loadpattern.json'));
 
 const url = endpoint.http.url;
 const method = endpoint.http.method;
-const headers = endpointSpec.http.headers || {};
+const headers = endpoint.http.headers || {};
 const data = plainText;
 
 export let options = {
   scenarios: {
     ramping_arrival_rate: {
       executor: 'ramping-arrival-rate',
-      startRate: loadPattern.startRate,
-      timeUnit: loadPattern.timeUnit,
-      preAllocatedVUs: loadPattern.preAllocatedVUs,
-      maxVUs: loadPattern.maxVUs,
-      stages: loadPattern.stages,
+      startRate: loadPattern.spec.startRate,
+      timeUnit: loadPattern.spec.timeUnit,
+      preAllocatedVUs: loadPattern.spec.preAllocatedVUs,
+      maxVUs: loadPattern.spec.maxVUs,
+      stages: loadPattern.spec.stages,
     },
   },
   discardResponseBodies: true,
