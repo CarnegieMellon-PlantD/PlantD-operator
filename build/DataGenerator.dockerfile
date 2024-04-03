@@ -1,5 +1,5 @@
 # Build Stage
-FROM golang:1.21 as builder
+FROM golang:1.22 as builder
 WORKDIR /workspace
 COPY . .
 RUN go mod download
