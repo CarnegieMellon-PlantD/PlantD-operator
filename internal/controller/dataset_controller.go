@@ -35,12 +35,13 @@ type DataSetReconciler struct {
 	CGClient *clientgo.Clientset
 }
 
-// +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=windtunnel.plantd.org,resources=schemas,verbs=get;list
-// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=pods/log,verbs=get;list
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets/finalizers,verbs=update
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=schemas,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=pods/log,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
