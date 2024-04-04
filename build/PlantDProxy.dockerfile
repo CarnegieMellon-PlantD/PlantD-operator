@@ -7,8 +7,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -o proxy ./apps/plantd-proxy/main.go
 
 # Production Stage
 FROM scratch
-WORKDIR /workspace
-COPY --from=builder /workspace/proxy .
-COPY config/plantd/config.yaml .
-ENTRYPOINT ["./proxy"]
+COPY --from=builder /workspace/proxy /
+COPY config/plantd/config.yaml /etc/plantd/
+ENTRYPOINT ["/proxy"]
 EXPOSE 5000

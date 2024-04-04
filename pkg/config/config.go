@@ -19,7 +19,7 @@ func init() {
 	viperInstance.SetConfigName("config")
 	viperInstance.SetConfigType("yaml")
 	viperInstance.AddConfigPath("./config/plantd") // Development
-	viperInstance.AddConfigPath(".")               // Production
+	viperInstance.AddConfigPath("/etc/plantd")     // Production
 	if err := viperInstance.ReadInConfig(); err != nil {
 		fmt.Printf("Cannot read config file: %s\n", err)
 	}
