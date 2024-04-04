@@ -12,7 +12,7 @@ const data = plainText;
 
 export let options = {
   scenarios: {
-    ramping_arrival_rate: {
+    sendPlainText: {
       executor: 'ramping-arrival-rate',
       startRate: loadPattern.spec.startRate,
       timeUnit: loadPattern.spec.timeUnit,
