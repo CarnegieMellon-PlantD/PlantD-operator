@@ -13,7 +13,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.1'
+          go-version: '~1.22.0'
 
       - name: Go Mod Download
         run: go mod download
@@ -26,3 +26,15 @@ jobs:
 
       - name: Go Vet
         run: go vet ./...
+
+      - name: Go Test
+        run: go test ./...
+
+      - name: Go Build Controller Manager
+        run: go build -o /dev/null ./cmd/main.go
+
+      - name: Go Build Data Generator
+        run: go build -o /dev/null ./apps/datagen/main.go
+
+      - name: Go Build PlantD Proxy
+        run: go build -o /dev/null ./apps/plantd-proxy/main.go
