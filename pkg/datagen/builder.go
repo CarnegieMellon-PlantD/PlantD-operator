@@ -188,7 +188,6 @@ func (outBldr *OutputBuilder) SetRandomnessAndCache(faker *gofakeit.Faker, dataS
 		} else {
 			outBldr.SchBuilders[i].TotalNumRecords = outBldr.SchBuilders[i].NumRecords * outBldr.SchBuilders[i].NumFilesPerCompressedFile
 		}
-		fmt.Printf("Schema %s has %d records and %d files and %d total records\n", sch.Name, outBldr.SchBuilders[i].NumRecords, outBldr.SchBuilders[i].NumFilesPerCompressedFile, outBldr.SchBuilders[i].TotalNumRecords)
 	}
 
 	NewFakeDataCache(outBldr)
