@@ -1,0 +1,28 @@
+name: Test
+
+on: [pull_request]
+
+jobs:
+  run:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.1'
+
+      - name: Go Mod Download
+        run: go mod download
+
+      - name: Go Mod Tidy
+        run: go mod tidy && git diff --exit-code
+
+      - name: Go Format
+        run: go fmt ./... && git diff --exit-code
+
+      - name: Go Vet
+        run: go vet ./...
