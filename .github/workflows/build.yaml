@@ -64,11 +64,10 @@ jobs:
         with:
           file: ${{ matrix.file }}
           context: .
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: false
 
       - name: Delete Old Versions
         uses: actions/delete-package-versions@v5
@@ -76,5 +75,5 @@ jobs:
           owner: ${{ github.repository_owner }}
           package-name: ${{ matrix.image }}
           package-type: "container"
-          min-versions-to-keep: 20
-          delete-only-untagged-versions: "false"
+          min-versions-to-keep: 10
+          ignore-versions: "^latest$"
