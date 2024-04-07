@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+
 	"k8s.io/utils/ptr"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
@@ -17,94 +18,45 @@ import (
 )
 
 var (
-	plantDCoreServiceAccountName string
-
-	kubeProxyLabels         map[string]string
-	kubeProxyContainerName  string
-	kubeProxyImage          string
-	kubeProxyDeploymentName string
-	kubeProxyReplicas       int32
-	kubeProxyServiceName    string
-	kubeProxyPort           int32
-	kubeProxyTargetPort     int32
-
-	studioLabels         map[string]string
-	studioContainerName  string
-	studioImage          string
-	studioDeploymentName string
-	studioReplicas       int32
-	studioServiceName    string
-	studioPort           int32
-	studioTargetPort     int32
-
-	prometheusLabels                 map[string]string
-	prometheusServiceMonitorSelector map[string]string
-	prometheusServiceAccountName     string
-	prometheusClusterRoleName        string
-	prometheusClusterRoleBindingName string
-	prometheusObjectName             string
-	prometheusScrapeInterval         string
-	prometheusReplicas               int32
-	prometheusMemoryLimit            string
-	prometheusServiceName            string
-	prometheusPort                   int32
-	prometheusTargetPort             int32
-	prometheusNodePort               int32
-
-	redisLabels         map[string]string
-	redisContainerName  string
-	redisImage          string
-	redisDeploymentName string
-	redisReplicas       int32
-	redisServiceName    string
-	redisPort           int32
-	redisTargetPort     int32
+	plantDCoreServiceAccountName     = config.GetViper().GetString("plantDCore.serviceAccountName")
+	kubeProxyLabels                  = config.GetViper().GetStringMapString("plantDCore.kubeProxy.labels")
+	kubeProxyContainerName           = config.GetViper().GetString("plantDCore.kubeProxy.containerName")
+	kubeProxyImage                   = config.GetViper().GetString("plantDCore.kubeProxy.image")
+	kubeProxyDeploymentName          = config.GetViper().GetString("plantDCore.kubeProxy.deploymentName")
+	kubeProxyReplicas                = config.GetViper().GetInt32("plantDCore.kubeProxy.replicas")
+	kubeProxyServiceName             = config.GetViper().GetString("plantDCore.kubeProxy.serviceName")
+	kubeProxyPort                    = config.GetViper().GetInt32("plantDCore.kubeProxy.port")
+	kubeProxyTargetPort              = config.GetViper().GetInt32("plantDCore.kubeProxy.targetPort")
+	studioLabels                     = config.GetViper().GetStringMapString("plantDCore.studio.labels")
+	studioContainerName              = config.GetViper().GetString("plantDCore.studio.containerName")
+	studioImage                      = config.GetViper().GetString("plantDCore.studio.image")
+	studioDeploymentName             = config.GetViper().GetString("plantDCore.studio.deploymentName")
+	studioReplicas                   = config.GetViper().GetInt32("plantDCore.studio.replicas")
+	studioServiceName                = config.GetViper().GetString("plantDCore.studio.serviceName")
+	studioPort                       = config.GetViper().GetInt32("plantDCore.studio.port")
+	studioTargetPort                 = config.GetViper().GetInt32("plantDCore.studio.targetPort")
+	prometheusLabels                 = config.GetViper().GetStringMapString("plantDCore.prometheus.labels")
+	prometheusServiceMonitorSelector = config.GetViper().GetStringMapString("monitor.serviceMonitor.labels")
+	prometheusServiceAccountName     = config.GetViper().GetString("plantDCore.prometheus.serviceAccountName")
+	prometheusClusterRoleName        = config.GetViper().GetString("plantDCore.prometheus.clusterRoleName")
+	prometheusClusterRoleBindingName = config.GetViper().GetString("plantDCore.prometheus.clusterRoleBindingName")
+	prometheusObjectName             = config.GetViper().GetString("plantDCore.prometheus.name")
+	prometheusScrapeInterval         = config.GetViper().GetString("plantDCore.prometheus.scrapeInterval")
+	prometheusReplicas               = config.GetViper().GetInt32("plantDCore.prometheus.replicas")
+	prometheusMemoryLimit            = config.GetViper().GetString("plantDCore.prometheus.memoryLimit")
+	prometheusServiceName            = config.GetViper().GetString("plantDCore.prometheus.serviceName")
+	prometheusPort                   = config.GetViper().GetInt32("plantDCore.prometheus.port")
+	prometheusTargetPort             = config.GetViper().GetInt32("plantDCore.prometheus.targetPort")
+	prometheusNodePort               = config.GetViper().GetInt32("plantDCore.prometheus.nodePort")
+	redisLabels                      = config.GetViper().GetStringMapString("plantDCore.redis.labels")
+	redisContainerName               = config.GetViper().GetString("plantDCore.redis.containerName")
+	redisImage                       = config.GetViper().GetString("plantDCore.redis.image")
+	redisDeploymentName              = config.GetViper().GetString("plantDCore.redis.deploymentName")
+	redisReplicas                    = config.GetViper().GetInt32("plantDCore.redis.replicas")
+	redisServiceName                 = config.GetViper().GetString("plantDCore.redis.serviceName")
+	redisPort                        = config.GetViper().GetInt32("plantDCore.redis.port")
+	redisTargetPort                  = config.GetViper().GetInt32("plantDCore.redis.targetPort")
 )
-
-func init() {
-	plantDCoreServiceAccountName = config.GetString("plantDCore.serviceAccountName")
-
-	kubeProxyLabels = config.GetStringMapString("plantDCore.kubeProxy.labels")
-	kubeProxyContainerName = config.GetString("plantDCore.kubeProxy.containerName")
-	kubeProxyImage = config.GetString("plantDCore.kubeProxy.image")
-	kubeProxyDeploymentName = config.GetString("plantDCore.kubeProxy.deploymentName")
-	kubeProxyReplicas = config.GetInt32("plantDCore.kubeProxy.replicas")
-	kubeProxyServiceName = config.GetString("plantDCore.kubeProxy.serviceName")
-	kubeProxyPort = config.GetInt32("plantDCore.kubeProxy.port")
-	kubeProxyTargetPort = config.GetInt32("plantDCore.kubeProxy.targetPort")
-
-	studioLabels = config.GetStringMapString("plantDCore.studio.labels")
-	studioContainerName = config.GetString("plantDCore.studio.containerName")
-	studioImage = config.GetString("plantDCore.studio.image")
-	studioDeploymentName = config.GetString("plantDCore.studio.deploymentName")
-	studioReplicas = config.GetInt32("plantDCore.studio.replicas")
-	studioServiceName = config.GetString("plantDCore.studio.serviceName")
-	studioPort = config.GetInt32("plantDCore.studio.port")
-	studioTargetPort = config.GetInt32("plantDCore.studio.targetPort")
-
-	prometheusLabels = config.GetStringMapString("plantDCore.prometheus.labels")
-	prometheusServiceMonitorSelector = config.GetStringMapString("plantDCore.prometheus.serviceMonitorSelector")
-	prometheusServiceAccountName = config.GetString("plantDCore.prometheus.serviceAccountName")
-	prometheusClusterRoleName = config.GetString("plantDCore.prometheus.clusterRoleName")
-	prometheusClusterRoleBindingName = config.GetString("plantDCore.prometheus.clusterRoleBindingName")
-	prometheusObjectName = config.GetString("plantDCore.prometheus.name")
-	prometheusScrapeInterval = config.GetString("plantDCore.prometheus.scrapeInterval")
-	prometheusReplicas = config.GetInt32("plantDCore.prometheus.replicas")
-	prometheusMemoryLimit = config.GetString("plantDCore.prometheus.memoryLimit")
-	prometheusServiceName = config.GetString("plantDCore.prometheus.serviceName")
-	prometheusPort = config.GetInt32("plantDCore.prometheus.port")
-	prometheusTargetPort = config.GetInt32("plantDCore.prometheus.targetPort")
-	prometheusNodePort = config.GetInt32("plantDCore.prometheus.nodePort")
-
-	redisLabels = config.GetStringMapString("plantDCore.redis.labels")
-	redisContainerName = config.GetString("plantDCore.redis.containerName")
-	redisImage = config.GetString("plantDCore.redis.image")
-	redisDeploymentName = config.GetString("plantDCore.redis.deploymentName")
-	redisReplicas = config.GetInt32("plantDCore.redis.replicas")
-	redisServiceName = config.GetString("plantDCore.redis.serviceName")
-	redisPort = config.GetInt32("plantDCore.redis.port")
-	redisTargetPort = config.GetInt32("plantDCore.redis.targetPort")
-}
 
 // GetKubeProxyServiceFQDN returns the in-cluster DNS name of PlantD Kube Proxy Service
 func GetKubeProxyServiceFQDN(plantDCore *windtunnelv1alpha1.PlantDCore) string {
@@ -380,15 +332,15 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 				Replicas:                        &numReplicas,
 				Resources:                       resourceRequirements,
 				SecurityContext: &corev1.PodSecurityContext{
-					RunAsUser:    ptr.To(config.GetInt64("plantDCore.prometheus.securityContext.runAsUser")),
-					RunAsNonRoot: ptr.To(config.GetBool("plantDCore.prometheus.securityContext.runAsNonRoot")),
-					FSGroup:      ptr.To(config.GetInt64("plantDCore.prometheus.securityContext.fsGroup")),
-					RunAsGroup:   ptr.To(config.GetInt64("plantDCore.prometheus.securityContext.runAsGroup")),
+					RunAsUser:    ptr.To(config.GetViper().GetInt64("plantDCore.prometheus.securityContext.runAsUser")),
+					RunAsNonRoot: ptr.To(config.GetViper().GetBool("plantDCore.prometheus.securityContext.runAsNonRoot")),
+					FSGroup:      ptr.To(config.GetViper().GetInt64("plantDCore.prometheus.securityContext.fsGroup")),
+					RunAsGroup:   ptr.To(config.GetViper().GetInt64("plantDCore.prometheus.securityContext.runAsGroup")),
 				},
 			},
 			Thanos: &monitoringv1.ThanosSpec{
-				BaseImage: ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosBaseImage")),
-				Version:   ptr.To(config.GetString("plantDCore.prometheus.thanos.thanosVersion")),
+				BaseImage: ptr.To(config.GetViper().GetString("plantDCore.prometheus.thanos.thanosBaseImage")),
+				Version:   ptr.To(config.GetViper().GetString("plantDCore.prometheus.thanos.thanosVersion")),
 			},
 			EnableAdminAPI: false,
 		},
@@ -396,9 +348,9 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 	if plantDCore.Spec.ThanosEnabled {
 		prometheus.Spec.Thanos.ObjectStorageConfig = &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name"),
+				Name: config.GetViper().GetString("plantDCore.prometheus.thanos.thanosConfig.name"),
 			},
-			Key: config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
+			Key: config.GetViper().GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
 		}
 	}
 	return prometheus
@@ -503,7 +455,7 @@ func GetRedisService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service 
 func GetThanosQuerierService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetString("plantDCore.prometheus.thanosQuerier.deploymentName"),
+			Name:      config.GetViper().GetString("plantDCore.prometheus.thanosQuerier.deploymentName"),
 			Namespace: plantDCore.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
@@ -512,11 +464,11 @@ func GetThanosQuerierService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.
 				{
 					Name:       "http",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       config.GetInt32("plantDCore.prometheus.thanosQuerier.httpPort"),
-					TargetPort: intstr.FromInt32(config.GetInt32("plantDCore.prometheus.thanosQuerier.httpPort")),
+					Port:       config.GetViper().GetInt32("plantDCore.prometheus.thanosQuerier.httpPort"),
+					TargetPort: intstr.FromInt32(config.GetViper().GetInt32("plantDCore.prometheus.thanosQuerier.httpPort")),
 				},
 			},
-			Selector: config.GetStringMapString("plantDCore.prometheus.thanosQuerier.labels"),
+			Selector: config.GetViper().GetStringMapString("plantDCore.prometheus.thanosQuerier.labels"),
 		},
 	}
 	return service
@@ -531,13 +483,13 @@ func GetThanosSidecarService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.
 			Type: corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
-					Name:       config.GetString("plantDCore.prometheus.thanosSidecarService.portName"),
+					Name:       config.GetViper().GetString("plantDCore.prometheus.thanosSidecarService.portName"),
 					Protocol:   corev1.ProtocolTCP,
-					Port:       config.GetInt32("plantDCore.prometheus.thanosSidecarService.port"),
-					TargetPort: intstr.FromInt32(config.GetInt32("plantDCore.prometheus.thanosSidecarService.port")),
+					Port:       config.GetViper().GetInt32("plantDCore.prometheus.thanosSidecarService.port"),
+					TargetPort: intstr.FromInt32(config.GetViper().GetInt32("plantDCore.prometheus.thanosSidecarService.port")),
 				},
 			},
-			Selector: config.GetStringMapString("plantDCore.prometheus.labels"),
+			Selector: config.GetViper().GetStringMapString("plantDCore.prometheus.labels"),
 		},
 	}
 	return service
@@ -545,12 +497,12 @@ func GetThanosSidecarService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.
 func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.Deployment {
 	containerArgs := []string{
 		"query",
-		fmt.Sprintf("--http-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.httpPort")),
-		fmt.Sprintf("--grpc-address=0.0.0.0:%s", config.GetString("plantDCore.prometheus.thanosQuerier.grpcPort")),
-		fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosQuerier.url")),
+		fmt.Sprintf("--http-address=0.0.0.0:%s", config.GetViper().GetString("plantDCore.prometheus.thanosQuerier.httpPort")),
+		fmt.Sprintf("--grpc-address=0.0.0.0:%s", config.GetViper().GetString("plantDCore.prometheus.thanosQuerier.grpcPort")),
+		fmt.Sprintf("--store=%s", config.GetViper().GetString("plantDCore.prometheus.thanosQuerier.url")),
 	}
 	if plantDCore.Spec.ThanosEnabled {
-		containerArgs = append(containerArgs, fmt.Sprintf("--store=%s", config.GetString("plantDCore.prometheus.thanosStore.url")))
+		containerArgs = append(containerArgs, fmt.Sprintf("--store=%s", config.GetViper().GetString("plantDCore.prometheus.thanosStore.url")))
 	}
 
 	deployment := &appsv1.Deployment{
@@ -559,28 +511,28 @@ func GetThanosQuerierDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *apps
 			Namespace: plantDCore.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: ptr.To(config.GetInt32("plantDCore.prometheus.thanosQuerier.replicas")),
+			Replicas: ptr.To(config.GetViper().GetInt32("plantDCore.prometheus.thanosQuerier.replicas")),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: config.GetStringMapString("plantDCore.prometheus.thanosQuerier.labels"),
+				MatchLabels: config.GetViper().GetStringMapString("plantDCore.prometheus.thanosQuerier.labels"),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: config.GetStringMapString("plantDCore.prometheus.thanosQuerier.labels"),
+					Labels: config.GetViper().GetStringMapString("plantDCore.prometheus.thanosQuerier.labels"),
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
 							Name:  "thanos-querier",
-							Image: config.GetString("plantDCore.prometheus.thanosQuerier.image"),
+							Image: config.GetViper().GetString("plantDCore.prometheus.thanosQuerier.image"),
 							Args:  containerArgs,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
-									ContainerPort: config.GetInt32("plantDCore.prometheus.thanosQuerier.httpPort"),
+									ContainerPort: config.GetViper().GetInt32("plantDCore.prometheus.thanosQuerier.httpPort"),
 								},
 								{
 									Name:          "grpc",
-									ContainerPort: config.GetInt32("plantDCore.prometheus.thanosQuerier.grpcPort"),
+									ContainerPort: config.GetViper().GetInt32("plantDCore.prometheus.thanosQuerier.grpcPort"),
 								},
 							},
 						},
@@ -598,7 +550,7 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 		AccessModes: []corev1.PersistentVolumeAccessMode{"ReadWriteOnce"},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceStorage: resource.MustParse(config.GetString("plantDCore.prometheus.thanosStore.volumeSize")),
+				corev1.ResourceStorage: resource.MustParse(config.GetViper().GetString("plantDCore.prometheus.thanosStore.volumeSize")),
 			},
 		},
 	}
@@ -613,48 +565,48 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetString("plantDCore.prometheus.thanosStore.name"),
+			Name:      config.GetViper().GetString("plantDCore.prometheus.thanosStore.name"),
 			Namespace: plantDCore.Namespace,
 		},
 		Spec: appsv1.StatefulSetSpec{
 			ServiceName: "thanos-store",
-			Replicas:    ptr.To(config.GetInt32("plantDCore.prometheus.thanosStore.replicas")),
+			Replicas:    ptr.To(config.GetViper().GetInt32("plantDCore.prometheus.thanosStore.replicas")),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
+				MatchLabels: config.GetViper().GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
+					Labels: config.GetViper().GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
 				},
 				Spec: corev1.PodSpec{
 					SecurityContext: &corev1.PodSecurityContext{
-						RunAsUser:  ptr.To(config.GetInt64("plantDCore.prometheus.thanosStore.securityContext.runAsUser")),
-						RunAsGroup: ptr.To(config.GetInt64("plantDCore.prometheus.thanosStore.securityContext.runAsGroup")),
-						FSGroup:    ptr.To(config.GetInt64("plantDCore.prometheus.thanosStore.securityContext.fsGroup")),
+						RunAsUser:  ptr.To(config.GetViper().GetInt64("plantDCore.prometheus.thanosStore.securityContext.runAsUser")),
+						RunAsGroup: ptr.To(config.GetViper().GetInt64("plantDCore.prometheus.thanosStore.securityContext.runAsGroup")),
+						FSGroup:    ptr.To(config.GetViper().GetInt64("plantDCore.prometheus.thanosStore.securityContext.fsGroup")),
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  config.GetString("plantDCore.prometheus.thanosStore.name"),
-							Image: config.GetString("plantDCore.prometheus.thanosStore.image"),
+							Name:  config.GetViper().GetString("plantDCore.prometheus.thanosStore.name"),
+							Image: config.GetViper().GetString("plantDCore.prometheus.thanosStore.image"),
 							Args: []string{
 								"store",
-								fmt.Sprintf("--data-dir=%s", config.GetString("plantDCore.prometheus.thanosStore.dataDir")),
+								fmt.Sprintf("--data-dir=%s", config.GetViper().GetString("plantDCore.prometheus.thanosStore.dataDir")),
 								"--objstore.config=$(OBJSTORE_CONFIG)",
 							},
 							Ports: []corev1.ContainerPort{
-								{Name: "grpc", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.grpcPort")},
-								{Name: "http", ContainerPort: config.GetInt32("plantDCore.prometheus.thanosStore.httpPort")},
+								{Name: "grpc", ContainerPort: config.GetViper().GetInt32("plantDCore.prometheus.thanosStore.grpcPort")},
+								{Name: "http", ContainerPort: config.GetViper().GetInt32("plantDCore.prometheus.thanosStore.httpPort")},
 							},
 							VolumeMounts: []corev1.VolumeMount{
-								{Name: "thanos-data", MountPath: config.GetString("plantDCore.prometheus.thanosStore.dataDir")},
+								{Name: "thanos-data", MountPath: config.GetViper().GetString("plantDCore.prometheus.thanosStore.dataDir")},
 							},
 							Env: []corev1.EnvVar{
 								{
 									Name: "OBJSTORE_CONFIG",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: config.GetString("plantDCore.prometheus.thanos.thanosConfig.name")},
-											Key:                  config.GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
+											LocalObjectReference: corev1.LocalObjectReference{Name: config.GetViper().GetString("plantDCore.prometheus.thanos.thanosConfig.name")},
+											Key:                  config.GetViper().GetString("plantDCore.prometheus.thanos.thanosConfig.key"),
 										},
 									},
 								},
@@ -670,7 +622,7 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 func GetThanosStoreService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetString("plantDCore.prometheus.thanosStore.serviceName"),
+			Name:      config.GetViper().GetString("plantDCore.prometheus.thanosStore.serviceName"),
 			Namespace: plantDCore.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
@@ -679,11 +631,11 @@ func GetThanosStoreService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Se
 				{
 					Name:       "grpc",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       config.GetInt32("plantDCore.prometheus.thanosStore.grpcPort"),
-					TargetPort: intstr.FromInt32(config.GetInt32("plantDCore.prometheus.thanosStore.grpcPort")),
+					Port:       config.GetViper().GetInt32("plantDCore.prometheus.thanosStore.grpcPort"),
+					TargetPort: intstr.FromInt32(config.GetViper().GetInt32("plantDCore.prometheus.thanosStore.grpcPort")),
 				},
 			},
-			Selector: config.GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
+			Selector: config.GetViper().GetStringMapString("plantDCore.prometheus.thanosStore.labels"),
 		},
 	}
 	return service
@@ -693,14 +645,14 @@ func GetThanosStoreService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Se
 func GetOpencostRBACResources(plantDCore *windtunnelv1alpha1.PlantDCore) (*corev1.ServiceAccount, *rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetString("opencost.serviceAccount"),
+			Name:      config.GetViper().GetString("opencost.serviceAccount"),
 			Namespace: plantDCore.Namespace,
 		},
 	}
 
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetString("opencost.clusterRole"),
+			Name: config.GetViper().GetString("opencost.clusterRole"),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
@@ -756,17 +708,17 @@ func GetOpencostRBACResources(plantDCore *windtunnelv1alpha1.PlantDCore) (*corev
 
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: config.GetString("opencost.clusterRole"),
+			Name: config.GetViper().GetString("opencost.clusterRole"),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     config.GetString("opencost.clusterRole"),
+			Name:     config.GetViper().GetString("opencost.clusterRole"),
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
-				Name:      config.GetString("opencost.clusterRole"),
+				Name:      config.GetViper().GetString("opencost.clusterRole"),
 				Namespace: plantDCore.Namespace,
 			},
 		},
@@ -774,7 +726,7 @@ func GetOpencostRBACResources(plantDCore *windtunnelv1alpha1.PlantDCore) (*corev
 	return sa, clusterRole, clusterRoleBinding
 }
 func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.Deployment {
-	labels := config.GetStringMapString("opencost.deployment.labels")
+	labels := config.GetViper().GetStringMapString("opencost.deployment.labels")
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -783,15 +735,15 @@ func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.De
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: ptr.To(config.GetInt32("opencost.deployment.replicas")),
+			Replicas: ptr.To(config.GetViper().GetInt32("opencost.deployment.replicas")),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 				RollingUpdate: &appsv1.RollingUpdateDeployment{
-					MaxSurge:       ptr.To(intstr.FromInt32(config.GetInt32("opencost.deployment.maxSurge"))),
-					MaxUnavailable: ptr.To(intstr.FromInt32(config.GetInt32("opencost.deployment.maxUnavailable"))),
+					MaxSurge:       ptr.To(intstr.FromInt32(config.GetViper().GetInt32("opencost.deployment.maxSurge"))),
+					MaxUnavailable: ptr.To(intstr.FromInt32(config.GetViper().GetInt32("opencost.deployment.maxUnavailable"))),
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -804,7 +756,7 @@ func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.De
 					Containers: []corev1.Container{
 						{
 							Name:  "opencost",
-							Image: config.GetString("opencost.deployment.image"),
+							Image: config.GetViper().GetString("opencost.deployment.image"),
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resourceQuantity("10m"),
@@ -816,7 +768,7 @@ func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.De
 								},
 							},
 							Env: []corev1.EnvVar{
-								{Name: "PROMETHEUS_SERVER_ENDPOINT", Value: config.GetString("database.prometheus.url")},
+								{Name: "PROMETHEUS_SERVER_ENDPOINT", Value: config.GetViper().GetString("database.prometheus.url")},
 								{Name: "CLOUD_PROVIDER_API_KEY", Value: ""},
 								{Name: "CLUSTER_ID", Value: "cluster-one"},
 								{Name: "LOG_LEVEL", Value: "debug"},
@@ -829,12 +781,12 @@ func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.De
 								},
 								Privileged:             ptr.To(false),
 								ReadOnlyRootFilesystem: ptr.To(true),
-								RunAsUser:              ptr.To(config.GetInt64("opencost.deployment.runAsUser")),
+								RunAsUser:              ptr.To(config.GetViper().GetInt64("opencost.deployment.runAsUser")),
 							},
 						},
 						{
 							Name:  "opencost-ui",
-							Image: config.GetString("opencost.deployment.ui-image"),
+							Image: config.GetViper().GetString("opencost.deployment.ui-image"),
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceCPU:    resourceQuantity("10m"),
@@ -855,7 +807,7 @@ func GetOpencostDeployment(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv1.De
 	return deployment
 }
 func GetOpencostService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Service {
-	labels := config.GetStringMapString("opencost.service.labels")
+	labels := config.GetViper().GetStringMapString("opencost.service.labels")
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -869,13 +821,13 @@ func GetOpencostService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Servi
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "opencost",
-					Port:       config.GetInt32("opencost.service.port"),
-					TargetPort: intstr.FromInt32(config.GetInt32("opencost.service.port")),
+					Port:       config.GetViper().GetInt32("opencost.service.port"),
+					TargetPort: intstr.FromInt32(config.GetViper().GetInt32("opencost.service.port")),
 				},
 				{
 					Name:       "opencost-ui",
-					Port:       config.GetInt32("opencost.service.ui-port"),
-					TargetPort: intstr.FromInt32(config.GetInt32("opencost.service.ui-port")),
+					Port:       config.GetViper().GetInt32("opencost.service.ui-port"),
+					TargetPort: intstr.FromInt32(config.GetViper().GetInt32("opencost.service.ui-port")),
 				},
 			},
 		},
@@ -885,9 +837,9 @@ func GetOpencostService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev1.Servi
 func GetOpencostServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv1.ServiceMonitor {
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetString("opencost.opencostServiceMonitor.name"),
+			Name:      config.GetViper().GetString("opencost.opencostServiceMonitor.name"),
 			Namespace: plantDCore.Namespace,
-			Labels:    config.GetStringMapString("opencost.opencostServiceMonitor.labels"),
+			Labels:    config.GetViper().GetStringMapString("opencost.opencostServiceMonitor.labels"),
 		},
 		Spec: monitoringv1.ServiceMonitorSpec{
 			Endpoints: []monitoringv1.Endpoint{
@@ -898,7 +850,7 @@ func GetOpencostServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monit
 			},
 			JobLabel: "experiment",
 			Selector: metav1.LabelSelector{
-				MatchLabels: config.GetStringMapString("opencost.opencostServiceMonitor.selector"),
+				MatchLabels: config.GetViper().GetStringMapString("opencost.opencostServiceMonitor.selector"),
 			},
 		},
 	}
@@ -907,9 +859,9 @@ func GetOpencostServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monit
 func GetCadvisorServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv1.ServiceMonitor {
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.GetString("opencost.cadvisorServiceMonitor.name"),
+			Name:      config.GetViper().GetString("opencost.cadvisorServiceMonitor.name"),
 			Namespace: plantDCore.Namespace,
-			Labels:    config.GetStringMapString("cadvisor.cadvisorServiceMonitor.labels"),
+			Labels:    config.GetViper().GetStringMapString("cadvisor.cadvisorServiceMonitor.labels"),
 		},
 		Spec: monitoringv1.ServiceMonitorSpec{
 			Endpoints: []monitoringv1.Endpoint{
@@ -933,10 +885,10 @@ func GetCadvisorServiceMonitor(plantDCore *windtunnelv1alpha1.PlantDCore) *monit
 			},
 			JobLabel: "kubelet",
 			NamespaceSelector: monitoringv1.NamespaceSelector{
-				MatchNames: []string{config.GetString("opencost.cadvisorServiceMonitor.namespaceSelector")},
+				MatchNames: []string{config.GetViper().GetString("opencost.cadvisorServiceMonitor.namespaceSelector")},
 			},
 			Selector: metav1.LabelSelector{
-				MatchLabels: config.GetStringMapString("opencost.cadvisorServiceMonitor.selector"),
+				MatchLabels: config.GetViper().GetStringMapString("opencost.cadvisorServiceMonitor.selector"),
 			},
 		},
 	}

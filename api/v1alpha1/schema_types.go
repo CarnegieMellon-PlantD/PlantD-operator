@@ -4,33 +4,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// FormulaSpec defines the specification of the formula.
-type FormulaSpec struct {
-	// Name defines the name of the formula. Should match the name with one of the provided formulas.
+// Formula defines the formula in column.
+type Formula struct {
+	// Name of the formula. Used together with the `args` field.
+	// See https://plantd.org/docs/reference/formulas for available values.
 	Name string `json:"name"`
-	// Args defines the arugments for calling the formula.
+	// Arguments to be passed to the formula. Used together with the `name` field.
+	// See https://plantd.org/docs/reference/formulas for available values.
 	Args []string `json:"args,omitempty"`
 }
 
-// Column defines the metadata of the column data.
+// Column defines the column in Schema.
 type Column struct {
-	// Name defines the name of the column.
+	// Name of the column.
 	Name string `json:"name"`
-	// Type defines the data type of the column. Should match the type with one of the provided types.
+	// Data type of the random data to be generated in the column. Used together with the `params` field.
+	// It should be a valid function name in gofakeit, which can be parsed by gofakeit.GetFuncLookup().
+	// `formula` field has precedence over this field.
+	// See https://plantd.org/docs/reference/types-and-params for available values.
 	Type string `json:"type,omitempty"`
-	// Params defines the parameters for constructing the data give certain data type.
+	// Map of parameters for generating the data in the column. Used together with the `type` field.
+	// For any parameters not provided but required by the data type, the default value will be used, if available.
+	// Will ignore any parameters not used by the data type.
+	// See https://plantd.org/docs/reference/types-and-params for available values.
 	Params map[string]string `json:"params,omitempty"`
-	// Formula defines the formula applies to the column data.
-	Formula FormulaSpec `json:"formula,omitempty"`
+	// Formula to be applied for populating the data in the column.
+	// This field has precedence over the `type` fields.
+	Formula Formula `json:"formula,omitempty"`
 }
 
-// SchemaSpec defines the desired state of Schema
+// SchemaSpec defines the desired state of Schema.
 type SchemaSpec struct {
-	// Columns defines a list of column specifications.
+	// List of columns in the Schema.
 	Columns []Column `json:"columns"`
 }
 
-// SchemaStatus defines the observed state of Schema
+// SchemaStatus defines the observed state of Schema.
 type SchemaStatus struct{}
 
 //+kubebuilder:object:root=true
@@ -41,9 +50,7 @@ type Schema struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specifications of the Schema.
-	Spec SchemaSpec `json:"spec,omitempty"`
-	// Status defines the status of the Schema.
+	Spec   SchemaSpec   `json:"spec,omitempty"`
 	Status SchemaStatus `json:"status,omitempty"`
 }
 
@@ -53,9 +60,7 @@ type Schema struct {
 type SchemaList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of Schemas.
-	Items []Schema `json:"items"`
+	Items           []Schema `json:"items"`
 }
 
 func init() {

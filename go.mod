@@ -1,11 +1,12 @@
 module github.com/CarnegieMellon-PlantD/PlantD-operator
 
-go 1.21
+go 1.22
 
-toolchain go1.21.4
+toolchain go1.22.1
 
 require (
 	github.com/RedisTimeSeries/redistimeseries-go v1.4.4
+	github.com/brianvoe/gofakeit/v7 v7.0.2
 	github.com/cisco-open/k8s-objectmatcher v1.9.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/onsi/ginkgo/v2 v2.13.2
@@ -62,7 +63,6 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/brianvoe/gofakeit/v6 v6.26.0
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
@@ -98,7 +98,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.1
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect

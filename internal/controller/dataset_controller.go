@@ -1,19 +1,3 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controller
 
 import (
@@ -39,25 +23,17 @@ import (
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
+const (
+	dataSetLogsTimeout     = 30 * time.Second
+	dataSetPollingInterval = 2 * time.Second
+)
+
 // DataSetReconciler reconciles a DataSet object
 type DataSetReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	CGClient *clientgo.Clientset
 }
-
-const (
-	errorTypeLogContainer = "container"
-	errorTypeLogPod       = "pod"
-)
-const (
-	CREATING   = "Creating"
-	GENERATING = "Generating"
-	RUNNING    = "Running"
-	FAILED     = "Failed"
-	SUCCESS    = "Success"
-	UNKNOWN    = "Unknown"
-)
 
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets/status,verbs=get;update;patch
@@ -73,240 +49,211 @@ const (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *DataSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	/*
-		### 1: Get the DataSet by name
-		We'll fetch the CronJob using our client.  All client methods take a
-		context (to allow for cancellation) as their first argument, and the object
-		in question as their last.  Get is a bit special, in that it takes a
-		[`NamespacedName`](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client?tab=doc#ObjectKey)
-		as the middle argument.
-		Many client methods also take variadic options at the end.
-	*/
+	// Fetch the requested DataSet
 	dataSet := &windtunnelv1alpha1.DataSet{}
 	if err := r.Get(ctx, req.NamespacedName, dataSet); err != nil {
 		if apierrors.IsNotFound(err) {
-			// Custom resource not found, perform cleanup tasks here.
-			// Created objects are automatically garbage collected.
-			log.Info("DataSet is deleted.")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Unable to fetch DataSet.")
+		logger.Error(err, "Unable to fetch DataSet")
 		return ctrl.Result{}, err
 	}
 
+	// Create or update PVC and Job
+	// dataSet.Generation is used to track the change in dataSet.Spec
+	// Once the spec is created/updated, we create new PVC & Job, delete the old PVC & Job
+	if dataSet.Generation != dataSet.Status.LastGeneration {
+		return r.reconcileCreatedOrUpdated(ctx, dataSet)
+	}
+
+	// Fetch the current PVC & Job, check the Job status, and update the DataSet status
+	if dataSet.Status.JobStatus == windtunnelv1alpha1.DataSetJobRunning {
+		return r.reconcileRunning(ctx, dataSet)
+	}
+
+	// DataSet is not created/updated, and it is not running, no action needed
+	return ctrl.Result{}, nil
+}
+
+// reconcileCreatedOrUpdated reconciles the DataSet when it is created or updated.
+func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataSet *windtunnelv1alpha1.DataSet) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	// Reset all the status fields
+	dataSet.Status.JobStatus = ""
+	dataSet.Status.PVCStatus = ""
+	dataSet.Status.StartTime = nil
+	dataSet.Status.CompletionTime = nil
+	dataSet.Status.ErrorCount = 0
+	dataSet.Status.Errors = nil
+
+	// Get all Schemas
 	schemaMap := make(map[string]*windtunnelv1alpha1.Schema, len(dataSet.Spec.Schemas))
 	for _, schema := range dataSet.Spec.Schemas {
 		s := &windtunnelv1alpha1.Schema{}
-		schemaName := types.NamespacedName{Namespace: req.Namespace, Name: schema.Name}
+		schemaName := types.NamespacedName{Namespace: dataSet.Namespace, Name: schema.Name}
 		if err := r.Get(ctx, schemaName, s); err != nil {
-			log.Error(err, "Cannot get Schema: "+schemaName.String())
-			r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
+			logger.Error(err, fmt.Sprintf("Cannot get Schema: %s", schemaName))
+			dataSet.Status.JobStatus = windtunnelv1alpha1.DataSetJobFailed
+			dataSet.Status.ErrorCount = 1
+			dataSet.Status.Errors = map[windtunnelv1alpha1.DataSetErrorType][]string{
+				windtunnelv1alpha1.DataSetControllerError: {
+					fmt.Sprintf("Cannot find Schema: %s", err),
+				},
+			}
+			if err := r.Status().Update(ctx, dataSet); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
 		}
 		schemaMap[schema.Name] = s
 	}
 
-	if dataSet.GetDeletionTimestamp() != nil {
-		log.Info("Delete DataSet")
-		return ctrl.Result{}, nil
+	// Delete the Job from last generation if exists
+	lastJobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Status.LastGeneration)
+	lastJob := &kbatch.Job{}
+	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: lastJobName}, lastJob); err == nil {
+		// By default, the Pod of the Job will be reserved after the Job is deleted,
+		// and Kubernetes will raise a warning.
+		// Set the propagation policy to "Background" to avoid the warning and delete the Pod.
+		propagationPolicy := metav1.DeletePropagationBackground
+		if err := r.Delete(ctx, lastJob, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
+			logger.Error(err, "Cannot delete Job from last generation")
+			return ctrl.Result{}, err
+		}
+		logger.Info(fmt.Sprintf("Job deleted: %s", lastJobName))
 	}
 
-	if dataSet.Status.StartTime == nil {
-		dataSet.Status.StartTime = &metav1.Time{}
+	// Delete the PVC from last generation if exists, it will delete the PV as well
+	lastPVCName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Status.LastGeneration)
+	lastPVC := &corev1.PersistentVolumeClaim{}
+	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: lastPVCName}, lastPVC); err == nil {
+		if err := r.Delete(ctx, lastPVC); err != nil {
+			logger.Error(err, "Cannot delete PVC from last generation")
+			return ctrl.Result{}, err
+		}
+		logger.Info(fmt.Sprintf("PVC deleted: %s", lastPVCName))
 	}
-	if dataSet.Status.JobStatus == "" {
-		dataSet.Status.JobStatus = UNKNOWN
-		dataSet.Status.PVCStatus = UNKNOWN
+
+	// Create a new PVC
+	newPVCName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation)
+	newPVC := datagen.CreatePVC(newPVCName, dataSet)
+	if err := ctrl.SetControllerReference(dataSet, newPVC, r.Scheme); err != nil {
+		logger.Error(err, "Cannot set controller reference for PVC")
+		return ctrl.Result{}, err
 	}
+	if err := r.Create(ctx, newPVC); client.IgnoreAlreadyExists(err) != nil {
+		logger.Error(err, "Cannot create PVC")
+		return ctrl.Result{}, err
+	} else if err == nil {
+		logger.Info(fmt.Sprintf("PVC created: %s", newPVCName))
+	}
+
+	// Create a new job
+	newJobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Generation)
+	newJob, err := datagen.CreateJob(newJobName, newPVCName, dataSet, schemaMap)
+	if err != nil {
+		logger.Error(err, "Cannot prepare Job object to create")
+		return ctrl.Result{}, err
+	}
+	if err := ctrl.SetControllerReference(dataSet, newJob, r.Scheme); err != nil {
+		logger.Error(err, "Cannot set controller reference for Job")
+		return ctrl.Result{}, err
+	}
+	if err := r.Create(ctx, newJob); client.IgnoreAlreadyExists(err) != nil {
+		logger.Error(err, "Cannot create Job")
+		return ctrl.Result{}, err
+	} else if err == nil {
+		logger.Info(fmt.Sprintf("Job created: %s", newJobName))
+	}
+
+	// Update the last generation and Job status
+	dataSet.Status.LastGeneration = dataSet.Generation
+	dataSet.Status.JobStatus = windtunnelv1alpha1.DataSetJobRunning
 	if err := r.Status().Update(ctx, dataSet); err != nil {
-		log.Error(err, "Cannot update the status of DataSet.")
-	}
-
-	/*
-		### 2: Create or update pvc and indexedJob
-		dataSet.Generation is used to track the change in dataSet.Spec
-		once the spec is created/updated, we create new pvc & indexJob, delete the old pvs & indexJob
-	*/
-	if dataSet.Status.LastGeneration != dataSet.Generation {
-		log.Info("Create/Update DataSet")
-
-		// Create a new pvc
-		pvcName := utils.GetPVCName(dataSet.Name, dataSet.Generation)
-		log.Info("Create a new pvc")
-		newPVC := datagen.CreatePVC(types.NamespacedName{Name: pvcName, Namespace: dataSet.Namespace})
-		if err := ctrl.SetControllerReference(dataSet, newPVC, r.Scheme); err != nil {
-			log.Error(err, "Cannot set owner controller.")
-			return ctrl.Result{}, err
-		}
-		if err := r.Create(ctx, newPVC); err != nil {
-			log.Error(err, "Cannot create persistent volume claim.")
-			r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
-		}
-		dataSet.Status.PVCStatus = string(newPVC.Status.Phase)
-
-		// Create a new indexedJob
-		jobName := utils.GetJobName(dataSet.Name, "parallel-gen-data", dataSet.Generation)
-		newIndexedJob, err := datagen.CreateJobByDataSet(jobName, pvcName, dataSet, schemaMap)
-		if err != nil {
-			log.Error(err, "Cannot create job.")
-			r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
-
-		}
-		if err := ctrl.SetControllerReference(dataSet, newIndexedJob, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.Create(ctx, newIndexedJob); err != nil {
-			log.Error(err, "Cannot create indexed job.")
-			r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
-		}
-		log.Info("Create an indexed parallel job.")
-		dataSet.Status.StartTime = &newIndexedJob.ObjectMeta.CreationTimestamp
-		dataSet.Status.JobStatus = GENERATING
-
-		// Delete the job of last generation if exists one
-		lastIndexedJob := &kbatch.Job{}
-		lastJobName := utils.GetJobName(dataSet.Name, "parallel-gen-data", dataSet.Status.LastGeneration)
-		if err := r.Get(ctx, client.ObjectKey{Name: lastJobName, Namespace: dataSet.Namespace}, lastIndexedJob); err == nil {
-			if lastIndexedJob.GetDeletionTimestamp() == nil {
-				log.Info("Job of last generation still alive, proceed to kill.")
-				propagationPolicy := metav1.DeletePropagationBackground
-				if err := r.Delete(ctx, lastIndexedJob, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
-					log.Error(err, "Cannot kill the current running jobs.")
-					return ctrl.Result{}, err
-				}
-				log.Info("Job of last generation deleted.")
-			}
-		}
-
-		// Delete the pvc of last generation if exists one
-		lastPvc := &corev1.PersistentVolumeClaim{}
-		lastPvcName := utils.GetPVCName(dataSet.Name, dataSet.Status.LastGeneration)
-		if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: lastPvcName}, lastPvc); err == nil {
-			var refPods int64
-			for refPods > 0 {
-				refPods = 0
-				podList := &corev1.PodList{}
-				if err := r.List(ctx, podList, client.InNamespace(dataSet.Namespace)); err != nil {
-					log.Error(err, "Cannot list pods using pvc.")
-					r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
-				}
-				for _, pod := range podList.Items {
-					for _, volume := range pod.Spec.Volumes {
-						if volume.VolumeSource.PersistentVolumeClaim != nil && volume.VolumeSource.PersistentVolumeClaim.ClaimName == lastPvc.Name {
-							log.Info("There's still pod referencing the pvc")
-							refPods = refPods + 1
-							break
-						}
-					}
-					if refPods > 0 {
-						break
-					}
-				}
-			}
-			if err := r.Delete(ctx, lastPvc); err != nil {
-				log.Error(err, "Cannot delete pvc.")
-				r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
-			}
-			log.Info("PVC of last generation deleted.")
-		}
-
-		dataSet.Status.LastGeneration = dataSet.Generation
-
-		if err := r.Status().Update(ctx, dataSet); err != nil {
-			log.Error(err, "Cannot update the status of DataSet.")
-			r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
-		}
-	}
-
-	/*
-		### 3: Fetch the current pvc & indexJob and update status
-	*/
-
-	jobName := utils.GetJobName(dataSet.Name, "parallel-gen-data", dataSet.Generation)
-	indexedJob := &kbatch.Job{}
-	if err := r.Get(ctx, client.ObjectKey{Name: jobName, Namespace: dataSet.Namespace}, indexedJob); err != nil {
-		log.Error(err, "Cannot get indexed job")
+		logger.Error(err, "Cannot update the status")
 		return ctrl.Result{}, err
 	}
 
-	pvcName := utils.GetPVCName(dataSet.Name, dataSet.Generation)
+	// Requeue the request to check the Job status
+	return ctrl.Result{RequeueAfter: dataSetPollingInterval}, nil
+}
+
+// reconcileRunning reconciles the DataSet when it is running.
+func (r *DataSetReconciler) reconcileRunning(ctx context.Context, dataSet *windtunnelv1alpha1.DataSet) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	// Get the Job
+	jobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Generation)
+	job := &kbatch.Job{}
+	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: jobName}, job); err != nil {
+		logger.Error(err, fmt.Sprintf("Lost Job: %s", jobName))
+		return ctrl.Result{}, err
+	}
+
+	// Get the PVC
+	pvcName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation)
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: pvcName}, pvc); err != nil {
-		log.Error(err, "Cannot get pvc")
-		return ctrl.Result{}, err
-	}
-	dataSet.Status.PVCStatus = string(pvc.Status.Phase)
-	if err := r.Status().Update(ctx, dataSet); err != nil {
-		log.Error(err, "Cannot update the status of DataSet 3.")
+		logger.Error(err, fmt.Sprintf("Lost PVC: %s", pvcName))
 		return ctrl.Result{}, err
 	}
 
-	/*
-		### 4: Check if the job has completed
-	*/
-	ok, conditionType := isJobFinished(indexedJob)
-	if ok {
-		switch conditionType {
+	// Update the PVC status
+	dataSet.Status.PVCStatus = pvc.Status.Phase
+
+	// Update start time and completion time
+	dataSet.Status.StartTime = job.Status.StartTime
+	dataSet.Status.CompletionTime = job.Status.CompletionTime
+
+	// Check if the Job is finished, and update the status accordingly
+	jobFinished, jobConditionType := isJobFinished(job)
+	if jobFinished {
+		logger.Info(fmt.Sprintf("Job is finished: %s", jobName))
+		switch jobConditionType {
 		case kbatch.JobComplete:
-			dataSet.Status.JobStatus = SUCCESS
-			log.Info("Job Completed.")
-
+			dataSet.Status.JobStatus = windtunnelv1alpha1.DataSetJobSuccess
 		case kbatch.JobFailed:
-			log.Info("Job failed.")
-			dataSet.Status.JobStatus = FAILED
-			// Get pod logs
-			podLogs, err := r.getPodLogs(ctx, indexedJob)
+			// Get logs from the Job
+			jobLogs, err := r.getJobLogs(ctx, job)
 			if err != nil {
-				log.Error(err, "Cannot get pod logs")
-				r.updateErrors(dataSet, errorTypeLogContainer, err.Error())
+				logger.Error(err, "Cannot get Job logs")
+				dataSet.Status.JobStatus = windtunnelv1alpha1.DataSetJobFailed
+				dataSet.Status.ErrorCount = 1
+				dataSet.Status.Errors = map[windtunnelv1alpha1.DataSetErrorType][]string{
+					windtunnelv1alpha1.DataSetControllerError: {
+						fmt.Sprintf("Job finished but cannot get Job logs: %s", err),
+					},
+				}
 			} else {
-				// Set errorString to pod logs
-				for _, logs := range podLogs {
-					r.updateErrors(dataSet, errorTypeLogPod, logs)
+				dataSet.Status.JobStatus = windtunnelv1alpha1.DataSetJobFailed
+				dataSet.Status.ErrorCount = int32(len(jobLogs))
+				dataSet.Status.Errors = map[windtunnelv1alpha1.DataSetErrorType][]string{
+					windtunnelv1alpha1.DataSetJobError: jobLogs,
 				}
 			}
 		}
-		dataSet.Status.CompletionTime = indexedJob.Status.CompletionTime
-		if err := r.Status().Update(ctx, dataSet); err != nil {
-			log.Error(err, "Cannot update the status of DataSet.")
-			return ctrl.Result{}, err
-		}
+
+	}
+
+	if err := r.Status().Update(ctx, dataSet); err != nil {
+		logger.Error(err, "Cannot update the status")
+		return ctrl.Result{}, err
+	}
+
+	if jobFinished {
+		// Job is finished, no need to requeue
 		return ctrl.Result{}, nil
-	}
-	log.Info("Job is running.")
-	return ctrl.Result{Requeue: true, RequeueAfter: time.Second}, nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *DataSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&windtunnelv1alpha1.DataSet{}).
-		Complete(r)
-}
-
-func (r *DataSetReconciler) updateErrors(dataset *windtunnelv1alpha1.DataSet, errorType string, err string) {
-	if dataset.Status.Errors == nil {
-		dataset.Status.Errors = make(map[string][]string)
-	}
-
-	// Check if the error already exists in the list
-	if !containsError(dataset.Status.Errors[errorType], err) {
-		dataset.Status.ErrorCount++
-		dataset.Status.Errors[errorType] = append(dataset.Status.Errors[errorType], err)
+	} else {
+		// Job is still running, requeue the request
+		return ctrl.Result{RequeueAfter: dataSetPollingInterval}, nil
 	}
 }
 
-// Helper function to check if an error already exists in the list
-func containsError(errors []string, err string) bool {
-	for _, e := range errors {
-		if e == err {
-			return true
-		}
-	}
-	return false
-}
-
+// isJobFinished checks if the Job is finished, and returns the condition type if it is finished.
 func isJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
 	for _, c := range job.Status.Conditions {
 		if (c.Type == kbatch.JobComplete || c.Type == kbatch.JobFailed) && c.Status == corev1.ConditionTrue {
@@ -316,67 +263,75 @@ func isJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
 	return false, ""
 }
 
-func (r *DataSetReconciler) getPodLogs(ctx context.Context, job *kbatch.Job) ([]string, error) {
-	podList := &corev1.PodList{}
-	if err := r.List(ctx, podList, client.InNamespace(job.Namespace)); err != nil {
-		return nil, fmt.Errorf("failed to list pods: %w", err)
-	}
-
-	result := make([]string, 0)
-	for _, pod := range podList.Items {
-		// Check if the pod belongs to the job
-		if metav1.IsControlledBy(&pod, job) {
-			// Create a new context to ensure it is not affected by the parent context cancellation
-			// this is to avoid any rate limiting issues from kubernetes API
-			podLogCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-			defer cancel()
-
-			// Get the pod logs using the new context
-			logs, err := r.getPodLogsByPodName(podLogCtx, pod.Namespace, pod.Name)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get pod logs: %w", err)
-			}
-
-			result = append(result, logs)
-		}
-	}
-
-	if len(result) > 0 {
-		return result, nil
-	} else {
-		return nil, fmt.Errorf("no pod found for job: %s/%s", job.Namespace, job.Name)
-	}
-}
-
-func (r *DataSetReconciler) getPodLogsByPodName(ctx context.Context, namespace, podName string) (string, error) {
-	pod := &corev1.Pod{}
-	err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: podName}, pod)
-	if err != nil {
-		return "", fmt.Errorf("failed to get pod: %w", err)
-	}
-
-	if len(pod.Spec.Containers) == 0 {
-		return "", fmt.Errorf("no containers found in pod")
-	}
-
-	containerName := pod.Spec.Containers[0].Name
-
-	podLogOpts := &corev1.PodLogOptions{
+// getContainerLogs gets the logs of a container in a Pod.
+func (r *DataSetReconciler) getContainerLogs(ctx context.Context, pod *corev1.Pod, containerName string) (string, error) {
+	// Open a stream for the Pod logs
+	req := r.CGClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &corev1.PodLogOptions{
 		Container: containerName,
-	}
-
-	podLogRequest := r.CGClient.CoreV1().Pods(namespace).GetLogs(podName, podLogOpts)
-	podLogs, err := podLogRequest.Stream(ctx)
+	})
+	podLogs, err := req.Stream(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to open log stream for pod: %w", err)
+		return "", fmt.Errorf("failed to open stream: %w", err)
 	}
 	defer podLogs.Close()
 
+	// Read the logs from the stream
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)
 	if err != nil {
-		return "", fmt.Errorf("failed to read pod logs: %w", err)
+		return "", fmt.Errorf("failed to read from stream: %w", err)
 	}
 
 	return buf.String(), nil
+}
+
+// getPodLogs gets the logs of all containers in a Pod.
+func (r *DataSetReconciler) getPodLogs(ctx context.Context, pod *corev1.Pod) ([]string, error) {
+	result := make([]string, 0)
+	for _, container := range pod.Spec.Containers {
+		containerLog, err := r.getContainerLogs(ctx, pod, container.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get container logs: %w", err)
+		}
+		result = append(result, containerLog)
+	}
+	return result, nil
+}
+
+// getJobLogs gets the logs of all Pods in a Job.
+func (r *DataSetReconciler) getJobLogs(ctx context.Context, job *kbatch.Job) ([]string, error) {
+	podList := &corev1.PodList{}
+	if err := r.List(ctx, podList, client.InNamespace(job.Namespace)); err != nil {
+		return nil, fmt.Errorf("failed to list Pods: %w", err)
+	}
+
+	// Create a new context to ensure it is not affected by the parent context cancellation
+	// This is to avoid any rate limiting issues from Kubernetes API
+	jobLogsCtx, cancel := context.WithTimeout(context.Background(), dataSetLogsTimeout)
+	defer cancel()
+
+	result := make([]string, 0)
+	for _, pod := range podList.Items {
+		// Skip if the Pod does not belong to the Job
+		if !metav1.IsControlledBy(&pod, job) {
+			continue
+		}
+		podLogs, err := r.getPodLogs(jobLogsCtx, &pod)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get Pod logs: %w", err)
+		}
+		result = append(result, podLogs...)
+	}
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no logs found")
+	}
+	return result, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *DataSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&windtunnelv1alpha1.DataSet{}).
+		Complete(r)
 }

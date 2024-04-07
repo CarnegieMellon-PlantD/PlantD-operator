@@ -15,21 +15,18 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.startTime
-      name: StartTime
-      type: string
-    - jsonPath: .status.completionTime
-      name: CompletionTime
-      type: string
     - jsonPath: .status.jobStatus
       name: JobStatus
       type: string
     - jsonPath: .status.pvcStatus
       name: VolumeStatus
       type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
+    - jsonPath: .status.startTime
+      name: StartTime
+      type: string
+    - jsonPath: .status.completionTime
+      name: CompletionTime
+      type: string
     - jsonPath: .status.errorCount
       name: ErrorCount
       type: integer
@@ -51,104 +48,136 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the DataSet.
+            description: DataSetSpec defines the desired state of DataSet.
             properties:
               compressPerSchema:
-                description: CompressPerSchema defines the flag of compression. If
-                  you wish files from all the different schemas to compressed into
-                  one compressed file leave this field as false. If you wish to have
-                  a different compressed file for every schema, mark this field as
-                  true.
+                description: Flag for compression behavior. Takes effect only if `compressedFileFormat`
+                  is set. When set to `false` (default), files from all Schemas will
+                  be compressed into a single compressed file in each repetition.
+                  When set to `true`, files from each Schema will be compressed into
+                  a separate compressed file in each repetition.
                 type: boolean
               compressedFileFormat:
-                description: CompressedFileFormat defines the file format for the
-                  compressed files. Each file inside the compressed file is of "fileFormat"
-                  format specified above. This is the output format if specified for
-                  the files.
+                description: Format of the compressed file containing output files.
+                  Available value is `zip`. Leave empty to disable compression.
+                enum:
+                - zip
                 type: string
               fileFormat:
-                description: FileFormat defines the file format of the each file containing
-                  the generated data. This may or may not be the output file format
-                  based on whether you want to compress these files.
+                description: Format of the output file containing generated data.
+                  Available values are `csv` and `binary`.
+                type: string
+              image:
+                description: Image of the data generator job.
                 type: string
               numFiles:
-                description: NumberOfFiles defines the total number of output files
-                  irrespective of compression. Unless "compressPerSchema" is false,
-                  this field is applicable per schema.
+                description: Number of files to be generated. If `compressedFileFormat`
+                  is unset, this is the number of files for each Schema. If `compressedFileFormat`
+                  is set and `compressPerSchema` is `false`, this is the number of
+                  compressed files for each Schema. If `compressedFileFormat` is set
+                  and `compressPerSchema` is `true`, this is the total number of compressed
+                  files.
                 format: int32
                 type: integer
-              parallelJobs:
-                description: ParallelJobs defines the number of parallel jobs when
-                  generating the dataset.
+              parallelism:
+                description: Number of parallel jobs when generating the dataset.
+                  Default to 1.
                 format: int32
+                minimum: 1
                 type: integer
               schemas:
-                description: Schemas defines a list of Schemas.
+                description: List of Schemas in the DataSet.
                 items:
-                  description: SchemaSelector defines a list of Schemas and the required
-                    numbers and format.
+                  description: SchemaSelector defines the reference to a Schema and
+                    its usage in the DataSet.
                   properties:
                     name:
-                      description: Name defines the name of the Schame. Should match
-                        the name of existing Schema in the same namespace as the DataSet.
+                      description: Name of the Schema. Note that the Schema must be
+                        present in the same namespace as the DataSet.
                       type: string
                     numFilesPerCompressedFile:
-                      additionalProperties:
-                        type: integer
-                      description: NumberOfFilesPerCompressedFile defines the number
-                        of intermediate files to be compressed into a single compressed
-                        file. A random number is picked from the specified range.
+                      description: Range of number of files to be generated in the
+                        compressed file. Take effect only if `compressedFileFormat`
+                        is set in the DataSet.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                     numRecords:
-                      additionalProperties:
-                        type: integer
-                      description: NumRecords defines the number of records to be
-                        generated in each output file. A random number is picked from
-                        the specified range.
+                      description: Range of number of rows to be generated in each
+                        output file.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                   required:
                   - name
+                  - numRecords
                   type: object
                 type: array
+              storageSize:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size of the PVC for the data generator job. Default to
+                  2Gi.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             required:
             - fileFormat
             - numFiles
             - schemas
             type: object
           status:
-            description: Status defines the status of the DataSet.
+            description: DataSetStatus defines the observed state of DataSet.
             properties:
               completionTime:
-                description: CompletionTime defines the duration of the data generating
-                  job.
+                description: Time when the data generator job completed.
                 format: date-time
                 type: string
               errorCount:
-                description: ErrorCount defines the number of errors raised by the
-                  controller or data generating job.
+                description: Number of errors occurred.
+                format: int32
                 type: integer
               errors:
                 additionalProperties:
                   items:
                     type: string
                   type: array
-                description: Errors defines the map of error messages.
+                description: List of errors occurred, which is a map from error type
+                  to list of error messages.
                 type: object
               jobStatus:
-                description: JobStatus defines the status of the data generating job.
+                description: Status of the data generator job.
                 type: string
               lastGeneration:
-                description: LastGeneration defines the last generation of the DataSet
-                  object.
+                description: Last generation of the DataSet object. For internal use
+                  only.
                 format: int64
                 type: integer
               pvcStatus:
-                description: PVCStatus defines the status of the PVC mount to the
-                  data generating pod.
+                description: Status of the PVC for the data generator job.
                 type: string
               startTime:
-                description: StartTime defines the start time of the data generating
-                  job.
+                description: Time when the data generator job started.
                 format: date-time
                 type: string
             type: object

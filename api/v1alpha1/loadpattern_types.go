@@ -4,29 +4,45 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Stage defines the stage configuration of the load.
+// Stage defines how the load ramps up or down.
 type Stage struct {
-	// Target defines the target requests per second.
+	// Target load to reach at the end of the stage.
+	// Equivalent to the "ramping-arrival-rate" executor's `stages[].target` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
+	// +kubebuilder:validation:Minimum=0
 	Target int `json:"target"`
-	// Duration defines the duration of the current stage.
+	// Duration of the stage, also the time to reach the target load.
+	// Equivalent to the "ramping-arrival-rate" executor's `stages[].duration` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
 	Duration string `json:"duration"`
 }
 
-// LoadPatternSpec defines the desired state of LoadPattern
+// LoadPatternSpec defines the desired state of LoadPattern.
 type LoadPatternSpec struct {
-	// Stages defines a list of stages for the LoadPattern.
+	// List of stages in the LoadPattern.
+	// Equivalent to the "ramping-arrival-rate" executor's `stages` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
 	Stages []Stage `json:"stages"`
-	// PreAllocatedVUs defines pre-allocated virtual users for the K6 load generator.
+	// Number of VUs to pre-allocate before Experiment start.
+	// Equivalent to the "ramping-arrival-rate" executor's `preAllocatedVUs` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
+	// +kubebuilder:validation:Minimum=0
 	PreAllocatedVUs int `json:"preAllocatedVUs,omitempty"`
-	// StartRate defines the initial requests per second when the K6 load generator starts.
+	// Number of requests per `timeUnit` period at Experiment start.
+	// Equivalent to the "ramping-arrival-rate" executor's `startRate` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
 	StartRate int `json:"startRate"`
-	// MaxVUs defines the maximum virtual users for the K6 load generator.
-	MaxVUs int `json:"maxVUs,omitempty"`
-	// TimeUnit defines the unit of the time for K6 load generator.
+	// Period of time to apply to the `startRate` and `stages[].target` fields.
+	// Equivalent to the "ramping-arrival-rate" executor's `timeUnit` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
 	TimeUnit string `json:"timeUnit,omitempty"`
+	// Maximum number of VUs to allow for allocation during Experiment.
+	// Equivalent to the "ramping-arrival-rate" executor's `maxVUs` option in K6.
+	// See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details.
+	MaxVUs int `json:"maxVUs,omitempty"`
 }
 
-// LoadPatternStatus defines the observed state of LoadPattern
+// LoadPatternStatus defines the observed state of LoadPattern.
 type LoadPatternStatus struct{}
 
 //+kubebuilder:object:root=true
@@ -37,9 +53,7 @@ type LoadPattern struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the specification of the LoadPattern.
-	Spec LoadPatternSpec `json:"spec,omitempty"`
-	// Status defines the status of the LoadPattern.
+	Spec   LoadPatternSpec   `json:"spec,omitempty"`
 	Status LoadPatternStatus `json:"status,omitempty"`
 }
 
@@ -49,9 +63,7 @@ type LoadPattern struct {
 type LoadPatternList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// Items defines a list of LoadPatterns.
-	Items []LoadPattern `json:"items"`
+	Items           []LoadPattern `json:"items"`
 }
 
 func init() {

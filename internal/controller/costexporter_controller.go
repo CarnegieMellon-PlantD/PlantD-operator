@@ -88,8 +88,11 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// Filter experiments with cloudVendor "aws"
 	experimentsList := &windtunnelv1alpha1.ExperimentList{}
 	for _, experiment := range experiments.Items {
-		if experiment.Status.CloudVendor == costExporter.Spec.CloudServiceProvider {
+		if experiment.Status.Pipeline == nil {
+			continue
+		}
 
+		if experiment.Status.Pipeline.Spec.CloudProvider == costExporter.Spec.CloudServiceProvider {
 			var experimentTime time.Time
 			if !experiment.CreationTimestamp.IsZero() {
 				experimentTime = experiment.CreationTimestamp.Time
@@ -111,7 +114,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// Extract the Name from the experiment's metadata
 		experimentName := experiment.Namespace + "/" + experiment.ObjectMeta.Name
 		// Extract the Tags from the experiment's status field
-		tags := experiment.Status.Tags
+		tags := experiment.Status.Pipeline.Spec.Tags
 
 		// Create a list of Tag pairs for the current experiment's tags
 		var tagsList []Tag
@@ -148,7 +151,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	if costExporter.Status.PodName == "" {
 
-		pod, _ := cost.CreateJobByCostService(ctx, costExporter.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), costExporter, earliestTime)
+		pod, _ := cost.CreateJobByCostService(costExporter, costExporter.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), earliestTime)
 
 		// Extract the Pod's name from the created Pod object
 		costExporter.Status.PodName = pod.Name
@@ -177,7 +180,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		case corev1.PodSucceeded:
 			log.Info("Pod has succeeded")
 			costExporter.Status.JobCompletionTime = &metav1.Time{Time: time.Now()}
-			costExporter.Status.JobStatus = SUCCESS
+			costExporter.Status.JobStatus = "SUCCESS" // TODO: replace it
 
 			if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 				Namespace: costExporter.Namespace,
@@ -194,12 +197,12 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// The Pod has succeeded
 			// You can handle this case here
 		case corev1.PodFailed:
-			costExporter.Status.JobStatus = FAILED
+			costExporter.Status.JobStatus = "FAILED" // TODO: replace it
 			log.Info("Pod has failed")
 			// The Pod has failed
 			// You can handle this case here
 		default:
-			costExporter.Status.JobStatus = RUNNING
+			costExporter.Status.JobStatus = "RUNNING" // TODO: replace it
 			// The Pod is still running or in an unknown state
 			// You can handle this case here
 		}

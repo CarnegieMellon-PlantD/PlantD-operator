@@ -32,13 +32,13 @@ func getSampleDataSetHandler(client client.Client) http.HandlerFunc {
 		ctx := r.Context()
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
-		if fileExt, bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, name); err != nil {
+		if bytes, err := proxy.GetSampleDataSet(ctx, client, namespace, name); err != nil {
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf("Error: Failed to get sample dataset: %s", err.Error())))
 			return
 		} else {
-			contentDisposition := fmt.Sprintf("attachment; filename=sample_%s_%s.%s", namespace, name, fileExt)
+			contentDisposition := fmt.Sprintf("attachment; filename=sample_%s_%s.zip", namespace, name)
 			w.Header().Set("Content-Disposition", contentDisposition)
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.WriteHeader(http.StatusOK)
@@ -49,7 +49,7 @@ func getSampleDataSetHandler(client client.Client) http.HandlerFunc {
 
 // checkHTTPHealthHandler returns an HTTP handler function for checking health status of a URL using HTTP protocol.
 // The handler function retrieves the sample dataset based on the provided namespace and dataset name.
-// It calls utils.CheckHTTPHealth to make a request to the designated URL. Upon receiving an HTTP non-200 response,
+// It calls utils.CheckHealth to make a request to the designated URL. Upon receiving an HTTP non-200 response,
 // it responds an HTTP 500 status with an ErrorResponse in JSON.
 func checkHTTPHealthHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +69,7 @@ func checkHTTPHealthHandler() http.HandlerFunc {
 			return
 		}
 
-		_, err = utils.CheckHTTPHealth(data.URL)
+		err = utils.CheckHealth(data.URL)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)

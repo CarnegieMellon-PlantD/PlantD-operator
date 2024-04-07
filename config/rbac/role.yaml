@@ -25,12 +25,8 @@ rules:
   resources:
   - endpoints
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
@@ -151,7 +147,7 @@ rules:
 - apiGroups:
   - k6.io
   resources:
-  - k6s
+  - testruns
   verbs:
   - create
   - delete

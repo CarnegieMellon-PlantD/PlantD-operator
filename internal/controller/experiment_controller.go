@@ -1,19 +1,3 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controller
 
 import (
@@ -27,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,12 +23,12 @@ import (
 )
 
 const (
-	ExperimentPending                 string = "Pending"                 // experiment object has been created but no pipeline has been selected/attached
-	ExperimentInitializing            string = "Initializing"            // experiment is initializing after pipeline is selected
-	ExperimentWaitingForPipelineReady string = "WaitingForPipelineReady" // experiment is waiting for pipeline to pass health checks
-	ExperimentReady                   string = "Ready"                   // experiment is ready to be run on the selected pipeline
-	ExperimentRunning                 string = "Running"                 // experiment is running
-	ExperimentFinished                string = "Finished"                // experiment has finished running; i.e. the k6 load generator has finished sending data
+	experimentPollingInterval = 5 * time.Second
+)
+
+var (
+	filenameScript                   = config.GetViper().GetString("loadGenerator.filename.script")
+	metricsServiceLabelKeyExperiment = config.GetViper().GetString("monitor.service.labelKeys.experiment")
 )
 
 // ExperimentReconciler reconciles a Experiment object
@@ -57,523 +41,568 @@ type ExperimentReconciler struct {
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=experiments/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=experiments/finalizers,verbs=update
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=pipelines,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=loadpatterns,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=k6.io,resources=k6s,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=pipelines,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k6.io,resources=testruns,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// Get the experiment object in the queue.
-	exp := &windtunnelv1alpha1.Experiment{}
-	if err := r.Get(ctx, req.NamespacedName, exp); err != nil {
-		// The object is deleted.
+	// Fetch the requested Experiment
+	experiment := &windtunnelv1alpha1.Experiment{}
+	if err := r.Get(ctx, req.NamespacedName, experiment); err != nil {
 		if apierrors.IsNotFound(err) {
-			// Custom resource not found, perform cleanup tasks here.
-			// Created objects are automatically garbage collected.
-			log.Info("Experiment is deleted.")
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Cannot get Experiment: "+req.NamespacedName.String())
+		logger.Error(err, "Unable to fetch Pipeline")
 		return ctrl.Result{}, err
 	}
 
-	// Get the pipeline object referred in the experiment object.
-	pipeline := &windtunnelv1alpha1.Pipeline{}
-	pipelineName := types.NamespacedName{Namespace: exp.Spec.PipelineRef.Namespace, Name: exp.Spec.PipelineRef.Name}
-	if err := r.Get(ctx, pipelineName, pipeline); err != nil {
-		exp.Status.ExperimentState = "Error: No Pipeline found"
-		log.Error(err, "Cannot get Pipeline: "+pipelineName.String())
-		if err := r.Status().Update(ctx, exp); err != nil {
-			log.Error(err, "Cannot update the status of Experiment: "+req.NamespacedName.String())
+	stop, result, err := r.getRelatedResources(ctx, experiment)
+	if stop {
+		if err := r.Status().Update(ctx, experiment); err != nil {
+			logger.Error(err, "Cannot update the status")
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return result, err
 	}
 
-	// Set the status of experiment object to pending.
-	if exp.Status.ExperimentState == "" {
-		exp.Status.ExperimentState = ExperimentPending
-		// Initialize the protocol for each endpoint.
-		if err := SetProtocol(exp, pipeline); err != nil {
-			log.Error(err, "Cannot set protocol for Experiment: "+req.NamespacedName.String())
-			exp.Status.ExperimentState = "Error: Endpoint not found"
-			if err := r.Status().Update(ctx, exp); err != nil {
-				log.Error(err, "Cannot update the status of Experiment: "+req.NamespacedName.String())
+	if experiment.Status.JobStatus == "" || experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentScheduled {
+		stop, result, err := r.reconcileCreatedOrScheduled(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
-		}
-		if err := r.SetDuration(ctx, exp); err != nil {
-			return ctrl.Result{}, nil
-		}
-		if err := r.Status().Update(ctx, exp); err != nil {
-			log.Error(err, "Cannot update the status of Experiment: "+req.NamespacedName.String())
-			return ctrl.Result{}, err
+			return result, err
 		}
 	}
 
-	// Check to see if the scheduled time has been reached.
-	currTime := time.Now()
-	if currTime.Before(exp.Spec.ScheduledTime.Time) {
-		return ctrl.Result{RequeueAfter: exp.Spec.ScheduledTime.Time.Sub(currTime)}, nil
-	}
-
-	// Initialize the infrastructure of the experiment.
-	if err := r.InitializeExp(ctx, exp, pipeline); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Get the latest pipeline object.
-	if err := r.Get(ctx, pipelineName, pipeline); err != nil {
-		exp.Status.ExperimentState = "Error: No Pipeline found"
-		log.Error(err, "Cannot get Pipeline: "+pipelineName.String())
-		if err := r.Status().Update(ctx, exp); err != nil {
-			log.Error(err, "Cannot update the status of Experiment: "+req.NamespacedName.String())
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// Pipeline health check.
-	if exp.Status.ExperimentState == ExperimentWaitingForPipelineReady {
-		if pipeline.Status.StatusCheck == windtunnelv1alpha1.PipelineFailed {
-			exp.Status.ExperimentState = "Error: Pipeline is unhealthy"
-			return ctrl.Result{}, r.Status().Update(ctx, exp)
-		} else if pipeline.Status.StatusCheck == windtunnelv1alpha1.PipelineOK && pipeline.Status.PipelineState == windtunnelv1alpha1.PipelineEngaged {
-			exp.Status.ExperimentState = ExperimentReady
-			if err := r.Status().Update(ctx, exp); err != nil {
-				log.Error(err, "Cannot update the status of Experiment: "+req.NamespacedName.String())
+	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentWaitingDataSet {
+		stop, result, err := r.reconcileWaitingDataSet(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
 				return ctrl.Result{}, err
 			}
-		} else {
-			return ctrl.Result{RequeueAfter: time.Second * 3}, nil
+			return result, err
 		}
 	}
 
-	// Create the load generator(testRun).
-	if err := r.CreateTestRun(ctx, exp, pipeline); err != nil {
-		log.Info(err.Error())
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentWaitingPipeline {
+		stop, result, err := r.reconcileWaitingPipeline(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
+			return result, err
+		}
 	}
 
-	// Check if the experiment is finished.
-	if err := r.CheckFinished(ctx, exp); err != nil {
-		return ctrl.Result{}, err
+	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentInitializing {
+		stop, result, err := r.reconcileInitializing(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
+			return result, err
+		}
+	}
+
+	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentRunning {
+		stop, result, err := r.reconcileRunning(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
+			return result, err
+		}
+	}
+
+	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted {
+		stop, result, err := r.reconcileCompleted(ctx, experiment)
+		if stop {
+			if err := r.Status().Update(ctx, experiment); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
+			return result, err
+		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *ExperimentReconciler) SetDuration(ctx context.Context, exp *windtunnelv1alpha1.Experiment) error {
-	log := log.FromContext(ctx)
+// getRelatedResources gets the related resources used by the Experiment and update the status fields.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) getRelatedResources(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
-	n := len(exp.Spec.EndpointSpecs)
-	exp.Status.Duration = make(map[string]metav1.Duration, n)
-	for _, endpointSpec := range exp.Spec.EndpointSpecs {
+	// Fetch the Pipeline used by the Experiment
+	pipeline := &windtunnelv1alpha1.Pipeline{}
+	pipelineName := types.NamespacedName{
+		Namespace: experiment.Spec.PipelineRef.Namespace,
+		Name:      experiment.Spec.PipelineRef.Name,
+	}
+	if err := r.Get(ctx, pipelineName, pipeline); err != nil {
+		logger.Error(err, fmt.Sprintf("Cannot get Pipeline: %s", pipelineName))
+		experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+		experiment.Status.Error = fmt.Sprintf("Cannot find Pipeline: %s", err)
+		return true, ctrl.Result{}, nil
+	}
+	experiment.Status.Pipeline = pipeline
+
+	experiment.Status.EndpointMap = make(map[string]*windtunnelv1alpha1.PipelineEndpoint, len(experiment.Spec.EndpointSpecs))
+	experiment.Status.ProtocolMap = make(map[string]windtunnelv1alpha1.EndpointProtocol, len(experiment.Spec.EndpointSpecs))
+	experiment.Status.DataOptionMap = make(map[string]windtunnelv1alpha1.EndpointDataOption, len(experiment.Spec.EndpointSpecs))
+	experiment.Status.DataSetMap = make(map[string]*windtunnelv1alpha1.DataSet, len(experiment.Spec.EndpointSpecs))
+	experiment.Status.LoadPatternMap = make(map[string]*windtunnelv1alpha1.LoadPattern, len(experiment.Spec.EndpointSpecs))
+	experiment.Status.Durations = make(map[string]metav1.Duration, len(experiment.Spec.EndpointSpecs))
+	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+		// Find the PipelineEndpoint referenced by the EndpointSpec
+		pipelineEndpoint := getPipelineEndpoint(pipeline, endpointSpec.EndpointName)
+		if pipelineEndpoint == nil {
+			logger.Error(nil, fmt.Sprintf("Cannot find endpoint: %s", endpointSpec.EndpointName))
+			experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+			experiment.Status.Error = fmt.Sprintf("Cannot find endpoint: %s", endpointSpec.EndpointName)
+			return true, ctrl.Result{}, nil
+		}
+		experiment.Status.EndpointMap[endpointSpec.EndpointName] = pipelineEndpoint
+
+		// Determine the protocol used by the PipelineEndpoint
+		protocol := getPipelineEndpointProtocol(pipelineEndpoint)
+		if protocol == "" {
+			logger.Error(nil, fmt.Sprintf("Unspecified protocol in endpoint: %s", endpointSpec.EndpointName))
+			experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+			experiment.Status.Error = fmt.Sprintf("Unspecified protocol in endpoint: %s", endpointSpec.EndpointName)
+			return true, ctrl.Result{}, nil
+		}
+		experiment.Status.ProtocolMap[endpointSpec.EndpointName] = protocol
+
+		// Determine the data option used by the EndpointSpec
+		experiment.Status.DataOptionMap[endpointSpec.EndpointName] = getEndpointSpecDataOption(&endpointSpec)
+
+		// Fetch the DataSet used by the EndpointSpec
+		if getEndpointSpecDataOption(&endpointSpec) == windtunnelv1alpha1.EndpointDataOptionDataSet {
+			dataSet := &windtunnelv1alpha1.DataSet{}
+			dataSetName := types.NamespacedName{
+				Namespace: endpointSpec.DataSpec.DataSetRef.Namespace,
+				Name:      endpointSpec.DataSpec.DataSetRef.Name,
+			}
+			if err := r.Get(ctx, dataSetName, dataSet); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot get DataSet: %s", dataSetName))
+				experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+				experiment.Status.Error = fmt.Sprintf("Cannot find DataSet: %s", err)
+				return true, ctrl.Result{}, nil
+			}
+			experiment.Status.DataSetMap[endpointSpec.EndpointName] = dataSet
+		}
+
+		// Fetch the LoadPattern used by the EndpointSpec
 		loadPattern := &windtunnelv1alpha1.LoadPattern{}
 		loadPatternName := types.NamespacedName{
-			Namespace: GetLoadPatternNamespace(exp, &endpointSpec.LoadPatternRef),
+			Namespace: endpointSpec.LoadPatternRef.Namespace,
 			Name:      endpointSpec.LoadPatternRef.Name,
 		}
 		if err := r.Get(ctx, loadPatternName, loadPattern); err != nil {
-			log.Error(err, "Cannot get LoadPattern: "+loadPatternName.String())
-			return err
+			logger.Error(err, fmt.Sprintf("Cannot get LoadPattern: %s", loadPatternName))
+			experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+			experiment.Status.Error = fmt.Sprintf("Cannot find LoadPattern: %s", err)
+			return true, ctrl.Result{}, nil
 		}
-		sum := time.Duration(0)
-		for _, stage := range loadPattern.Spec.Stages {
-			d, err := time.ParseDuration(stage.Duration)
-			if err != nil {
-				log.Error(err, "Cannot parse duration: "+stage.Duration)
-				exp.Status.ExperimentState = "Error: Cannot calculate duration"
-				r.Status().Update(ctx, exp)
-				return err
-			}
-			sum += d
-		}
-		exp.Status.Duration[endpointSpec.EndpointName] = metav1.Duration{Duration: sum}
-	}
-	return nil
-}
+		experiment.Status.LoadPatternMap[endpointSpec.EndpointName] = loadPattern
 
-func SetProtocol(exp *windtunnelv1alpha1.Experiment, pipeline *windtunnelv1alpha1.Pipeline) error {
-	n := len(exp.Spec.EndpointSpecs)
-	exp.Status.Protocols = make(map[string]string, n)
-
-	for _, endpointSpec := range exp.Spec.EndpointSpecs {
-		pipelineEndpoint := findEndpoint(pipeline, endpointSpec.EndpointName)
-		if pipelineEndpoint == nil {
-			return fmt.Errorf("Endpoint not found: " + endpointSpec.EndpointName)
-		}
-		http := pipelineEndpoint.HTTP.URL != ""
-		websocket := pipelineEndpoint.WebSocket.URL != ""
-		grpc := pipelineEndpoint.GRPC.URL != ""
-
-		var dataOption string
-		if endpointSpec.DataSpec.DataSetRef.Name != "" {
-			dataOption = windtunnelv1alpha1.WithDataSet
-		} else {
-			dataOption = windtunnelv1alpha1.WithData
-		}
-
-		if http && !websocket && !grpc {
-			exp.Status.Protocols[endpointSpec.EndpointName] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolHTTP, dataOption)
-		} else if !http && websocket && !grpc {
-			exp.Status.Protocols[endpointSpec.EndpointName] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolWebSocket, dataOption)
-		} else if !http && !websocket && grpc {
-			exp.Status.Protocols[endpointSpec.EndpointName] = fmt.Sprintf("%s.%s", windtunnelv1alpha1.ProtocolGRPC, dataOption)
-		} else {
-			exp.Status.ExperimentState = "Error: Invalid protocol"
-		}
-	}
-
-	return nil
-}
-
-func findEndpoint(pipeline *windtunnelv1alpha1.Pipeline, endpointName string) *windtunnelv1alpha1.Endpoint {
-	for _, endpoint := range pipeline.Spec.PipelineEndpoints {
-		if endpoint.Name == endpointName {
-			return &endpoint
-		}
-	}
-	return nil
-}
-
-func (r *ExperimentReconciler) InitializeExp(ctx context.Context, exp *windtunnelv1alpha1.Experiment, pipeline *windtunnelv1alpha1.Pipeline) error {
-	// (Idempotency) If the status of the experiment is not pending, do nothing.
-	if exp.Status.ExperimentState != ExperimentPending {
-		return nil
-	}
-	if pipeline.Status.PipelineState != windtunnelv1alpha1.PipelineAvailable {
-		exp.Status.ExperimentState = "Error: Pipeline is not available"
-		return r.Status().Update(ctx, exp)
-	}
-	log := log.FromContext(ctx)
-	exp.Status.ExperimentState = ExperimentInitializing
-	if err := r.Status().Update(ctx, exp); err != nil {
-		log.Error(err, "Cannot update the status of Experiment: "+exp.Name)
-		return err
-	}
-
-	experimentRef := corev1.ObjectReference{
-		APIVersion: exp.APIVersion,
-		Kind:       exp.Kind,
-		Namespace:  exp.Namespace,
-		Name:       exp.Name,
-		UID:        exp.UID,
-	}
-	// Set the ExperimentRef field in pipeline spec.
-	if err := r.UpdatePipeline(ctx, pipeline, experimentRef); err != nil {
-		log.Error(err, "Cannot update Pipeline")
-		return err
-	}
-
-	exp.Status.ExperimentState = ExperimentWaitingForPipelineReady
-	exp.Status.Tags = pipeline.Spec.ExtraMetrics.System.Tags
-	exp.Status.CloudVendor = pipeline.Spec.CloudVendor
-	exp.Status.EnableCostCalculation = pipeline.Spec.EnableCostCalculation
-	return r.Status().Update(ctx, exp)
-}
-
-func (r *ExperimentReconciler) CreateTestRun(ctx context.Context, exp *windtunnelv1alpha1.Experiment, pipeline *windtunnelv1alpha1.Pipeline) error {
-	if exp.Status.ExperimentState != ExperimentReady {
-		return nil
-	}
-	for _, endpointSpec := range exp.Spec.EndpointSpecs {
-		endpoint := findEndpoint(pipeline, endpointSpec.EndpointName)
-		if endpoint == nil {
-			return fmt.Errorf("Endpoint not found: " + endpointSpec.EndpointName)
-		}
-
-		var err error
-		if endpointSpec.DataSpec.DataSetRef.Name != "" {
-			err = r.CreateTestRunWithDataSet(ctx, exp, &endpointSpec, endpoint)
-		} else {
-			err = r.CreateTestRunWithOutDataSet(ctx, exp, &endpointSpec, endpoint)
-		}
+		// Calculate the duration of LoadPattern
+		duration, err := getLoadPatternDuration(loadPattern)
 		if err != nil {
-			return err
+			logger.Error(err, fmt.Sprintf("Cannot calculate the duration of LoadPattern: %s", loadPatternName))
+			experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+			experiment.Status.Error = fmt.Sprintf("Cannot calculate the duration for endpoint %s: %s",
+				endpointSpec.EndpointName, err,
+			)
+			return true, ctrl.Result{}, nil
+		}
+		experiment.Status.Durations[endpointSpec.EndpointName] = duration
+	}
+
+	// Proceed
+	return false, ctrl.Result{}, nil
+}
+
+// reconcileCreatedOrScheduled reconciles the Experiment when it is created or scheduled.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileCreatedOrScheduled(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	// Check if the scheduled time has been reached
+	curTime := time.Now()
+	if curTime.Before(experiment.Spec.ScheduledTime.Time) {
+		// Time has not been reached, calculate the waiting time
+		waitTime := experiment.Spec.ScheduledTime.Time.Sub(curTime)
+		logger.Info(fmt.Sprintf("Scheduled time has not been reached yet, waiting for %s", waitTime))
+		experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentScheduled
+		return true, ctrl.Result{RequeueAfter: waitTime}, nil
+	}
+
+	// Time has been reached, proceed to the next step
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentWaitingDataSet
+	return false, ctrl.Result{}, nil
+}
+
+// reconcileWaitingDataSet reconciles the Experiment when it is waiting for the DataSet.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileWaitingDataSet(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	for _, dataSet := range experiment.Status.DataSetMap {
+		// Check if the DataSet is in "Ready" status
+		if dataSet.Status.JobStatus != windtunnelv1alpha1.DataSetJobSuccess {
+			logger.Info(fmt.Sprintf("DataSet %s is in status %s, waiting for it",
+				utils.GetNamespacedName(dataSet), dataSet.Status.JobStatus,
+			))
+			return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 		}
 	}
-	return nil
+
+	// Proceed to the next step
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentWaitingPipeline
+	return false, ctrl.Result{}, nil
 }
 
-func GetLoadPatternNamespace(exp *windtunnelv1alpha1.Experiment, ref *corev1.ObjectReference) string {
-	if ref.Namespace != "" {
-		return ref.Namespace
-	}
-	return exp.Namespace
-}
+// reconcileWaitingPipeline reconciles the Experiment when it is waiting for the Pipeline.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileWaitingPipeline(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
-func (r *ExperimentReconciler) CreateTestRunWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, endpoint *windtunnelv1alpha1.Endpoint) error {
-	log := log.FromContext(ctx)
-
-	load := &windtunnelv1alpha1.LoadPattern{}
-	loadName := types.NamespacedName{
-		Namespace: GetLoadPatternNamespace(exp, &endpointSpec.LoadPatternRef),
-		Name:      endpointSpec.LoadPatternRef.Name,
-	}
-	if err := r.Get(ctx, loadName, load); err != nil {
-		exp.Status.ExperimentState = "Error: No LoadPattern found"
-		log.Error(err, "Cannot get LoadPattern: "+loadName.String())
-		return r.Status().Update(ctx, exp)
+	// Check if the Pipeline is in "Ready" status
+	if experiment.Status.Pipeline.Status.Availability != windtunnelv1alpha1.PipelineReady {
+		logger.Info(fmt.Sprintf("Pipeline %s is in status %s, waiting for it",
+			utils.GetNamespacedName(experiment.Status.Pipeline), experiment.Status.Pipeline.Status.Availability,
+		))
+		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 	}
 
-	dataset := &windtunnelv1alpha1.DataSet{}
-	datasetName := types.NamespacedName{
-		Namespace: endpointSpec.DataSpec.DataSetRef.Namespace,
-		Name:      endpointSpec.DataSpec.DataSetRef.Name,
-	}
-	if err := r.Get(ctx, datasetName, dataset); err != nil {
-		exp.Status.ExperimentState = "Error: No DataSet found"
-		log.Error(err, "Cannot get DataSet: "+datasetName.String())
-		return r.Status().Update(ctx, exp)
-	}
-
-	if err := r.CreateConfigMapWithDataSet(ctx, exp, endpoint, load, dataset); err != nil {
-		exp.Status.ExperimentState = "Error: Failed to create configMap"
-		return r.Status().Update(ctx, exp)
-	}
-	// TODO: Fix the config map name
-	testRunName := utils.GetTestRunName(exp.Name, endpointSpec.EndpointName)
-	configMapName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
-	configMap := &corev1.ConfigMap{}
-	if err := r.Get(ctx, configMapName, configMap); err != nil {
-		log.Error(err, "Cannot get ConfigMap: "+configMapName.String())
-		return err
+	// Try to lock the Pipeline by setting its status to "In-Use"
+	experiment.Status.Pipeline.Status.Availability = windtunnelv1alpha1.PipelineInUse
+	if err := r.Status().Update(ctx, experiment.Status.Pipeline); apierrors.IsConflict(err) {
+		// Re-queue the request if conflict occurs
+		logger.Info("Conflict occurs when trying to lock the Pipeline, retrying")
+		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
+	} else if err != nil {
+		logger.Error(err, "Cannot update the status of Pipeline")
+		return true, ctrl.Result{}, err
 	}
 
-	if err := r.CopyConfigMap(ctx, dataset, configMap, exp); err != nil {
-		return err
-	}
-	if err := r.CreateK6WithDataSet(ctx, exp, dataset, endpointSpec.EndpointName); err != nil {
-		return err
-	}
-
-	if exp.Status.ExperimentState == ExperimentReady {
-		exp.Status.ExperimentState = ExperimentRunning
-		currTime := &metav1.Time{Time: time.Now()}
-		exp.Status.StartTime = currTime
-	}
-
-	return r.Status().Update(ctx, exp)
-}
-
-func (r *ExperimentReconciler) CreateTestRunWithOutDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, endpoint *windtunnelv1alpha1.Endpoint) error {
-	log := log.FromContext(ctx)
-
-	load := &windtunnelv1alpha1.LoadPattern{}
-	loadName := types.NamespacedName{
-		Namespace: GetLoadPatternNamespace(exp, &endpointSpec.LoadPatternRef),
-		Name:      endpointSpec.LoadPatternRef.Name,
-	}
-	if err := r.Get(ctx, loadName, load); err != nil {
-		exp.Status.ExperimentState = "Error: No LoadPattern found"
-		log.Error(err, "Cannot get LoadPattern: "+loadName.String())
-		return r.Status().Update(ctx, exp)
-	}
-
-	if err := r.CreateConfigMap(ctx, exp, endpoint, load); err != nil {
-		return err
-	}
-	if err := r.CreateK6(ctx, exp, endpointSpec.EndpointName); err != nil {
-		return err
-	}
-
-	if exp.Status.ExperimentState == ExperimentReady {
-		exp.Status.ExperimentState = ExperimentRunning
-		currTime := &metav1.Time{Time: time.Now()}
-		exp.Status.StartTime = currTime
-	}
-	return r.Status().Update(ctx, exp)
-}
-
-func (r *ExperimentReconciler) CreateConfigMap(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint, load *windtunnelv1alpha1.LoadPattern) error {
-	log := log.FromContext(ctx)
-	testRunName := utils.GetTestRunName(exp.Name, endpoint.Name)
-	configName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
-	config := &corev1.ConfigMap{}
-	if err := r.Get(ctx, configName, config); err == nil {
-		return nil
-	}
-	configMap, err := loadgen.CreateConfigMap(testRunName, exp.Status.Protocols[endpoint.Name], exp, endpoint, load)
-	if err != nil {
-		exp.Status.ExperimentState = "Error: Cannot create ConfigMap Manifest"
-		log.Error(err, "Cannot create ConfigMap Manifest")
-		return nil
-	}
-	if err := ctrl.SetControllerReference(exp, configMap, r.Scheme); err != nil {
-		return err
-	}
-	if err := r.Create(ctx, configMap); err != nil {
-		exp.Status.ExperimentState = "Error: Cannot create ConfigMap"
-		log.Error(err, "Cannot create ConfigMap")
-		return nil
-	}
-	return nil
-}
-
-func (r *ExperimentReconciler) CreateConfigMapWithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpoint *windtunnelv1alpha1.Endpoint, load *windtunnelv1alpha1.LoadPattern, dataset *windtunnelv1alpha1.DataSet) error {
-	log := log.FromContext(ctx)
-	testRunName := utils.GetTestRunName(exp.Name, endpoint.Name)
-	configName := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
-	config := &corev1.ConfigMap{}
-	if err := r.Get(ctx, configName, config); err == nil {
-		return nil
-	}
-	configMap, err := loadgen.CreateConfigMapWithDataSet(testRunName, exp.Status.Protocols[endpoint.Name], exp, endpoint, load, dataset)
-	if err != nil {
-		exp.Status.ExperimentState = "Error: Cannot create ConfigMap Manifest"
-		log.Error(err, "Cannot create ConfigMap Manifest")
-		return nil
-	}
-	if err := ctrl.SetControllerReference(exp, configMap, r.Scheme); err != nil {
-		return err
-	}
-	if err := r.Create(ctx, configMap); err != nil {
-		exp.Status.ExperimentState = "Error: Cannot create ConfigMap"
-		log.Error(err, "Cannot create ConfigMap")
-		return nil
-	}
-	return nil
-}
-
-func (r *ExperimentReconciler) CopyConfigMap(ctx context.Context, dataset *windtunnelv1alpha1.DataSet, configMap *corev1.ConfigMap, exp *windtunnelv1alpha1.Experiment) error {
-	log := log.FromContext(ctx)
-	pod := loadgen.CreateCopyPod(dataset, configMap)
-	podName := types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}
-	if err := r.Get(ctx, podName, pod); err == nil {
-		if pod.Status.Phase == corev1.PodSucceeded {
-			return nil
+	// Set the Experiment label for the metrics Service
+	metricsService := &corev1.Service{}
+	var metricsServiceName types.NamespacedName
+	if experiment.Status.Pipeline.Spec.InCluster {
+		metricsServiceName = types.NamespacedName{
+			Namespace: experiment.Status.Pipeline.Spec.MetricsEndpoint.ServiceRef.Namespace,
+			Name:      experiment.Status.Pipeline.Spec.MetricsEndpoint.ServiceRef.Name,
 		}
-		return fmt.Errorf("copying pod is running")
+	} else {
+		metricsServiceName = types.NamespacedName{
+			Namespace: experiment.Status.Pipeline.Namespace,
+			Name:      utils.GetPipelineMetricsServiceName(experiment.Status.Pipeline.Name),
+		}
 	}
-	if err := ctrl.SetControllerReference(exp, pod, r.Scheme); err != nil {
-		return err
+	if err := r.Get(ctx, metricsServiceName, metricsService); err != nil {
+		logger.Error(err, fmt.Sprintf("Cannot get metrics Service: %s", metricsServiceName))
+		experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+		experiment.Status.Error = fmt.Sprintf("Cannot find metrics Service: %s", err)
+		return true, ctrl.Result{}, nil
 	}
-	if err := r.Create(ctx, pod); err != nil {
-		exp.Status.ExperimentState = "Error: Cannot copy files from ConfigMap to PVC"
-		log.Error(err, "Cannot copy files from ConfigMap to PVC")
+	if metricsService.Labels == nil {
+		metricsService.Labels = make(map[string]string, 1)
 	}
-	// TODO: Handle waiting for copying to be successed
-	return fmt.Errorf("copying pod is running")
+	metricsService.Labels[metricsServiceLabelKeyExperiment] = experiment.Name
+	if err := r.Update(ctx, metricsService); err != nil {
+		logger.Error(err, fmt.Sprintf("Cannot add Experiment label to metrics Service: %s", metricsServiceName))
+		return true, ctrl.Result{}, err
+	}
+	logger.Info(fmt.Sprintf("Added Experiment label to metrics Service: %s", metricsServiceName))
+
+	// Pipeline is in "Ready" status and locked, proceed to the next step
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentInitializing
+	return false, ctrl.Result{}, nil
 }
 
-func (r *ExperimentReconciler) CreateK6(ctx context.Context, exp *windtunnelv1alpha1.Experiment, endpointName string) error {
-	log := log.FromContext(ctx)
-	testRunName := utils.GetTestRunName(exp.Name, endpointName)
-	k6Name := types.NamespacedName{Namespace: exp.Namespace, Name: testRunName}
-	k6 := &k6v1alpha1.K6{}
-	if err := r.Get(ctx, k6Name, k6); err == nil {
-		return nil
-	}
-	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName)
+// reconcileInitializing reconciles the Experiment when it is initializing.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
-	testRun.Spec.Script = k6v1alpha1.K6Script{
-		ConfigMap: k6v1alpha1.K6Configmap{
-			Name: testRunName,
-			File: config.GetString("k6.config.script"),
-		},
+	// Perform health check
+	for _, healthCheckURL := range experiment.Status.Pipeline.Spec.HealthCheckURLs {
+		if err := utils.CheckHealth(healthCheckURL); err != nil {
+			logger.Error(err, "Pipeline health check failed")
+			experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+			experiment.Status.Error = fmt.Sprintf("Pipeline health check failed: %s", err)
+			return true, ctrl.Result{}, nil
+		}
 	}
-	if err := ctrl.SetControllerReference(exp, testRun, r.Scheme); err != nil {
-		return err
+
+	// Create ConfigMap, PVC and copier Pod for each endpoint
+	doneCounter := 0
+	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+		switch experiment.Status.DataOptionMap[endpointSpec.EndpointName] {
+		case windtunnelv1alpha1.EndpointDataOptionPlainText:
+			// ConfigMap
+			configMap, err := loadgen.CreateConfigMapWithPlainText(
+				experiment, &endpointSpec,
+				experiment.Status.EndpointMap[endpointSpec.EndpointName],
+				experiment.Status.LoadPatternMap[endpointSpec.EndpointName],
+				experiment.Status.ProtocolMap[endpointSpec.EndpointName],
+			)
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot prepare ConfigMap to create for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			}
+			if err := ctrl.SetControllerReference(experiment, configMap, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for ConfigMap for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, configMap); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create ConfigMap for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			} else if err == nil {
+				logger.Info(fmt.Sprintf("Created ConfigMap for endpoint %s", endpointSpec.EndpointName))
+			}
+
+			doneCounter++
+
+		case windtunnelv1alpha1.EndpointDataOptionDataSet:
+			// ConfigMap
+			configMap, err := loadgen.CreateConfigMapWithDataSet(
+				experiment, &endpointSpec,
+				experiment.Status.EndpointMap[endpointSpec.EndpointName],
+				experiment.Status.DataSetMap[endpointSpec.EndpointName],
+				experiment.Status.LoadPatternMap[endpointSpec.EndpointName],
+				experiment.Status.ProtocolMap[endpointSpec.EndpointName],
+			)
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot prepare ConfigMap to create for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			}
+			if err := ctrl.SetControllerReference(experiment, configMap, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for ConfigMap for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, configMap); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create ConfigMap for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			} else if err == nil {
+				logger.Info(fmt.Sprintf("Created ConfigMap for endpoint %s", endpointSpec.EndpointName))
+			}
+
+			// PVC
+			pvc := loadgen.CreatePVC(experiment, &endpointSpec, experiment.Status.DataSetMap[endpointSpec.EndpointName])
+			if err := ctrl.SetControllerReference(experiment, pvc, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for PVC for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, pvc); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create PVC for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			} else if err == nil {
+				logger.Info(fmt.Sprintf("Created PVC for endpoint %s", endpointSpec.EndpointName))
+			}
+
+			// Copier Pod
+			copierPod := &corev1.Pod{}
+			copierPodName := types.NamespacedName{
+				Namespace: experiment.Namespace,
+				Name:      utils.GetTestRunCopierPodName(experiment.Name, endpointSpec.EndpointName),
+			}
+			if err := r.Get(ctx, copierPodName, copierPod); client.IgnoreNotFound(err) != nil {
+				logger.Error(err, fmt.Sprintf("Lost copier Pod: %s", copierPodName))
+				return true, ctrl.Result{}, err
+			} else if err == nil {
+				if copierPod.Status.Phase == corev1.PodFailed {
+					experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+					experiment.Status.Error = fmt.Sprintf("Copier Pod failed: %s", copierPodName)
+					return true, ctrl.Result{}, nil
+				} else if copierPod.Status.Phase == corev1.PodSucceeded {
+					doneCounter++
+					continue
+				}
+			}
+
+			copierPod = loadgen.CreateCopierPod(experiment, &endpointSpec, configMap, experiment.Status.DataSetMap[endpointSpec.EndpointName])
+			if err := ctrl.SetControllerReference(experiment, copierPod, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for copier Pod for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			}
+			if err := r.Create(ctx, copierPod); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create copier Pod for endpoint %s", endpointSpec.EndpointName))
+				return true, ctrl.Result{}, err
+			} else if err == nil {
+				logger.Info(fmt.Sprintf("Created copier Pod for endpoint %s", endpointSpec.EndpointName))
+			}
+		}
 	}
-	if err := r.Create(ctx, testRun); err != nil {
-		exp.Status.ExperimentState = "Error: Cannot create K6 TestRun"
-		log.Error(err, "Cannot create K6 TestRun: "+testRunName)
-		return err
+	if doneCounter < len(experiment.Spec.EndpointSpecs) {
+		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 	}
-	return nil
+
+	// Create TestRun for each endpoint
+	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+		testRun := loadgen.CreateTestRun(experiment, &endpointSpec)
+		switch experiment.Status.DataOptionMap[endpointSpec.EndpointName] {
+		case windtunnelv1alpha1.EndpointDataOptionPlainText:
+			testRun.Spec.Script = k6v1alpha1.K6Script{
+				ConfigMap: k6v1alpha1.K6Configmap{
+					Name: utils.GetTestRunConfigMapName(experiment.Name, endpointSpec.EndpointName),
+					File: filenameScript,
+				},
+			}
+		case windtunnelv1alpha1.EndpointDataOptionDataSet:
+			testRun.Spec.Script = k6v1alpha1.K6Script{
+				VolumeClaim: k6v1alpha1.K6VolumeClaim{
+					Name: utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+					File: filenameScript,
+				},
+			}
+		}
+		if err := ctrl.SetControllerReference(experiment, testRun, r.Scheme); err != nil {
+			logger.Error(err, fmt.Sprintf("Cannot set controller reference for TestRun for endpoint %s", endpointSpec.EndpointName))
+			return true, ctrl.Result{}, err
+		}
+		if err := r.Create(ctx, testRun); client.IgnoreAlreadyExists(err) != nil {
+			logger.Error(err, fmt.Sprintf("Cannot create TestRun for endpoint %s", endpointSpec.EndpointName))
+			return true, ctrl.Result{}, err
+		} else {
+			logger.Info(fmt.Sprintf("Created TestRun for endpoint %s", endpointSpec.EndpointName))
+		}
+	}
+
+	// Proceed to the next step
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentRunning
+	experiment.Status.StartTime = ptr.To(metav1.Now())
+	return false, ctrl.Result{}, nil
 }
 
-func (r *ExperimentReconciler) CreateK6WithDataSet(ctx context.Context, exp *windtunnelv1alpha1.Experiment, dataset *windtunnelv1alpha1.DataSet, endpointName string) error {
-	log := log.FromContext(ctx)
-	k6Name := types.NamespacedName{Namespace: exp.Namespace, Name: exp.Name}
-	k6 := &k6v1alpha1.K6{}
-	if err := r.Get(ctx, k6Name, k6); err == nil {
-		return nil
-	}
-	testRun := loadgen.CreateTestRunManifest(exp.Namespace, exp.Name, endpointName)
+// reconcileRunning reconciles the Experiment when it is running.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileRunning(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
 
-	testRun.Spec.Script = k6v1alpha1.K6Script{
-		VolumeClaim: k6v1alpha1.K6VolumeClaim{
-			Name: utils.GetPVCName(dataset.Name, dataset.Generation),
-			File: config.GetString("k6.config.script"), // TODO: Streamline the reading from configuration file.
-		},
-	}
-	if err := ctrl.SetControllerReference(exp, testRun, r.Scheme); err != nil {
-		return err
-	}
-	if err := r.Create(ctx, testRun); err != nil {
-		exp.Status.ExperimentState = "Error: Cannot create K6 TestRun"
-		log.Error(err, "Cannot create K6 TestRun: "+exp.Name)
-		return nil
-	}
-	return nil
-}
-
-// Check if the test run is finished
-func (r *ExperimentReconciler) CheckFinished(ctx context.Context, exp *windtunnelv1alpha1.Experiment) error {
-	if exp.Status.ExperimentState != ExperimentRunning {
-		return nil
-	}
-	log := log.FromContext(ctx)
-	successCounter := 0
-	for _, config := range exp.Spec.EndpointSpecs {
-		testRun := &k6v1alpha1.K6{}
-		testRunName := types.NamespacedName{Namespace: exp.Namespace, Name: utils.GetTestRunName(exp.Name, config.EndpointName)}
+	// Check if all TestRuns are finished
+	doneCounter := 0
+	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+		testRun := &k6v1alpha1.TestRun{}
+		testRunName := types.NamespacedName{
+			Namespace: experiment.Namespace,
+			Name:      utils.GetTestRunName(experiment.Name, endpointSpec.EndpointName),
+		}
 		if err := r.Get(ctx, testRunName, testRun); err != nil {
-			exp.Status.ExperimentState = "Error: Cannot get K6 TestRun"
-			log.Error(err, "Cannot get K6 TestRun: "+testRunName.String())
+			logger.Error(err, fmt.Sprintf("Lost TestRun: %s", testRunName))
+			return true, ctrl.Result{}, err
+		} else if err == nil {
+			if testRun.Status.Stage == "error" {
+				experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+				experiment.Status.Error = fmt.Sprintf("TestRun failed: %s", testRunName)
+				return true, ctrl.Result{}, nil
+			} else if testRun.Status.Stage == "finished" {
+				doneCounter++
+			}
 		}
-		if testRun.Status.Stage == "finished" {
-			successCounter += 1
-		}
+	}
+	if doneCounter < len(experiment.Spec.EndpointSpecs) {
+		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 	}
 
-	if successCounter == len(exp.Spec.EndpointSpecs) {
-		exp.Status.ExperimentState = ExperimentFinished
+	// Proceed to the next step
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentCompleted
+	experiment.Status.CompletionTime = ptr.To(metav1.Now())
+	return false, ctrl.Result{}, nil
+}
+
+// reconcileCompleted reconciles the Experiment when it is completed.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experiment *windtunnelv1alpha1.Experiment) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	// TODO: cleanup the ConfigMap, PVC, copier Pod and TestRun for each endpoint
+
+	// Try to unlock the Pipeline by setting its status to "Ready"
+	experiment.Status.Pipeline.Status.Availability = windtunnelv1alpha1.PipelineReady
+	if err := r.Status().Update(ctx, experiment.Status.Pipeline); apierrors.IsConflict(err) {
+		// Re-queue the request if conflict occurs
+		logger.Info("Conflict occurs when trying to unlock the Pipeline, retrying")
+		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
+	} else if err != nil {
+		logger.Error(err, "Cannot update the status of Pipeline")
+		return true, ctrl.Result{}, err
 	}
 
-	if err := r.Status().Update(ctx, exp); err != nil {
-		log.Error(err, "Cannot update the status of Experiment")
-		return err
-	}
+	// Stop the current reconciliation loop anyway
+	return true, ctrl.Result{}, nil
+}
 
-	if exp.Status.ExperimentState == ExperimentFinished {
-		pipeline := &windtunnelv1alpha1.Pipeline{}
-		pipelineName := types.NamespacedName{Namespace: exp.Spec.PipelineRef.Namespace, Name: exp.Spec.PipelineRef.Name}
-		if err := r.Get(ctx, pipelineName, pipeline); err == nil {
-			return r.UpdatePipeline(ctx, pipeline, corev1.ObjectReference{})
+// getPipelineEndpoint finds the PipelineEndpoint with the given name in the Pipeline.
+// It returns nil if no PipelineEndpoint is found.
+func getPipelineEndpoint(pipeline *windtunnelv1alpha1.Pipeline, endpointName string) *windtunnelv1alpha1.PipelineEndpoint {
+	for _, pipelineEndpoint := range pipeline.Spec.PipelineEndpoints {
+		if pipelineEndpoint.Name == endpointName {
+			return &pipelineEndpoint
 		}
 	}
 	return nil
 }
 
-func (r *ExperimentReconciler) UpdatePipeline(ctx context.Context, pipeline *windtunnelv1alpha1.Pipeline, expRef corev1.ObjectReference) error {
-	log := log.FromContext(ctx)
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		newPipeline := &windtunnelv1alpha1.Pipeline{}
-		pipelineName := types.NamespacedName{Namespace: pipeline.Namespace, Name: pipeline.Name}
-		if err := r.Get(ctx, pipelineName, newPipeline); err != nil {
-			log.Error(err, "Cannot get Pipeline while updating the Pipeline status: "+pipelineName.String())
-			return err
+// getPipelineEndpointProtocol returns the protocol used by the PipelineEndpoint.
+// It returns an empty string if no protocol is specified.
+func getPipelineEndpointProtocol(pipelineEndpoint *windtunnelv1alpha1.PipelineEndpoint) windtunnelv1alpha1.EndpointProtocol {
+	if pipelineEndpoint.HTTP.URL != "" && pipelineEndpoint.HTTP.Method != "" {
+		return windtunnelv1alpha1.EndpointProtocolHTTP
+	}
+	return ""
+}
+
+// getEndpointSpecDataOption returns the data option used by the EndpointSpec.
+func getEndpointSpecDataOption(endpointSpec *windtunnelv1alpha1.EndpointSpec) windtunnelv1alpha1.EndpointDataOption {
+	if endpointSpec.DataSpec.DataSetRef.Namespace != "" && endpointSpec.DataSpec.DataSetRef.Name != "" {
+		return windtunnelv1alpha1.EndpointDataOptionDataSet
+	}
+	// Fallback to plain text
+	return windtunnelv1alpha1.EndpointDataOptionPlainText
+}
+
+// getLoadPatternDuration calculates the duration of LoadPattern.
+func getLoadPatternDuration(loadPattern *windtunnelv1alpha1.LoadPattern) (metav1.Duration, error) {
+	duration := time.Duration(0)
+	for _, stage := range loadPattern.Spec.Stages {
+		stageDuration, err := time.ParseDuration(stage.Duration)
+		if err != nil {
+			return metav1.Duration{}, err
 		}
-		newPipeline.Spec.ExperimentRef = expRef
-		return r.Update(ctx, newPipeline)
-	})
+		duration += stageDuration
+	}
+	return metav1.Duration{Duration: duration}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ExperimentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&windtunnelv1alpha1.Experiment{}).
-		Owns(&k6v1alpha1.K6{}).
 		Complete(r)
 }

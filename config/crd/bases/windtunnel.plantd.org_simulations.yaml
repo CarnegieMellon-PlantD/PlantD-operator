@@ -45,7 +45,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the specifications of the Simulation.
+            description: SimulationSpec defines the desired state of Simulation
             properties:
               digitalTwinRef:
                 description: DigitalTwinRef defines the DigitalTwin object reference
@@ -128,7 +128,7 @@ spec:
             - trafficModelRef
             type: object
           status:
-            description: Status defines the status of the Simulation.
+            description: SimulationStatus defines the observed state of Simulation
             properties:
               digitalTwinState:
                 description: DigitalTwinState is the state of the DigitalTwin.

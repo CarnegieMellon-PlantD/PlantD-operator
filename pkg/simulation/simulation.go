@@ -13,7 +13,7 @@ import (
 var image string
 
 func init() {
-	image = config.GetString("digitalTwin.image")
+	image = config.GetViper().GetString("digitalTwin.image")
 }
 
 // CreateJobBySimulation creates a Kubernetes Job based on the Digital Twin configuration.
@@ -68,16 +68,16 @@ func CreateJobBySimulation(jobName string, simulation *windtunnelv1alpha1.Simula
 						},
 						{
 							Name:  "REDIS_HOST",
-							Value: config.GetString("database.redis.host"),
+							Value: config.GetViper().GetString("database.redis.host"),
 						},
 						{
 							Name:  "PROMETHEUS_HOST",
-							Value: config.GetString("database.prometheus.url"),
+							Value: config.GetViper().GetString("database.prometheus.url"),
 						},
 
 						{
 							Name:  "OPENCOST_ENDPOINT",
-							Value: config.GetString("costService.opencost.url"),
+							Value: config.GetViper().GetString("costService.opencost.url"),
 						},
 						{
 							Name:  "PROMETHEUS_PASSWORD",

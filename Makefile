@@ -48,7 +48,7 @@ bundle: manifests kustomize ## Create bundle.yaml for all resources.
 docs: crd-ref-docs ## Generate CRD reference documentation.
 	$(CRD_REF_DOCS) \
     --source-path=./api/v1alpha1 \
-    --output-path=./docs/api/crd-api-reference.md \
+    --output-path=./docs/api/api.md \
     --config=./docs/api/config.yaml \
     --renderer=markdown
 

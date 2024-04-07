@@ -94,18 +94,18 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				CompressPerSchema:    scenario.Spec.DataSetConfig.CompressPerSchema,
 				CompressedFileFormat: scenario.Spec.DataSetConfig.CompressedFileFormat,
 				FileFormat:           scenario.Spec.DataSetConfig.FileFormat,
-				ParallelJobs:         1,
+				Parallelism:          1,
 				NumberOfFiles:        int32(DATASET_SIZE),
 				Schemas: []windtunnelv1alpha1.SchemaSelector{
 					{
 						Name: task.Name,
-						NumRecords: map[string]int{
-							"min": 1,
-							"max": 1,
+						NumRecords: windtunnelv1alpha1.IntRange{
+							Min: 1,
+							Max: 1,
 						},
-						NumberOfFilesPerCompressedFile: map[string]int{
-							"min": 1,
-							"max": 1,
+						NumFilesPerCompressedFile: windtunnelv1alpha1.IntRange{
+							Min: 1,
+							Max: 1,
 						},
 					},
 				},
