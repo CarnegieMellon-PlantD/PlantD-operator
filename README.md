@@ -1,6 +1,7 @@
 # PlantD Operator
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/CarnegieMellon-PlantD/PlantD-operator)](https://goreportcard.com/report/github.com/CarnegieMellon-PlantD/PlantD-operator)
+[![Test](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/test.yaml/badge.svg)](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/test.yaml)
 [![Build and Release](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/build.yaml/badge.svg)](https://github.com/CarnegieMellon-PlantD/PlantD-operator/actions/workflows/build.yaml)
 ![GitHub License](https://img.shields.io/github/license/CarnegieMellon-PlantD/PlantD-operator?label=License)
 
