@@ -3,7 +3,8 @@ name: Test
 on: [pull_request]
 
 jobs:
-  test:
+  test-go:
+    name: Test Go
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -12,7 +13,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '~1.22.0'
+          go-version: "~1.22.0"
 
       - name: Go Mod Download
         run: go mod download
