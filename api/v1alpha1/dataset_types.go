@@ -11,8 +11,8 @@ type DataSetJobStatus string
 
 const (
 	DataSetJobRunning DataSetJobStatus = "Running"
-	DataSetJobFailed  DataSetJobStatus = "Failed"
 	DataSetJobSuccess DataSetJobStatus = "Success"
+	DataSetJobFailed  DataSetJobStatus = "Failed"
 )
 
 // DataSetErrorType defines the type of error occurred.
