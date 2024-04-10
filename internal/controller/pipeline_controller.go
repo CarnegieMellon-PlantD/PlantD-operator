@@ -3,8 +3,11 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/cisco-open/k8s-objectmatcher/patch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,6 +42,71 @@ type PipelineReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
+func (r *PipelineReconciler) reconcileObject(ctx context.Context, pipeline *windtunnelv1alpha1.Pipeline, curObj client.Object, desiredObj client.Object, allowUpdate bool) (ReconcilerResult, error) {
+	// Get current object
+	err := r.Get(ctx, types.NamespacedName{
+		Namespace: pipeline.Namespace,
+		Name:      desiredObj.GetName(),
+	}, curObj)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return ReconcilerFailed, fmt.Errorf("failed to get object: %s", err)
+		}
+
+		// Object does not exist, create it
+		// Setting last applied annotation before setting controller reference since it excludes the
+		// "metadata.ownerReferences" from the annotation. Since a later comparison happens between the annotation
+		// and the "desired" object, both of them should not contain the controller reference.
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
+			return ReconcilerFailed, fmt.Errorf("failed to set last applied annotation: %s", err)
+		}
+		if err = ctrl.SetControllerReference(pipeline, desiredObj, r.Scheme); err != nil {
+			return ReconcilerFailed, fmt.Errorf("failed to set controller reference: %s", err)
+		}
+
+		if err = r.Create(ctx, desiredObj); err != nil {
+			return ReconcilerFailed, fmt.Errorf("failed to create object: %s", err)
+		}
+
+		return ReconcilerCreated, nil
+	}
+
+	if !allowUpdate {
+		return ReconcilerOK, nil
+	}
+
+	// Object exists, compare and update if necessary
+	compareOpts := []patch.CalculateOption{
+		patch.IgnoreStatusFields(),
+	}
+	patchResult, err := patch.DefaultPatchMaker.Calculate(curObj, desiredObj, compareOpts...)
+	if err != nil {
+		return ReconcilerFailed, fmt.Errorf("failed to compare objects: %s", err)
+	}
+	if !patchResult.IsEmpty() {
+		// Setting last applied annotation before setting controller reference since it excludes the
+		// "metadata.ownerReferences" from the annotation. Since a later comparison happens between the annotation
+		// and the "desired" object, both of them should not contain the controller reference.
+		if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
+			return ReconcilerFailed, fmt.Errorf("failed to set last applied annotation: %s", err)
+		}
+		if err = ctrl.SetControllerReference(pipeline, desiredObj, r.Scheme); err != nil {
+			return ReconcilerFailed, fmt.Errorf("failed to set controller reference: %s", err)
+		}
+
+		// Avoid "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update" error in some cases,
+		// see https://github.com/argoproj/argo-cd/issues/3657.
+		desiredObj.SetResourceVersion(curObj.GetResourceVersion())
+
+		if err = r.Update(ctx, desiredObj); err != nil {
+			return ReconcilerFailed, fmt.Errorf("failed to update object: %s", err)
+		}
+
+		return ReconcilerUpdated, nil
+	}
+
+	return ReconcilerOK, nil
+}
 func (r *PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -50,6 +118,34 @@ func (r *PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		logger.Error(err, "Unable to fetch Pipeline")
 		return ctrl.Result{}, err
+	}
+
+	currCostExporter := &windtunnelv1alpha1.CostExporter{}
+	desiredCostExporter := &windtunnelv1alpha1.CostExporter{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "windtunnel.plantd.org/v1alpha1",
+			Kind:       "CostExporter",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      config.GetViper().GetString("costExporter.name"),
+			Namespace: pipeline.Namespace,
+		},
+		Spec: windtunnelv1alpha1.CostExporterSpec{
+			S3Bucket:             config.GetViper().GetString("costExporter.s3Bucket"),
+			CloudServiceProvider: config.GetViper().GetString("costExporter.cloudServiceProvider"),
+			SecretRef: corev1.ObjectReference{
+				Name:      config.GetViper().GetString("costExporter.secret.name"),
+				Namespace: config.GetViper().GetString("costExporter.secret.namespace"),
+			},
+		},
+	}
+	if !pipeline.Spec.InCluster {
+		if result, err := r.reconcileObject(ctx, pipeline, currCostExporter, desiredCostExporter, false); err != nil {
+			logger.Error(err, "failed to reconcile cost exporter")
+			return ctrl.Result{}, err
+		} else if result == ReconcilerCreated {
+			logger.Info("created cost exporter")
+		}
 	}
 
 	// Initialize the Pipeline

@@ -158,6 +158,13 @@ opencost:
       k8s-app: kubelet
     namespaceSelector: kube-system
 
+costExporter:
+  name: costexporter
+  s3Bucket: cost-logging
+  cloudServiceProvider: aws
+  secret:
+    name: csp-credentials
+    namespace: default
 
 database:
   prometheus:
