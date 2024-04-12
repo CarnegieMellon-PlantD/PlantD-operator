@@ -99,11 +99,11 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Schemas: []windtunnelv1alpha1.SchemaSelector{
 					{
 						Name: task.Name,
-						NumRecords: windtunnelv1alpha1.IntRange{
+						NumRecords: windtunnelv1alpha1.NaturalIntRange{
 							Min: 1,
 							Max: 1,
 						},
-						NumFilesPerCompressedFile: windtunnelv1alpha1.IntRange{
+						NumFilesPerCompressedFile: windtunnelv1alpha1.NaturalIntRange{
 							Min: 1,
 							Max: 1,
 						},

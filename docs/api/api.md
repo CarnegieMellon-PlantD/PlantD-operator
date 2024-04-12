@@ -408,21 +408,6 @@ _Appears in:_
 
 
 
-#### IntRange
-
-
-
-IntRange defines a range using two non-negative integers as boundaries.
-
-_Appears in:_
-- [SchemaSelector](#schemaselector)
-
-| Field | Description |
-| --- | --- |
-| `min` _integer_ | Minimum value of the range. |
-| `max` _integer_ | Maximum value of the range. |
-
-
 #### LoadPattern
 
 
@@ -492,6 +477,21 @@ _Appears in:_
 | `serviceRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Service. Must be set if `inCluster` is set to `true` in the Pipeline. |
 | `port` _string_ | Name of the Service port to use. Default to "metrics". |
 | `path` _string_ | Path of the endpoint. Default to "/metrics". |
+
+
+#### NaturalIntRange
+
+
+
+NaturalIntRange defines a range using two non-negative integers as boundaries.
+
+_Appears in:_
+- [SchemaSelector](#schemaselector)
+
+| Field | Description |
+| --- | --- |
+| `min` _integer_ | Minimum value of the range. |
+| `max` _integer_ | Maximum value of the range. |
 
 
 #### NetCost
@@ -813,8 +813,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `name` _string_ | Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet. |
-| `numRecords` _[IntRange](#intrange)_ | Range of number of rows to be generated in each output file. |
-| `numFilesPerCompressedFile` _[IntRange](#intrange)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. |
+| `numRecords` _[NaturalIntRange](#naturalintrange)_ | Range of number of rows to be generated in each output file. |
+| `numFilesPerCompressedFile` _[NaturalIntRange](#naturalintrange)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. |
 
 
 #### SchemaSpec

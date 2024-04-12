@@ -21,11 +21,11 @@ var (
 
 // CreateExternalNameService creates a metrics Service of type ExternalName. For out-cluster Pipeline only.
 func CreateExternalNameService(pipeline *windtunnelv1alpha1.Pipeline) (*corev1.Service, error) {
-	hostname, err := pipeline.Spec.MetricsEndpoint.HTTP.GetHostname()
+	hostname, err := utils.GetURLHostname(pipeline.Spec.MetricsEndpoint.HTTP.URL)
 	if err != nil {
 		return nil, err
 	}
-	port, err := pipeline.Spec.MetricsEndpoint.HTTP.GetPort()
+	port, err := utils.GetURLPort(pipeline.Spec.MetricsEndpoint.HTTP.URL)
 	if err != nil {
 		return nil, err
 	}

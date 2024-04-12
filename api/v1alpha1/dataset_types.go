@@ -28,10 +28,10 @@ type SchemaSelector struct {
 	// Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet.
 	Name string `json:"name"`
 	// Range of number of rows to be generated in each output file.
-	NumRecords IntRange `json:"numRecords"`
+	NumRecords NaturalIntRange `json:"numRecords"`
 	// Range of number of files to be generated in the compressed file.
 	// Take effect only if `compressedFileFormat` is set in the DataSet.
-	NumFilesPerCompressedFile IntRange `json:"numFilesPerCompressedFile,omitempty"`
+	NumFilesPerCompressedFile NaturalIntRange `json:"numFilesPerCompressedFile,omitempty"`
 }
 
 // DataSetSpec defines the desired state of DataSet.

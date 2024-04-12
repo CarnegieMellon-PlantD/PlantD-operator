@@ -181,8 +181,8 @@ func NewOutputBuilder(dataSet *windtunnelv1alpha1.DataSet, path string) (*Output
 // the OutputBuilder and initializes the fake data cache.
 func (outBldr *OutputBuilder) SetRandomnessAndCache(faker *gofakeit.Faker, dataSet *windtunnelv1alpha1.DataSet) {
 	for i, sch := range dataSet.Spec.Schemas {
-		outBldr.SchBuilders[i].NumRecords = faker.Number(sch.NumRecords.Min, sch.NumRecords.Max)
-		outBldr.SchBuilders[i].NumFilesPerCompressedFile = faker.Number(sch.NumRecords.Min, sch.NumRecords.Max)
+		outBldr.SchBuilders[i].NumRecords = faker.Number(int(sch.NumRecords.Min), int(sch.NumRecords.Max))
+		outBldr.SchBuilders[i].NumFilesPerCompressedFile = faker.Number(int(sch.NumRecords.Min), int(sch.NumRecords.Max))
 		if dataSet.Spec.CompressedFileFormat == "" {
 			outBldr.SchBuilders[i].TotalNumRecords = outBldr.SchBuilders[i].NumRecords
 		} else {

@@ -231,10 +231,12 @@ spec:
                       properties:
                         max:
                           description: Maximum value of the range.
+                          format: int32
                           minimum: 0
                           type: integer
                         min:
                           description: Minimum value of the range.
+                          format: int32
                           minimum: 0
                           type: integer
                       required:
@@ -247,10 +249,12 @@ spec:
                       properties:
                         max:
                           description: Maximum value of the range.
+                          format: int32
                           minimum: 0
                           type: integer
                         min:
                           description: Minimum value of the range.
+                          format: int32
                           minimum: 0
                           type: integer
                       required:
@@ -729,10 +733,12 @@ spec:
                                 properties:
                                   max:
                                     description: Maximum value of the range.
+                                    format: int32
                                     minimum: 0
                                     type: integer
                                   min:
                                     description: Minimum value of the range.
+                                    format: int32
                                     minimum: 0
                                     type: integer
                                 required:
@@ -745,10 +751,12 @@ spec:
                                 properties:
                                   max:
                                     description: Maximum value of the range.
+                                    format: int32
                                     minimum: 0
                                     type: integer
                                   min:
                                     description: Minimum value of the range.
+                                    format: int32
                                     minimum: 0
                                     type: integer
                                 required:
