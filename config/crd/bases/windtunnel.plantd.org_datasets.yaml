@@ -78,6 +78,7 @@ spec:
                   and `compressPerSchema` is `true`, this is the total number of compressed
                   files.
                 format: int32
+                minimum: 1
                 type: integer
               parallelism:
                 description: Number of parallel jobs when generating the dataset.
@@ -136,6 +137,7 @@ spec:
                   - name
                   - numRecords
                   type: object
+                minItems: 1
                 type: array
               storageSize:
                 anyOf:

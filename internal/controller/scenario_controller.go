@@ -131,7 +131,7 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Stages: []windtunnelv1alpha1.Stage{
 					{
 						Duration: fmt.Sprintf("%ds", EXPERIMENT_DURATION),
-						Target:   int(maxRate),
+						Target:   int64(maxRate),
 					},
 				},
 			},

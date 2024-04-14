@@ -312,7 +312,7 @@ func (r *ExperimentReconciler) reconcileWaitingPipeline(ctx context.Context, exp
 	var metricsServiceName types.NamespacedName
 	if experiment.Status.Pipeline.Spec.InCluster {
 		metricsServiceName = types.NamespacedName{
-			Namespace: experiment.Status.Pipeline.Spec.MetricsEndpoint.ServiceRef.Namespace,
+			Namespace: experiment.Status.Pipeline.Namespace,
 			Name:      experiment.Status.Pipeline.Spec.MetricsEndpoint.ServiceRef.Name,
 		}
 	} else {

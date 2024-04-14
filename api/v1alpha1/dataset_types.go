@@ -66,8 +66,10 @@ type DataSetSpec struct {
 	// compressed files for each Schema.
 	// If `compressedFileFormat` is set and `compressPerSchema` is `true`, this is the total
 	// number of compressed files.
+	// +kubebuilder:validation:Minimum=1
 	NumberOfFiles int32 `json:"numFiles"`
 	// List of Schemas in the DataSet.
+	// +kubebuilder:validation:MinItems=1
 	Schemas []SchemaSelector `json:"schemas"`
 }
 

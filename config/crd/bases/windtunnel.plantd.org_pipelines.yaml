@@ -63,16 +63,17 @@ spec:
                 type: array
               inCluster:
                 description: Whether the Pipeline is deployed within the cluster or
-                  not. When set to `true`, the Pipeline will be accessed by its Services.
-                  When set to `false`, Services of type ExternalName will be created
-                  to access the Pipeline.
+                  not. When set to `false`, Services of type ExternalName will be
+                  created to access the Pipeline. When set to `true`, the Pipeline
+                  will be accessed by its Services.
                 type: boolean
               metricsEndpoint:
                 description: Endpoint for metrics scraping.
                 properties:
                   http:
-                    description: Configurations of the HTTP protocol. Must be set
-                      if `inCluster` is set to `false` in the Pipeline.
+                    description: Configurations of the HTTP protocol. Only the scheme,
+                      host, and port of the `http.url` field will be used. Must be
+                      set if `inCluster` is set to `false` in the Pipeline.
                     properties:
                       headers:
                         additionalProperties:
@@ -96,40 +97,13 @@ spec:
                     description: Name of the Service port to use. Default to "metrics".
                     type: string
                   serviceRef:
-                    description: Reference to the Service. Must be set if `inCluster`
+                    description: Reference to the Service. The Service must be in
+                      the same namespace as the Pipeline. Must be set if `inCluster`
                       is set to `true` in the Pipeline.
                     properties:
-                      apiVersion:
-                        description: API version of the referent.
-                        type: string
-                      fieldPath:
-                        description: 'If referring to a piece of an object instead
-                          of an entire object, this string should contain a valid
-                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                          For example, if the object reference is to a container within
-                          a pod, this would take on a value like: "spec.containers{name}"
-                          (where "name" refers to the name of the container that triggered
-                          the event) or if no container name is specified "spec.containers[2]"
-                          (container with index 2 in this pod). This syntax is chosen
-                          only to have some well-defined way of referencing a part
-                          of an object. TODO: this design is not final and this field
-                          is subject to change in the future.'
-                        type: string
-                      kind:
-                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                        type: string
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                        type: string
-                      namespace:
-                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                        type: string
-                      resourceVersion:
-                        description: 'Specific resourceVersion to which this reference
-                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                        type: string
-                      uid:
-                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic

@@ -28,17 +28,19 @@ type PipelineEndpoint struct {
 	// Name of the endpoint.
 	Name string `json:"name"`
 	// Configurations of the HTTP protocol.
-	HTTP HTTP `json:"http"`
+	HTTP *HTTP `json:"http"`
 }
 
 // MetricsEndpoint defines the endpoint for metrics scraping in Pipeline.
 type MetricsEndpoint struct {
 	// Configurations of the HTTP protocol.
+	// Only the scheme, host, and port of the `http.url` field will be used.
 	// Must be set if `inCluster` is set to `false` in the Pipeline.
-	HTTP HTTP `json:"http,omitempty"`
+	HTTP *HTTP `json:"http,omitempty"`
 	// Reference to the Service.
+	// The Service must be in the same namespace as the Pipeline.
 	// Must be set if `inCluster` is set to `true` in the Pipeline.
-	ServiceRef corev1.ObjectReference `json:"serviceRef,omitempty"`
+	ServiceRef *corev1.LocalObjectReference `json:"serviceRef,omitempty"`
 	// Name of the Service port to use.
 	// Default to "metrics".
 	Port string `json:"port,omitempty"`
@@ -50,14 +52,14 @@ type MetricsEndpoint struct {
 // PipelineSpec defines the desired state of Pipeline.
 type PipelineSpec struct {
 	// Whether the Pipeline is deployed within the cluster or not.
-	// When set to `true`, the Pipeline will be accessed by its Services.
 	// When set to `false`, Services of type ExternalName will be created to access the Pipeline.
+	// When set to `true`, the Pipeline will be accessed by its Services.
 	InCluster bool `json:"inCluster,omitempty"`
 	// List of endpoints for data ingestion.
 	// +kubebuilder:validation:MinItems=1
 	PipelineEndpoints []PipelineEndpoint `json:"pipelineEndpoints"`
 	// Endpoint for metrics scraping.
-	MetricsEndpoint MetricsEndpoint `json:"metricsEndpoint,omitempty"`
+	MetricsEndpoint *MetricsEndpoint `json:"metricsEndpoint,omitempty"`
 	// List of URLs for health check.
 	// An HTTP GET request will be made to each URL, and all of them should return 200 OK to pass the health check.
 	// If the list is empty, no health check will be performed.
