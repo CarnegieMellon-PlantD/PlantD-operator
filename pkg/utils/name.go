@@ -38,9 +38,9 @@ func GetTestRunPVCName(experimentName string, endpointName string) string {
 	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
 }
 
-// GetTestRunCopierPodName returns the name of the copier Pod for the TestRun.
-// The copier Pod is used to copy the configuration and data for the TestRun.
-func GetTestRunCopierPodName(experimentName string, endpointName string) string {
+// GetTestRunCopierJobName returns the name of the copier Job for the TestRun.
+// The copier Job is used to copy the configuration and data for the TestRun.
+func GetTestRunCopierJobName(experimentName string, endpointName string) string {
 	return fmt.Sprintf("experiment-%s-%s-copier", experimentName, endpointName)
 }
 

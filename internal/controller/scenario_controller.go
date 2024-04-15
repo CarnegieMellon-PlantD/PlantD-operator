@@ -149,17 +149,17 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Name:      experimentName,
 			},
 			Spec: windtunnelv1alpha1.ExperimentSpec{
-				PipelineRef: scenario.Spec.PipelineRef,
+				PipelineRef: &scenario.Spec.PipelineRef,
 				EndpointSpecs: []windtunnelv1alpha1.EndpointSpec{
 					{
 						EndpointName: "upload",
-						DataSpec: windtunnelv1alpha1.DataSpec{
-							DataSetRef: corev1.ObjectReference{
+						DataSpec: &windtunnelv1alpha1.DataSpec{
+							DataSetRef: &corev1.ObjectReference{
 								Namespace: scenario.Namespace,
 								Name:      dataSetName,
 							},
 						},
-						LoadPatternRef: corev1.ObjectReference{
+						LoadPatternRef: &corev1.ObjectReference{
 							Namespace: scenario.Namespace,
 							Name:      loadPatternName,
 						},

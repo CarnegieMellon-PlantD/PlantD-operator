@@ -15,6 +15,7 @@ const (
 	ExperimentWaitingPipeline ExperimentJobStatus = "Waiting for Pipeline"
 	ExperimentInitializing    ExperimentJobStatus = "Initializing"
 	ExperimentRunning         ExperimentJobStatus = "Running"
+	ExperimentDraining        ExperimentJobStatus = "Draining"
 	ExperimentCompleted       ExperimentJobStatus = "Completed"
 	ExperimentFailed          ExperimentJobStatus = "Failed"
 )
@@ -39,7 +40,7 @@ type DataSpec struct {
 	// PlainText data to be sent. `dataSetRef` field has precedence over this field.
 	PlainText string `json:"plainText,omitempty"`
 	// Reference to the DataSet to be sent. This field has precedence over the `plainText` field.
-	DataSetRef corev1.ObjectReference `json:"dataSetRef,omitempty"`
+	DataSetRef *corev1.ObjectReference `json:"dataSetRef,omitempty"`
 }
 
 // EndpointSpec defines the test upon an endpoint.
@@ -48,30 +49,34 @@ type EndpointSpec struct {
 	// It should be an existing endpoint defined in the Pipeline used by the Experiment.
 	EndpointName string `json:"endpointName"`
 	// Data to be sent to the endpoint.
-	DataSpec DataSpec `json:"dataSpec"`
+	DataSpec *DataSpec `json:"dataSpec"`
 	// LoadPattern to follow for the endpoint.
-	LoadPatternRef corev1.ObjectReference `json:"loadPatternRef"`
+	LoadPatternRef *corev1.ObjectReference `json:"loadPatternRef"`
 	// Size of the PVC for the load generator job.
 	// Only effective when `dataSpec.dataSetRef` is set.
 	// Default to the PVC size of the DataSet.
-	StorageSize resource.Quantity `json:"storageSize,omitempty"`
+	StorageSize *resource.Quantity `json:"storageSize,omitempty"`
 }
 
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
 	// Reference to the Pipeline to use for the Experiment.
-	PipelineRef corev1.ObjectReference `json:"pipelineRef"`
+	PipelineRef *corev1.ObjectReference `json:"pipelineRef"`
 	// List of tests upon endpoints.
 	// +kubebuilder:validation:MinItems=1
 	EndpointSpecs []EndpointSpec `json:"endpointSpecs"`
+	// Time to wait after the load generator job is completed before finishing the Experiment.
+	// It allows the pipeline-under-test to finish its processing.
+	// Default to no draining time.
+	DrainingTime *metav1.Duration `json:"drainingTime,omitempty"`
 	// Scheduled time to run the Experiment.
-	ScheduledTime metav1.Time `json:"scheduledTime,omitempty"`
+	ScheduledTime *metav1.Time `json:"scheduledTime,omitempty"`
 }
 
 // ExperimentStatus defines the observed state of Experiment.
 type ExperimentStatus struct {
 	// Calculated duration of each endpoint.
-	Durations map[string]metav1.Duration `json:"durations,omitempty"`
+	Durations map[string]*metav1.Duration `json:"durations,omitempty"`
 	// Status of the load generator job.
 	JobStatus ExperimentJobStatus `json:"jobStatus,omitempty"`
 	// Time when the Experiment started.
@@ -80,24 +85,17 @@ type ExperimentStatus struct {
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 	// Error message.
 	Error string `json:"error,omitempty"`
-	// Pipeline used by the Experiment.
-	// For internal use only.
-	Pipeline *Pipeline `json:"pipeline,omitempty"`
-	// Map from endpoint name to the PipelineEndpoint, which is referenced by the EndpointSpec.
-	// For internal use only.
-	EndpointMap map[string]*PipelineEndpoint `json:"endpointMap,omitempty"`
-	// Map from endpoint name to the protocol used by the PipelineEndpoint, which is referenced by the EndpointSpec.
-	// For internal use only.
-	ProtocolMap map[string]EndpointProtocol `json:"protocolMap,omitempty"`
-	// Map from endpoint name to the data option used by the EndpointSpec.
-	// For internal use only.
-	DataOptionMap map[string]EndpointDataOption `json:"dataOptionMap,omitempty"`
-	// Map from endpoint name to the DataSet used by the EndpointSpec.
-	// For internal use only.
-	DataSetMap map[string]*DataSet `json:"dataSetMap,omitempty"`
-	// Map from endpoint name to the LoadPattern used by the EndpointSpec.
-	// For internal use only.
-	LoadPatternMap map[string]*LoadPattern `json:"loadPatternMap,omitempty"`
+	// Time when the pipeline-under-test started draining. For internal use only.
+	DrainingStartTime *metav1.Time `json:"drainingStartTime,omitempty"`
+	// Whether to enable cost calculation.
+	// Copied from the Pipeline used by the Experiment. For internal use only.
+	EnableCostCalculation bool `json:"enableCostCalculation,omitempty"`
+	// Cloud provider. Available values are `aws`, `azure`, and `gcp`.
+	// Copied from the Pipeline used by the Experiment. For internal use only.
+	CloudProvider string `json:"cloudProvider,omitempty"`
+	// Map of tags to select cloud resources. Equivalent to the tags in the cloud service provider.
+	// Copied from the Pipeline used by the Experiment. For internal use only.
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -106,7 +104,6 @@ type ExperimentStatus struct {
 //+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
 //+kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
 //+kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
-//+kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.error"
 
 // Experiment is the Schema for the experiments API
 type Experiment struct {

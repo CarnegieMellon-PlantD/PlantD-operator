@@ -112,7 +112,6 @@ DataSet is the Schema for the datasets API
 
 _Appears in:_
 - [DataSetList](#datasetlist)
-- [ExperimentStatus](#experimentstatus)
 
 | Field | Description |
 | --- | --- |
@@ -280,25 +279,7 @@ _Appears in:_
 
 
 
-#### EndpointDataOption
 
-_Underlying type:_ _string_
-
-EndpointDataOption defines the data option used by an EndpointSpec.
-
-_Appears in:_
-- [ExperimentStatus](#experimentstatus)
-
-
-
-#### EndpointProtocol
-
-_Underlying type:_ _string_
-
-EndpointProtocol defines the protocol used by a PipelineEndpoint.
-
-_Appears in:_
-- [ExperimentStatus](#experimentstatus)
 
 
 
@@ -376,6 +357,7 @@ _Appears in:_
 | --- | --- |
 | `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
 | `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
+| `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
 
 
@@ -398,7 +380,7 @@ _Appears in:_
 
 #### HTTP
 
-_Underlying type:_ _[struct{URL string "json:\"url\""; Method string "json:\"method\""; Headers map[string]string "json:\"headers,omitempty\""}](#struct{url-string-"json:\"url\"";-method-string-"json:\"method\"";-headers-map[string]string-"json:\"headers,omitempty\""})_
+
 
 HTTP defines the configurations of HTTP protocol in endpoint.
 
@@ -406,6 +388,11 @@ _Appears in:_
 - [MetricsEndpoint](#metricsendpoint)
 - [PipelineEndpoint](#pipelineendpoint)
 
+| Field | Description |
+| --- | --- |
+| `url` _string_ | URL of the HTTP request. |
+| `method` _string_ | Method of the HTTP request. |
+| `headers` _object (keys:string, values:string)_ | Headers of the HTTP request. |
 
 
 #### LoadPattern
@@ -415,7 +402,6 @@ _Appears in:_
 LoadPattern is the Schema for the loadpatterns API
 
 _Appears in:_
-- [ExperimentStatus](#experimentstatus)
 - [LoadPatternList](#loadpatternlist)
 
 | Field | Description |
@@ -473,8 +459,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Must be set if `inCluster` is set to `false` in the Pipeline. |
-| `serviceRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Service. Must be set if `inCluster` is set to `true` in the Pipeline. |
+| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Only the scheme, host, and port of the `http.url` field will be used. Must be set if `inCluster` is set to `false` in the Pipeline. |
+| `serviceRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the Service. The Service must be in the same namespace as the Pipeline. Must be set if `inCluster` is set to `true` in the Pipeline. |
 | `port` _string_ | Name of the Service port to use. Default to "metrics". |
 | `path` _string_ | Path of the endpoint. Default to "/metrics". |
 
@@ -554,7 +540,6 @@ _Appears in:_
 Pipeline is the Schema for the pipelines API
 
 _Appears in:_
-- [ExperimentStatus](#experimentstatus)
 - [PipelineList](#pipelinelist)
 
 | Field | Description |
@@ -583,7 +568,6 @@ _Appears in:_
 PipelineEndpoint defines the endpoint for data ingestion in Pipeline.
 
 _Appears in:_
-- [ExperimentStatus](#experimentstatus)
 - [PipelineSpec](#pipelinespec)
 
 | Field | Description |
@@ -619,13 +603,13 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `inCluster` _boolean_ | Whether the Pipeline is deployed within the cluster or not. When set to `true`, the Pipeline will be accessed by its Services. When set to `false`, Services of type ExternalName will be created to access the Pipeline. |
+| `inCluster` _boolean_ | Whether the Pipeline is deployed within the cluster or not. When set to `false`, Services of type ExternalName will be created to access the Pipeline. When set to `true`, the Pipeline will be accessed by its Services. |
 | `pipelineEndpoints` _[PipelineEndpoint](#pipelineendpoint) array_ | List of endpoints for data ingestion. |
 | `metricsEndpoint` _[MetricsEndpoint](#metricsendpoint)_ | Endpoint for metrics scraping. |
 | `healthCheckURLs` _string array_ | List of URLs for health check. An HTTP GET request will be made to each URL, and all of them should return 200 OK to pass the health check. If the list is empty, no health check will be performed. |
+| `enableCostCalculation` _boolean_ | Whether to enable cost calculation for the Pipeline. |
 | `cloudProvider` _string_ | Cloud provider of the Pipeline. Available values are `aws`, `azure`, and `gcp`. |
 | `tags` _object (keys:string, values:string)_ | Map of tags to select cloud resources of the Pipeline. Equivalent to the tags in the cloud service provider. |
-| `enableCostCalculation` _boolean_ | Whether to enable cost calculation for the Pipeline. |
 
 
 
@@ -885,13 +869,17 @@ _Appears in:_
 
 #### Stage
 
-_Underlying type:_ _[struct{Target int "json:\"target\""; Duration string "json:\"duration\""}](#struct{target-int-"json:\"target\"";-duration-string-"json:\"duration\""})_
+
 
 Stage defines how the load ramps up or down.
 
 _Appears in:_
 - [LoadPatternSpec](#loadpatternspec)
 
+| Field | Description |
+| --- | --- |
+| `target` _integer_ | Target load to reach at the end of the stage. Equivalent to the "ramping-arrival-rate" executor's `stages[].target` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+| `duration` _string_ | Duration of the stage, also the time to reach the target load. Equivalent to the "ramping-arrival-rate" executor's `stages[].duration` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
 
 
 #### TrafficModel

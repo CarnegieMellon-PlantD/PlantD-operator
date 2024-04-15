@@ -44,7 +44,7 @@ type DataSetSpec struct {
 	Parallelism int32 `json:"parallelism,omitempty"`
 	// Size of the PVC for the data generator job.
 	// Default to 2Gi.
-	StorageSize resource.Quantity `json:"storageSize,omitempty"`
+	StorageSize *resource.Quantity `json:"storageSize,omitempty"`
 	// Format of the output file containing generated data.
 	// Available values are `csv` and `binary`.
 	// +kubebuilder.validation:Enum=csv;binary

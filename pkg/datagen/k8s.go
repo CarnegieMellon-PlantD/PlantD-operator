@@ -114,8 +114,10 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 
 // CreatePVC creates a PersistentVolumeClaim for the data generator job.
 func CreatePVC(pvcName string, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
-	storageSize := dataSet.Spec.StorageSize
-	if storageSize.IsZero() {
+	var storageSize resource.Quantity
+	if dataSet.Spec.StorageSize != nil && !dataSet.Spec.StorageSize.IsZero() {
+		storageSize = *dataSet.Spec.StorageSize
+	} else {
 		storageSize = resource.MustParse(defaultStorageSize)
 	}
 

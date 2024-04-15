@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	kbatch "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/utils/ptr"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
@@ -22,6 +24,8 @@ var (
 	filenameDataSet      = config.GetViper().GetString("loadGenerator.filename.dataSet")
 	filenameLoadPattern  = config.GetViper().GetString("loadGenerator.filename.loadPattern")
 	defaultStorageSize   = config.GetViper().GetString("dataGenerator.defaultStorageSize")
+	copierImage          = config.GetViper().GetString("loadGenerator.copier.image")
+	copierBackoffLimit   = config.GetViper().GetInt32("loadGenerator.copier.backoffLimit")
 	testRunRWArgs        = config.GetViper().GetString("loadGenerator.testRun.remoteWriteArgs")
 	testRunRWEnvVarName  = config.GetViper().GetString("loadGenerator.testRun.remoteWriteEnvVar.name")
 	testRunRWEnvVarValue = config.GetViper().GetString("loadGenerator.testRun.remoteWriteEnvVar.value")
@@ -33,10 +37,12 @@ func CreateConfigMapWithPlainText(experiment *windtunnelv1alpha1.Experiment, end
 	if err != nil {
 		return nil, err
 	}
+
 	jsonLoadPattern, err := json.Marshal(loadPattern)
 	if err != nil {
 		return nil, err
 	}
+
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
@@ -57,14 +63,17 @@ func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpo
 	if err != nil {
 		return nil, err
 	}
+
 	jsonDataSet, err := json.Marshal(dataSet)
 	if err != nil {
 		return nil, err
 	}
+
 	jsonLoadPattern, err := json.Marshal(loadPattern)
 	if err != nil {
 		return nil, err
 	}
+
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
@@ -81,12 +90,14 @@ func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpo
 
 // CreatePVC creates PVC for the EndpointSpec. The PVC will be bound by the TestRun. For EndpointSpec with DataSet only.
 func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
-	storageSize := endpointSpec.StorageSize
-	if storageSize.IsZero() {
-		storageSize = dataSet.Spec.StorageSize
-	}
-	if storageSize.IsZero() {
+	var storageSize resource.Quantity
+	if endpointSpec.StorageSize != nil && !endpointSpec.StorageSize.IsZero() {
+		storageSize = *endpointSpec.StorageSize
+	} else if dataSet.Spec.StorageSize != nil && !dataSet.Spec.StorageSize.IsZero() {
+		storageSize = *dataSet.Spec.StorageSize
+	} else {
 		storageSize = resource.MustParse(defaultStorageSize)
+
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{
@@ -109,61 +120,69 @@ func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunn
 	return pvc
 }
 
-// CreateCopierPod creates a Pod to copy the configuration and data for the EndpointSpec.
-// For EndpointSpec with DataSet only.
-func CreateCopierPod(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, configMap *corev1.ConfigMap, dataSet *windtunnelv1alpha1.DataSet) *corev1.Pod {
-	return &corev1.Pod{
+// CreateCopierJob creates a Job to copy the configuration and data for the EndpointSpec.
+// For EndpointSpec that uses a DataSet only.
+func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, configMap *corev1.ConfigMap, dataSet *windtunnelv1alpha1.DataSet) *kbatch.Job {
+	return &kbatch.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunCopierPodName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointSpec.EndpointName),
 		},
-		Spec: corev1.PodSpec{
-			RestartPolicy: corev1.RestartPolicyNever,
-			Containers: []corev1.Container{
-				{
-					Name:    "copier",
-					Image:   "busybox:1.36.1",
-					Command: []string{"/bin/sh", "-c", "cp /configmap/* /testrun && cp -r /dataset/* /testrun"},
-					VolumeMounts: []corev1.VolumeMount{
+		Spec: kbatch.JobSpec{
+			BackoffLimit: ptr.To(copierBackoffLimit),
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
 						{
-							Name:      "configmap-volume",
-							MountPath: "/configmap",
-						},
-						{
-							Name:      "dataset-volume",
-							MountPath: "/dataset",
-						},
-						{
-							Name:      "testrun-volume",
-							MountPath: "/testrun",
-						},
-					},
-				},
-			},
-			Volumes: []corev1.Volume{
-				{
-					Name: "configmap-volume",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: configMap.Name,
+							Name:  "copier",
+							Image: copierImage,
+							// Note that when a ConfigMap is mounted as a volume, the files are symlinked to "/data",
+							// using the "-R" flag will copy files recursively but also preserve symlinks by default,
+							// so we need the "-L" flag to follow symlinks.
+							Command: []string{"/bin/sh", "-c", "cp -RL /configmap/* /testrun && cp -RL /dataset/* /testrun"},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "configmap-volume",
+									MountPath: "/configmap",
+								},
+								{
+									Name:      "dataset-volume",
+									MountPath: "/dataset",
+								},
+								{
+									Name:      "testrun-volume",
+									MountPath: "/testrun",
+								},
 							},
 						},
 					},
-				},
-				{
-					Name: "dataset-volume",
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation),
+					Volumes: []corev1.Volume{
+						{
+							Name: "configmap-volume",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: configMap.Name,
+									},
+								},
+							},
 						},
-					},
-				},
-				{
-					Name: "testrun-volume",
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+						{
+							Name: "dataset-volume",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation),
+								},
+							},
+						},
+						{
+							Name: "testrun-volume",
+							VolumeSource: corev1.VolumeSource{
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+								},
+							},
 						},
 					},
 				},

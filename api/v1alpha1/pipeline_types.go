@@ -65,13 +65,13 @@ type PipelineSpec struct {
 	// If the list is empty, no health check will be performed.
 	// +kubebuilder:validation:MinItems=1
 	HealthCheckURLs []string `json:"healthCheckURLs,omitempty"`
+	// Whether to enable cost calculation for the Pipeline.
+	EnableCostCalculation bool `json:"enableCostCalculation,omitempty"`
 	// Cloud provider of the Pipeline. Available values are `aws`, `azure`, and `gcp`.
 	// +kubebuilder:validation:Enum=aws;azure;gcp
 	CloudProvider string `json:"cloudProvider,omitempty"`
 	// Map of tags to select cloud resources of the Pipeline. Equivalent to the tags in the cloud service provider.
 	Tags map[string]string `json:"tags,omitempty"`
-	// Whether to enable cost calculation for the Pipeline.
-	EnableCostCalculation bool `json:"enableCostCalculation,omitempty"`
 }
 
 // PipelineStatus defines the observed state of Pipeline.

@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgo "k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -119,8 +120,9 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 		// By default, the Pod of the Job will be reserved after the Job is deleted,
 		// and Kubernetes will raise a warning.
 		// Set the propagation policy to "Background" to avoid the warning and delete the Pod.
-		propagationPolicy := metav1.DeletePropagationBackground
-		if err := r.Delete(ctx, lastJob, &client.DeleteOptions{PropagationPolicy: &propagationPolicy}); err != nil {
+		if err := r.Delete(ctx, lastJob, &client.DeleteOptions{
+			PropagationPolicy: ptr.To(metav1.DeletePropagationBackground),
+		}); err != nil {
 			logger.Error(err, fmt.Sprintf("Cannot delete old Job \"%s\"", lastJobName))
 			return ctrl.Result{}, err
 		}
@@ -251,16 +253,6 @@ func (r *DataSetReconciler) reconcileRunning(ctx context.Context, dataSet *windt
 		// Job is still running, requeue the request
 		return ctrl.Result{RequeueAfter: dataSetPollingInterval}, nil
 	}
-}
-
-// isJobFinished checks if the Job is finished, and returns the condition type if it is finished.
-func isJobFinished(job *kbatch.Job) (bool, kbatch.JobConditionType) {
-	for _, c := range job.Status.Conditions {
-		if (c.Type == kbatch.JobComplete || c.Type == kbatch.JobFailed) && c.Status == corev1.ConditionTrue {
-			return true, c.Type
-		}
-	}
-	return false, ""
 }
 
 // getContainerLogs gets the logs of a container in a Pod.

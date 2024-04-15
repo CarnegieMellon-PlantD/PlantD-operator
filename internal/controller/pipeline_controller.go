@@ -57,7 +57,17 @@ func (r *PipelineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Check if the Pipeline is being deleted
-	if !pipeline.DeletionTimestamp.IsZero() {
+	if pipeline.DeletionTimestamp.IsZero() {
+		// Add finalizer to the Pipeline
+		if !controllerutil.ContainsFinalizer(pipeline, pipelineFinalizerName) {
+			controllerutil.AddFinalizer(pipeline, pipelineFinalizerName)
+			if err := r.Update(ctx, pipeline); err != nil {
+				logger.Error(err, "Cannot add finalizer")
+				return ctrl.Result{}, err
+			}
+			logger.Info("Added finalizer")
+		}
+	} else {
 		if controllerutil.ContainsFinalizer(pipeline, pipelineFinalizerName) {
 			if err := r.removePipelineLabel(ctx, pipeline); err != nil {
 				return ctrl.Result{}, err
@@ -114,16 +124,6 @@ func (r *PipelineReconciler) initializeMonitor(ctx context.Context, pipeline *wi
 			return err
 		}
 		logger.Info(fmt.Sprintf("Added Pipeline label to metrics Service \"%s\"", serviceName))
-
-		// Add finalizer to clean up the label when the Pipeline is deleted
-		if !controllerutil.ContainsFinalizer(pipeline, pipelineFinalizerName) {
-			controllerutil.AddFinalizer(pipeline, pipelineFinalizerName)
-			if err := r.Update(ctx, pipeline); err != nil {
-				logger.Error(err, "Cannot add finalizer")
-				return err
-			}
-			logger.Info("Added finalizer")
-		}
 	} else {
 		// For out-cluster Pipeline, we need to create the metrics Service of type ExternalName
 		// in the same Namespace as the Pipeline.
@@ -176,20 +176,26 @@ func (r *PipelineReconciler) initializeMonitor(ctx context.Context, pipeline *wi
 func (r *PipelineReconciler) removePipelineLabel(ctx context.Context, pipeline *windtunnelv1alpha1.Pipeline) error {
 	logger := log.FromContext(ctx)
 
+	// No need to clean up Pipeline label for out-cluster Pipeline,
+	// as the Service will be deleted along with the Pipeline.
+	if !pipeline.Spec.InCluster {
+		return nil
+	}
+
 	service := &corev1.Service{}
 	serviceName := types.NamespacedName{
 		Namespace: pipeline.Namespace,
 		Name:      pipeline.Spec.MetricsEndpoint.ServiceRef.Name,
 	}
 	if err := r.Get(ctx, serviceName, service); err != nil {
-		logger.Error(err, fmt.Sprintf("Cannot get metrics Service \"%s\"", serviceName))
-		return err
+		logger.Error(err, fmt.Sprintf("Lost metrics Service \"%s\"", serviceName))
+		return nil
 	}
 
 	if service.Labels == nil {
 		return nil
 	}
-	if _, ok := service.Labels[metricsServiceLabelKeyPipeline]; !ok {
+	if val, ok := service.Labels[metricsServiceLabelKeyPipeline]; !ok || val != pipeline.Name {
 		return nil
 	}
 
@@ -201,19 +207,6 @@ func (r *PipelineReconciler) removePipelineLabel(ctx context.Context, pipeline *
 	logger.Info(fmt.Sprintf("Removed Pipeline label from metrics Service \"%s\"", serviceName))
 
 	return nil
-}
-
-// containMetricsEndpoint returns whether the Pipeline contains a metrics endpoint.
-func containMetricsEndpoint(pipeline *windtunnelv1alpha1.Pipeline) bool {
-	if pipeline.Spec.MetricsEndpoint == nil {
-		return false
-	}
-
-	if pipeline.Spec.InCluster {
-		return pipeline.Spec.MetricsEndpoint.ServiceRef != nil && pipeline.Spec.MetricsEndpoint.ServiceRef.Name != ""
-	} else {
-		return pipeline.Spec.MetricsEndpoint.HTTP != nil && pipeline.Spec.MetricsEndpoint.HTTP.URL != ""
-	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

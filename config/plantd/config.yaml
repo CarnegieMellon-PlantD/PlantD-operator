@@ -27,6 +27,7 @@ loadGenerator:
     loadPattern: loadpattern.json
   copier:
     image: busybox:1.36.1
+    backoffLimit: 0
   testRun:
     remoteWriteArgs: --out experimental-prometheus-rw
     remoteWriteEnvVar:

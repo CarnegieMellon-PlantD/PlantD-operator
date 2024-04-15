@@ -207,6 +207,7 @@ spec:
                   and `compressPerSchema` is `true`, this is the total number of compressed
                   files.
                 format: int32
+                minimum: 1
                 type: integer
               parallelism:
                 description: Number of parallel jobs when generating the dataset.
@@ -265,6 +266,7 @@ spec:
                   - name
                   - numRecords
                   type: object
+                minItems: 1
                 type: array
               storageSize:
                 anyOf:
@@ -461,9 +463,6 @@ spec:
     - jsonPath: .status.completionTime
       name: CompletionTime
       type: string
-    - jsonPath: .status.error
-      name: Error
-      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -484,6 +483,11 @@ spec:
           spec:
             description: ExperimentSpec defines the desired state of Experiment.
             properties:
+              drainingTime:
+                description: Time to wait after the load generator job is completed
+                  before finishing the Experiment. It allows the pipeline-under-test
+                  to finish its processing. Default to no draining time.
+                type: string
               endpointSpecs:
                 description: List of tests upon endpoints.
                 items:
@@ -646,490 +650,46 @@ spec:
           status:
             description: ExperimentStatus defines the observed state of Experiment.
             properties:
+              cloudProvider:
+                description: Cloud provider. Available values are `aws`, `azure`,
+                  and `gcp`. Copied from the Pipeline used by the Experiment. For
+                  internal use only.
+                type: string
               completionTime:
                 description: Time when the Experiment completed.
                 format: date-time
                 type: string
-              dataOptionMap:
-                additionalProperties:
-                  description: EndpointDataOption defines the data option used by
-                    an EndpointSpec.
-                  type: string
-                description: Map from endpoint name to the data option used by the
-                  EndpointSpec. For internal use only.
-                type: object
-              dataSetMap:
-                additionalProperties:
-                  description: DataSet is the Schema for the datasets API
-                  properties:
-                    apiVersion:
-                      description: 'APIVersion defines the versioned schema of this
-                        representation of an object. Servers should convert recognized
-                        schemas to the latest internal value, and may reject unrecognized
-                        values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-                      type: string
-                    kind:
-                      description: 'Kind is a string value representing the REST resource
-                        this object represents. Servers may infer this from the endpoint
-                        the client submits requests to. Cannot be updated. In CamelCase.
-                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                      type: string
-                    metadata:
-                      type: object
-                    spec:
-                      description: DataSetSpec defines the desired state of DataSet.
-                      properties:
-                        compressPerSchema:
-                          description: Flag for compression behavior. Takes effect
-                            only if `compressedFileFormat` is set. When set to `false`
-                            (default), files from all Schemas will be compressed into
-                            a single compressed file in each repetition. When set
-                            to `true`, files from each Schema will be compressed into
-                            a separate compressed file in each repetition.
-                          type: boolean
-                        compressedFileFormat:
-                          description: Format of the compressed file containing output
-                            files. Available value is `zip`. Leave empty to disable
-                            compression.
-                          enum:
-                          - zip
-                          type: string
-                        fileFormat:
-                          description: Format of the output file containing generated
-                            data. Available values are `csv` and `binary`.
-                          type: string
-                        image:
-                          description: Image of the data generator job.
-                          type: string
-                        numFiles:
-                          description: Number of files to be generated. If `compressedFileFormat`
-                            is unset, this is the number of files for each Schema.
-                            If `compressedFileFormat` is set and `compressPerSchema`
-                            is `false`, this is the number of compressed files for
-                            each Schema. If `compressedFileFormat` is set and `compressPerSchema`
-                            is `true`, this is the total number of compressed files.
-                          format: int32
-                          type: integer
-                        parallelism:
-                          description: Number of parallel jobs when generating the
-                            dataset. Default to 1.
-                          format: int32
-                          minimum: 1
-                          type: integer
-                        schemas:
-                          description: List of Schemas in the DataSet.
-                          items:
-                            description: SchemaSelector defines the reference to a
-                              Schema and its usage in the DataSet.
-                            properties:
-                              name:
-                                description: Name of the Schema. Note that the Schema
-                                  must be present in the same namespace as the DataSet.
-                                type: string
-                              numFilesPerCompressedFile:
-                                description: Range of number of files to be generated
-                                  in the compressed file. Take effect only if `compressedFileFormat`
-                                  is set in the DataSet.
-                                properties:
-                                  max:
-                                    description: Maximum value of the range.
-                                    format: int32
-                                    minimum: 0
-                                    type: integer
-                                  min:
-                                    description: Minimum value of the range.
-                                    format: int32
-                                    minimum: 0
-                                    type: integer
-                                required:
-                                - max
-                                - min
-                                type: object
-                              numRecords:
-                                description: Range of number of rows to be generated
-                                  in each output file.
-                                properties:
-                                  max:
-                                    description: Maximum value of the range.
-                                    format: int32
-                                    minimum: 0
-                                    type: integer
-                                  min:
-                                    description: Minimum value of the range.
-                                    format: int32
-                                    minimum: 0
-                                    type: integer
-                                required:
-                                - max
-                                - min
-                                type: object
-                            required:
-                            - name
-                            - numRecords
-                            type: object
-                          type: array
-                        storageSize:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          description: Size of the PVC for the data generator job.
-                            Default to 2Gi.
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                      required:
-                      - fileFormat
-                      - numFiles
-                      - schemas
-                      type: object
-                    status:
-                      description: DataSetStatus defines the observed state of DataSet.
-                      properties:
-                        completionTime:
-                          description: Time when the data generator job completed.
-                          format: date-time
-                          type: string
-                        errorCount:
-                          description: Number of errors occurred.
-                          format: int32
-                          type: integer
-                        errors:
-                          additionalProperties:
-                            items:
-                              type: string
-                            type: array
-                          description: List of errors occurred, which is a map from
-                            error type to list of error messages.
-                          type: object
-                        jobStatus:
-                          description: Status of the data generator job.
-                          type: string
-                        lastGeneration:
-                          description: Last generation of the DataSet object. For
-                            internal use only.
-                          format: int64
-                          type: integer
-                        pvcStatus:
-                          description: Status of the PVC for the data generator job.
-                          type: string
-                        startTime:
-                          description: Time when the data generator job started.
-                          format: date-time
-                          type: string
-                      type: object
-                  type: object
-                description: Map from endpoint name to the DataSet used by the EndpointSpec.
-                  For internal use only.
-                type: object
+              drainingStartTime:
+                description: Time when the pipeline-under-test started draining. For
+                  internal use only.
+                format: date-time
+                type: string
               durations:
                 additionalProperties:
                   type: string
                 description: Calculated duration of each endpoint.
                 type: object
-              endpointMap:
-                additionalProperties:
-                  description: PipelineEndpoint defines the endpoint for data ingestion
-                    in Pipeline.
-                  properties:
-                    http:
-                      description: Configurations of the HTTP protocol.
-                      properties:
-                        headers:
-                          additionalProperties:
-                            type: string
-                          description: Headers of the HTTP request.
-                          type: object
-                        method:
-                          description: Method of the HTTP request.
-                          type: string
-                        url:
-                          description: URL of the HTTP request.
-                          type: string
-                      required:
-                      - method
-                      - url
-                      type: object
-                    name:
-                      description: Name of the endpoint.
-                      type: string
-                  required:
-                  - http
-                  - name
-                  type: object
-                description: Map from endpoint name to the PipelineEndpoint, which
-                  is referenced by the EndpointSpec. For internal use only.
-                type: object
+              enableCostCalculation:
+                description: Whether to enable cost calculation. Copied from the Pipeline
+                  used by the Experiment. For internal use only.
+                type: boolean
               error:
                 description: Error message.
                 type: string
               jobStatus:
                 description: Status of the load generator job.
                 type: string
-              loadPatternMap:
-                additionalProperties:
-                  description: LoadPattern is the Schema for the loadpatterns API
-                  properties:
-                    apiVersion:
-                      description: 'APIVersion defines the versioned schema of this
-                        representation of an object. Servers should convert recognized
-                        schemas to the latest internal value, and may reject unrecognized
-                        values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-                      type: string
-                    kind:
-                      description: 'Kind is a string value representing the REST resource
-                        this object represents. Servers may infer this from the endpoint
-                        the client submits requests to. Cannot be updated. In CamelCase.
-                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                      type: string
-                    metadata:
-                      type: object
-                    spec:
-                      description: LoadPatternSpec defines the desired state of LoadPattern.
-                      properties:
-                        maxVUs:
-                          description: Maximum number of VUs to allow for allocation
-                            during Experiment. Equivalent to the "ramping-arrival-rate"
-                            executor's `maxVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                            for more details.
-                          type: integer
-                        preAllocatedVUs:
-                          description: Number of VUs to pre-allocate before Experiment
-                            start. Equivalent to the "ramping-arrival-rate" executor's
-                            `preAllocatedVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                            for more details.
-                          minimum: 0
-                          type: integer
-                        stages:
-                          description: List of stages in the LoadPattern. Equivalent
-                            to the "ramping-arrival-rate" executor's `stages` option
-                            in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                            for more details.
-                          items:
-                            description: Stage defines how the load ramps up or down.
-                            properties:
-                              duration:
-                                description: Duration of the stage, also the time
-                                  to reach the target load. Equivalent to the "ramping-arrival-rate"
-                                  executor's `stages[].duration` option in K6. See
-                                  https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                                  for more details.
-                                type: string
-                              target:
-                                description: Target load to reach at the end of the
-                                  stage. Equivalent to the "ramping-arrival-rate"
-                                  executor's `stages[].target` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                                  for more details.
-                                minimum: 0
-                                type: integer
-                            required:
-                            - duration
-                            - target
-                            type: object
-                          type: array
-                        startRate:
-                          description: Number of requests per `timeUnit` period at
-                            Experiment start. Equivalent to the "ramping-arrival-rate"
-                            executor's `startRate` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                            for more details.
-                          type: integer
-                        timeUnit:
-                          description: Period of time to apply to the `startRate`
-                            and `stages[].target` fields. Equivalent to the "ramping-arrival-rate"
-                            executor's `timeUnit` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
-                            for more details.
-                          type: string
-                      required:
-                      - stages
-                      - startRate
-                      type: object
-                    status:
-                      description: LoadPatternStatus defines the observed state of
-                        LoadPattern.
-                      type: object
-                  type: object
-                description: Map from endpoint name to the LoadPattern used by the
-                  EndpointSpec. For internal use only.
-                type: object
-              pipeline:
-                description: Pipeline used by the Experiment. For internal use only.
-                properties:
-                  apiVersion:
-                    description: 'APIVersion defines the versioned schema of this
-                      representation of an object. Servers should convert recognized
-                      schemas to the latest internal value, and may reject unrecognized
-                      values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-                    type: string
-                  kind:
-                    description: 'Kind is a string value representing the REST resource
-                      this object represents. Servers may infer this from the endpoint
-                      the client submits requests to. Cannot be updated. In CamelCase.
-                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                    type: string
-                  metadata:
-                    type: object
-                  spec:
-                    description: PipelineSpec defines the desired state of Pipeline.
-                    properties:
-                      cloudProvider:
-                        description: Cloud provider of the Pipeline. Available values
-                          are `aws`, `azure`, and `gcp`.
-                        enum:
-                        - aws
-                        - azure
-                        - gcp
-                        type: string
-                      enableCostCalculation:
-                        description: Whether to enable cost calculation for the Pipeline.
-                        type: boolean
-                      healthCheckURLs:
-                        description: List of URLs for health check. An HTTP GET request
-                          will be made to each URL, and all of them should return
-                          200 OK to pass the health check. If the list is empty, no
-                          health check will be performed.
-                        items:
-                          type: string
-                        minItems: 1
-                        type: array
-                      inCluster:
-                        description: Whether the Pipeline is deployed within the cluster
-                          or not. When set to `true`, the Pipeline will be accessed
-                          by its Services. When set to `false`, Services of type ExternalName
-                          will be created to access the Pipeline.
-                        type: boolean
-                      metricsEndpoint:
-                        description: Endpoint for metrics scraping.
-                        properties:
-                          http:
-                            description: Configurations of the HTTP protocol. Must
-                              be set if `inCluster` is set to `false` in the Pipeline.
-                            properties:
-                              headers:
-                                additionalProperties:
-                                  type: string
-                                description: Headers of the HTTP request.
-                                type: object
-                              method:
-                                description: Method of the HTTP request.
-                                type: string
-                              url:
-                                description: URL of the HTTP request.
-                                type: string
-                            required:
-                            - method
-                            - url
-                            type: object
-                          path:
-                            description: Path of the endpoint. Default to "/metrics".
-                            type: string
-                          port:
-                            description: Name of the Service port to use. Default
-                              to "metrics".
-                            type: string
-                          serviceRef:
-                            description: Reference to the Service. Must be set if
-                              `inCluster` is set to `true` in the Pipeline.
-                            properties:
-                              apiVersion:
-                                description: API version of the referent.
-                                type: string
-                              fieldPath:
-                                description: 'If referring to a piece of an object
-                                  instead of an entire object, this string should
-                                  contain a valid JSON/Go field access statement,
-                                  such as desiredState.manifest.containers[2]. For
-                                  example, if the object reference is to a container
-                                  within a pod, this would take on a value like: "spec.containers{name}"
-                                  (where "name" refers to the name of the container
-                                  that triggered the event) or if no container name
-                                  is specified "spec.containers[2]" (container with
-                                  index 2 in this pod). This syntax is chosen only
-                                  to have some well-defined way of referencing a part
-                                  of an object. TODO: this design is not final and
-                                  this field is subject to change in the future.'
-                                type: string
-                              kind:
-                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                                type: string
-                              name:
-                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                                type: string
-                              namespace:
-                                description: 'Namespace of the referent. More info:
-                                  https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                                type: string
-                              resourceVersion:
-                                description: 'Specific resourceVersion to which this
-                                  reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                                type: string
-                              uid:
-                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                                type: string
-                            type: object
-                            x-kubernetes-map-type: atomic
-                        type: object
-                      pipelineEndpoints:
-                        description: List of endpoints for data ingestion.
-                        items:
-                          description: PipelineEndpoint defines the endpoint for data
-                            ingestion in Pipeline.
-                          properties:
-                            http:
-                              description: Configurations of the HTTP protocol.
-                              properties:
-                                headers:
-                                  additionalProperties:
-                                    type: string
-                                  description: Headers of the HTTP request.
-                                  type: object
-                                method:
-                                  description: Method of the HTTP request.
-                                  type: string
-                                url:
-                                  description: URL of the HTTP request.
-                                  type: string
-                              required:
-                              - method
-                              - url
-                              type: object
-                            name:
-                              description: Name of the endpoint.
-                              type: string
-                          required:
-                          - http
-                          - name
-                          type: object
-                        minItems: 1
-                        type: array
-                      tags:
-                        additionalProperties:
-                          type: string
-                        description: Map of tags to select cloud resources of the
-                          Pipeline. Equivalent to the tags in the cloud service provider.
-                        type: object
-                    required:
-                    - pipelineEndpoints
-                    type: object
-                    x-kubernetes-validations:
-                    - message: Pipeline is immutable
-                      rule: self == oldSelf
-                  status:
-                    description: PipelineStatus defines the observed state of Pipeline.
-                    properties:
-                      availability:
-                        description: Availability of the Pipeline.
-                        type: string
-                    type: object
-                type: object
-              protocolMap:
-                additionalProperties:
-                  description: EndpointProtocol defines the protocol used by a PipelineEndpoint.
-                  type: string
-                description: Map from endpoint name to the protocol used by the PipelineEndpoint,
-                  which is referenced by the EndpointSpec. For internal use only.
-                type: object
               startTime:
                 description: Time when the Experiment started.
                 format: date-time
                 type: string
+              tags:
+                additionalProperties:
+                  type: string
+                description: Map of tags to select cloud resources. Equivalent to
+                  the tags in the cloud service provider. Copied from the Pipeline
+                  used by the Experiment. For internal use only.
+                type: object
             type: object
         type: object
     served: true
@@ -1177,12 +737,15 @@ spec:
                   Experiment. Equivalent to the "ramping-arrival-rate" executor's
                   `maxVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                   for more details.
+                format: int64
+                minimum: 0
                 type: integer
               preAllocatedVUs:
                 description: Number of VUs to pre-allocate before Experiment start.
                   Equivalent to the "ramping-arrival-rate" executor's `preAllocatedVUs`
                   option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                   for more details.
+                format: int64
                 minimum: 0
                 type: integer
               stages:
@@ -1203,18 +766,22 @@ spec:
                         to the "ramping-arrival-rate" executor's `stages[].target`
                         option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                         for more details.
+                      format: int64
                       minimum: 0
                       type: integer
                   required:
                   - duration
                   - target
                   type: object
+                minItems: 1
                 type: array
               startRate:
                 description: Number of requests per `timeUnit` period at Experiment
                   start. Equivalent to the "ramping-arrival-rate" executor's `startRate`
                   option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                   for more details.
+                format: int64
+                minimum: 0
                 type: integer
               timeUnit:
                 description: Period of time to apply to the `startRate` and `stages[].target`
@@ -1375,16 +942,17 @@ spec:
                 type: array
               inCluster:
                 description: Whether the Pipeline is deployed within the cluster or
-                  not. When set to `true`, the Pipeline will be accessed by its Services.
-                  When set to `false`, Services of type ExternalName will be created
-                  to access the Pipeline.
+                  not. When set to `false`, Services of type ExternalName will be
+                  created to access the Pipeline. When set to `true`, the Pipeline
+                  will be accessed by its Services.
                 type: boolean
               metricsEndpoint:
                 description: Endpoint for metrics scraping.
                 properties:
                   http:
-                    description: Configurations of the HTTP protocol. Must be set
-                      if `inCluster` is set to `false` in the Pipeline.
+                    description: Configurations of the HTTP protocol. Only the scheme,
+                      host, and port of the `http.url` field will be used. Must be
+                      set if `inCluster` is set to `false` in the Pipeline.
                     properties:
                       headers:
                         additionalProperties:
@@ -1408,40 +976,13 @@ spec:
                     description: Name of the Service port to use. Default to "metrics".
                     type: string
                   serviceRef:
-                    description: Reference to the Service. Must be set if `inCluster`
+                    description: Reference to the Service. The Service must be in
+                      the same namespace as the Pipeline. Must be set if `inCluster`
                       is set to `true` in the Pipeline.
                     properties:
-                      apiVersion:
-                        description: API version of the referent.
-                        type: string
-                      fieldPath:
-                        description: 'If referring to a piece of an object instead
-                          of an entire object, this string should contain a valid
-                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                          For example, if the object reference is to a container within
-                          a pod, this would take on a value like: "spec.containers{name}"
-                          (where "name" refers to the name of the container that triggered
-                          the event) or if no container name is specified "spec.containers[2]"
-                          (container with index 2 in this pod). This syntax is chosen
-                          only to have some well-defined way of referencing a part
-                          of an object. TODO: this design is not final and this field
-                          is subject to change in the future.'
-                        type: string
-                      kind:
-                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                        type: string
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                        type: string
-                      namespace:
-                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                        type: string
-                      resourceVersion:
-                        description: 'Specific resourceVersion to which this reference
-                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                        type: string
-                      uid:
-                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
@@ -2058,6 +1599,7 @@ spec:
                   required:
                   - name
                   type: object
+                minItems: 1
                 type: array
             required:
             - columns
