@@ -54,23 +54,30 @@ type PipelineSpec struct {
 	// Whether the Pipeline is deployed within the cluster or not.
 	// When set to `false`, Services of type ExternalName will be created to access the Pipeline.
 	// When set to `true`, the Pipeline will be accessed by its Services.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	InCluster bool `json:"inCluster,omitempty"`
 	// List of endpoints for data ingestion.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	PipelineEndpoints []PipelineEndpoint `json:"pipelineEndpoints"`
 	// Endpoint for metrics scraping.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	MetricsEndpoint *MetricsEndpoint `json:"metricsEndpoint,omitempty"`
 	// List of URLs for health check.
 	// An HTTP GET request will be made to each URL, and all of them should return 200 OK to pass the health check.
 	// If the list is empty, no health check will be performed.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	HealthCheckURLs []string `json:"healthCheckURLs,omitempty"`
 	// Whether to enable cost calculation for the Pipeline.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	EnableCostCalculation bool `json:"enableCostCalculation,omitempty"`
 	// Cloud provider of the Pipeline. Available values are `aws`, `azure`, and `gcp`.
 	// +kubebuilder:validation:Enum=aws;azure;gcp
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	CloudProvider string `json:"cloudProvider,omitempty"`
 	// Map of tags to select cloud resources of the Pipeline. Equivalent to the tags in the cloud service provider.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
@@ -86,11 +93,11 @@ type PipelineStatus struct {
 //+kubebuilder:printcolumn:name="Liveness",type="string",JSONPath=".status.liveness"
 
 // Pipeline is the Schema for the pipelines API
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 55",message="must contain at most 55 characters"
 type Pipeline struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Pipeline is immutable"
 	Spec   PipelineSpec   `json:"spec,omitempty"`
 	Status PipelineStatus `json:"status,omitempty"`
 }

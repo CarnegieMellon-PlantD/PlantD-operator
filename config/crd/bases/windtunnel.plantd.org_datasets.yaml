@@ -21,15 +21,15 @@ spec:
     - jsonPath: .status.pvcStatus
       name: VolumeStatus
       type: string
+    - jsonPath: .status.errorCount
+      name: ErrorCount
+      type: integer
     - jsonPath: .status.startTime
       name: StartTime
       type: string
     - jsonPath: .status.completionTime
       name: CompletionTime
       type: string
-    - jsonPath: .status.errorCount
-      name: ErrorCount
-      type: integer
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -188,6 +188,9 @@ spec:
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 39 characters
+          rule: size(self.metadata.name) <= 39
     served: true
     storage: true
     subresources:

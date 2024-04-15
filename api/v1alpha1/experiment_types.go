@@ -61,16 +61,19 @@ type EndpointSpec struct {
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
 	// Reference to the Pipeline to use for the Experiment.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	PipelineRef *corev1.ObjectReference `json:"pipelineRef"`
 	// List of tests upon endpoints.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=65535
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	EndpointSpecs []EndpointSpec `json:"endpointSpecs"`
+	// Scheduled time to run the Experiment.
+	ScheduledTime *metav1.Time `json:"scheduledTime,omitempty"`
 	// Time to wait after the load generator job is completed before finishing the Experiment.
 	// It allows the pipeline-under-test to finish its processing.
 	// Default to no draining time.
 	DrainingTime *metav1.Duration `json:"drainingTime,omitempty"`
-	// Scheduled time to run the Experiment.
-	ScheduledTime *metav1.Time `json:"scheduledTime,omitempty"`
 }
 
 // ExperimentStatus defines the observed state of Experiment.
@@ -100,17 +103,19 @@ type ExperimentStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Duration",type="string",JSONPath=".status.durations"
 //+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
+//+kubebuilder:printcolumn:name="Durations",type="string",JSONPath=".status.durations"
+//+kubebuilder:printcolumn:name="Draining",type="string",JSONPath=".spec.drainingTime"
+//+kubebuilder:printcolumn:name="ScheduledTime",type="string",JSONPath=".spec.scheduledTime"
 //+kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
 //+kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
 
 // Experiment is the Schema for the experiments API
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 32",message="must contain at most 32 characters"
 type Experiment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Experiment is immutable"
 	Spec   ExperimentSpec   `json:"spec,omitempty"`
 	Status ExperimentStatus `json:"status,omitempty"`
 }

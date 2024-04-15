@@ -317,6 +317,9 @@ spec:
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 39 characters
+          rule: size(self.metadata.name) <= 39
     served: true
     storage: true
     subresources:
@@ -597,8 +600,12 @@ spec:
                   - endpointName
                   - loadPatternRef
                   type: object
+                maxItems: 65535
                 minItems: 1
                 type: array
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -636,6 +643,9 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               scheduledTime:
                 description: Scheduled time to run the Experiment.
                 format: date-time
@@ -644,9 +654,6 @@ spec:
             - endpointSpecs
             - pipelineRef
             type: object
-            x-kubernetes-validations:
-            - message: Experiment is immutable
-              rule: self == oldSelf
           status:
             description: ExperimentStatus defines the observed state of Experiment.
             properties:
@@ -692,6 +699,9 @@ spec:
                 type: object
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 32 characters
+          rule: size(self.metadata.name) <= 32
     served: true
     storage: true
     subresources:
@@ -928,9 +938,15 @@ spec:
                 - azure
                 - gcp
                 type: string
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               enableCostCalculation:
                 description: Whether to enable cost calculation for the Pipeline.
                 type: boolean
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               healthCheckURLs:
                 description: List of URLs for health check. An HTTP GET request will
                   be made to each URL, and all of them should return 200 OK to pass
@@ -940,12 +956,18 @@ spec:
                   type: string
                 minItems: 1
                 type: array
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               inCluster:
                 description: Whether the Pipeline is deployed within the cluster or
                   not. When set to `false`, Services of type ExternalName will be
                   created to access the Pipeline. When set to `true`, the Pipeline
                   will be accessed by its Services.
                 type: boolean
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               metricsEndpoint:
                 description: Endpoint for metrics scraping.
                 properties:
@@ -987,6 +1009,9 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                 type: object
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               pipelineEndpoints:
                 description: List of endpoints for data ingestion.
                 items:
@@ -1020,18 +1045,21 @@ spec:
                   type: object
                 minItems: 1
                 type: array
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               tags:
                 additionalProperties:
                   type: string
                 description: Map of tags to select cloud resources of the Pipeline.
                   Equivalent to the tags in the cloud service provider.
                 type: object
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
             required:
             - pipelineEndpoints
             type: object
-            x-kubernetes-validations:
-            - message: Pipeline is immutable
-              rule: self == oldSelf
           status:
             description: PipelineStatus defines the observed state of Pipeline.
             properties:
@@ -1040,6 +1068,9 @@ spec:
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 55 characters
+          rule: size(self.metadata.name) <= 55
     served: true
     storage: true
     subresources:

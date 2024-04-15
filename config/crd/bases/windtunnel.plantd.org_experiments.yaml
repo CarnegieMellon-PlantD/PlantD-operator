@@ -15,11 +15,17 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.durations
-      name: Duration
-      type: string
     - jsonPath: .status.jobStatus
       name: JobStatus
+      type: string
+    - jsonPath: .status.durations
+      name: Durations
+      type: string
+    - jsonPath: .spec.drainingTime
+      name: Draining
+      type: string
+    - jsonPath: .spec.scheduledTime
+      name: ScheduledTime
       type: string
     - jsonPath: .status.startTime
       name: StartTime
@@ -161,8 +167,12 @@ spec:
                   - endpointName
                   - loadPatternRef
                   type: object
+                maxItems: 65535
                 minItems: 1
                 type: array
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -200,6 +210,9 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: value is immutable
+                  rule: self == oldSelf
               scheduledTime:
                 description: Scheduled time to run the Experiment.
                 format: date-time
@@ -208,9 +221,6 @@ spec:
             - endpointSpecs
             - pipelineRef
             type: object
-            x-kubernetes-validations:
-            - message: Experiment is immutable
-              rule: self == oldSelf
           status:
             description: ExperimentStatus defines the observed state of Experiment.
             properties:
@@ -256,6 +266,9 @@ spec:
                 type: object
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 32 characters
+          rule: size(self.metadata.name) <= 32
     served: true
     storage: true
     subresources:

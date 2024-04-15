@@ -32,7 +32,7 @@ var (
 )
 
 // CreateConfigMapWithPlainText creates a ConfigMap for EndpointSpec with plain text data.
-func CreateConfigMapWithPlainText(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, pipelineEndpoint *windtunnelv1alpha1.PipelineEndpoint, loadPattern *windtunnelv1alpha1.LoadPattern, protocol windtunnelv1alpha1.EndpointProtocol) (*corev1.ConfigMap, error) {
+func CreateConfigMapWithPlainText(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, pipelineEndpoint *windtunnelv1alpha1.PipelineEndpoint, text string, loadPattern *windtunnelv1alpha1.LoadPattern, protocol windtunnelv1alpha1.EndpointProtocol) (*corev1.ConfigMap, error) {
 	jsonEndpoint, err := json.Marshal(pipelineEndpoint)
 	if err != nil {
 		return nil, err
@@ -46,19 +46,19 @@ func CreateConfigMapWithPlainText(experiment *windtunnelv1alpha1.Experiment, end
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunConfigMapName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		},
 		Data: map[string]string{
 			filenameScript:      config.GetViper().GetString(fmt.Sprintf("loadGenerator.script.%s.plainText", protocol)),
 			filenameEndpoint:    string(jsonEndpoint),
-			filenamePlainText:   endpointSpec.DataSpec.PlainText,
+			filenamePlainText:   text,
 			filenameLoadPattern: string(jsonLoadPattern),
 		},
 	}, nil
 }
 
 // CreateConfigMapWithDataSet creates a ConfigMap for EndpointSpec with DataSet.
-func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, pipelineEndpoint *windtunnelv1alpha1.PipelineEndpoint, dataSet *windtunnelv1alpha1.DataSet, loadPattern *windtunnelv1alpha1.LoadPattern, protocol windtunnelv1alpha1.EndpointProtocol) (*corev1.ConfigMap, error) {
+func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, pipelineEndpoint *windtunnelv1alpha1.PipelineEndpoint, dataSet *windtunnelv1alpha1.DataSet, loadPattern *windtunnelv1alpha1.LoadPattern, protocol windtunnelv1alpha1.EndpointProtocol) (*corev1.ConfigMap, error) {
 	jsonEndpoint, err := json.Marshal(pipelineEndpoint)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpo
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunConfigMapName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		},
 		Data: map[string]string{
 			filenameScript:      config.GetViper().GetString(fmt.Sprintf("loadGenerator.script.%s.dataSet", protocol)),
@@ -89,7 +89,7 @@ func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpo
 }
 
 // CreatePVC creates PVC for the EndpointSpec. The PVC will be bound by the TestRun. For EndpointSpec with DataSet only.
-func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
+func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, endpointSpec *windtunnelv1alpha1.EndpointSpec, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
 	var storageSize resource.Quantity
 	if endpointSpec.StorageSize != nil && !endpointSpec.StorageSize.IsZero() {
 		storageSize = *endpointSpec.StorageSize
@@ -103,7 +103,7 @@ func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunn
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -122,11 +122,11 @@ func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunn
 
 // CreateCopierJob creates a Job to copy the configuration and data for the EndpointSpec.
 // For EndpointSpec that uses a DataSet only.
-func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec, configMap *corev1.ConfigMap, dataSet *windtunnelv1alpha1.DataSet) *kbatch.Job {
+func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, endpointSpec *windtunnelv1alpha1.EndpointSpec, configMap *corev1.ConfigMap, dataSet *windtunnelv1alpha1.DataSet) *kbatch.Job {
 	return &kbatch.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointIdx),
 		},
 		Spec: kbatch.JobSpec{
 			BackoffLimit: ptr.To(copierBackoffLimit),
@@ -172,7 +172,7 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointSpec *wi
 							Name: "dataset-volume",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation),
+									ClaimName: utils.GetDataGeneratorName(dataSet.Name, dataSet.Generation),
 								},
 							},
 						},
@@ -180,7 +180,7 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointSpec *wi
 							Name: "testrun-volume",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+									ClaimName: utils.GetTestRunName(experiment.Name, endpointIdx),
 								},
 							},
 						},
@@ -192,11 +192,11 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointSpec *wi
 }
 
 // CreateTestRun creates a TestRun for the EndpointSpec.
-func CreateTestRun(experiment *windtunnelv1alpha1.Experiment, endpointSpec *windtunnelv1alpha1.EndpointSpec) *k6v1alpha1.TestRun {
+func CreateTestRun(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, endpointSpec *windtunnelv1alpha1.EndpointSpec) *k6v1alpha1.TestRun {
 	return &k6v1alpha1.TestRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		},
 		Spec: k6v1alpha1.TestRunSpec{
 			Parallelism: 1,

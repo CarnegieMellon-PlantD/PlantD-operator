@@ -93,13 +93,14 @@ type DataSetStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
-// +kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
-// +kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
-// +kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
-// +kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
+//+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
+//+kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
+//+kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
+//+kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
+//+kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
 
 // DataSet is the Schema for the datasets API
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 39",message="must contain at most 39 characters"
 type DataSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

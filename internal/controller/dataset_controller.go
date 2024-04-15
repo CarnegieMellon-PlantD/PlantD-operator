@@ -114,7 +114,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	}
 
 	// Delete the Job from last generation if exists
-	lastJobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Status.LastGeneration)
+	lastJobName := utils.GetDataGeneratorName(dataSet.Name, dataSet.Status.LastGeneration)
 	lastJob := &kbatch.Job{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: lastJobName}, lastJob); err == nil {
 		// By default, the Pod of the Job will be reserved after the Job is deleted,
@@ -130,7 +130,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	}
 
 	// Delete the PVC from last generation if exists, it will delete the PV as well
-	lastPVCName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Status.LastGeneration)
+	lastPVCName := utils.GetDataGeneratorName(dataSet.Name, dataSet.Status.LastGeneration)
 	lastPVC := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: lastPVCName}, lastPVC); err == nil {
 		if err := r.Delete(ctx, lastPVC); err != nil {
@@ -141,7 +141,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	}
 
 	// Create a new PVC
-	newPVCName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation)
+	newPVCName := utils.GetDataGeneratorName(dataSet.Name, dataSet.Generation)
 	newPVC := datagen.CreatePVC(newPVCName, dataSet)
 	if err := ctrl.SetControllerReference(dataSet, newPVC, r.Scheme); err != nil {
 		logger.Error(err, fmt.Sprintf("Cannot set controller reference for new PVC \"%s\"", newPVCName))
@@ -155,7 +155,7 @@ func (r *DataSetReconciler) reconcileCreatedOrUpdated(ctx context.Context, dataS
 	}
 
 	// Create a new Job
-	newJobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Generation)
+	newJobName := utils.GetDataGeneratorName(dataSet.Name, dataSet.Generation)
 	newJob, err := datagen.CreateJob(newJobName, newPVCName, dataSet, schemaMap)
 	if err != nil {
 		logger.Error(err, fmt.Sprintf("Cannot create manifest for new Job \"%s\"", newJobName))
@@ -189,7 +189,7 @@ func (r *DataSetReconciler) reconcileRunning(ctx context.Context, dataSet *windt
 	logger := log.FromContext(ctx)
 
 	// Get the Job
-	jobName := utils.GetDataSetJobName(dataSet.Name, dataSet.Generation)
+	jobName := utils.GetDataGeneratorName(dataSet.Name, dataSet.Generation)
 	job := &kbatch.Job{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: jobName}, job); err != nil {
 		logger.Error(err, fmt.Sprintf("Lost Job \"%s\"", jobName))
@@ -197,7 +197,7 @@ func (r *DataSetReconciler) reconcileRunning(ctx context.Context, dataSet *windt
 	}
 
 	// Get the PVC
-	pvcName := utils.GetDataSetPVCName(dataSet.Name, dataSet.Generation)
+	pvcName := utils.GetDataGeneratorName(dataSet.Name, dataSet.Generation)
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: dataSet.Namespace, Name: pvcName}, pvc); err != nil {
 		logger.Error(err, fmt.Sprintf("Lost PVC \"%s\"", pvcName))

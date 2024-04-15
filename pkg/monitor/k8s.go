@@ -33,7 +33,7 @@ func CreateExternalNameService(pipeline *windtunnelv1alpha1.Pipeline) (*corev1.S
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: pipeline.Namespace,
-			Name:      utils.GetPipelineMetricsServiceName(pipeline.Name),
+			Name:      utils.GetMetricsServiceName(pipeline.Name),
 			// Set the Pipeline label so that ServiceMonitor can select it
 			Labels: map[string]string{
 				serviceLabelKeyPipeline: pipeline.Name,
@@ -68,7 +68,7 @@ func CreateServiceMonitor(pipeline *windtunnelv1alpha1.Pipeline) (*monitoringv1.
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: pipeline.Namespace,
-			Name:      pipeline.Name,
+			Name:      utils.GetMetricsServiceName(pipeline.Name),
 			// Set the labels so that Prometheus can select it
 			Labels: serviceMonitorLabels,
 		},

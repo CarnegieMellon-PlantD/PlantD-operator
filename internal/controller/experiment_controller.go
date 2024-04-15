@@ -204,17 +204,6 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted {
-		stop, result, err := r.reconcileCompleted(ctx, experiment, rc)
-		if stop {
-			if err := r.Status().Update(ctx, experiment); err != nil {
-				logger.Error(err, "Cannot update the status")
-				return ctrl.Result{}, err
-			}
-			return result, err
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -424,7 +413,7 @@ func (r *ExperimentReconciler) reconcileWaitingPipeline(ctx context.Context, exp
 		} else {
 			metricsServiceName = types.NamespacedName{
 				Namespace: rc.Pipeline.Namespace,
-				Name:      utils.GetPipelineMetricsServiceName(rc.Pipeline.Name),
+				Name:      utils.GetMetricsServiceName(rc.Pipeline.Name),
 			}
 		}
 		if err := r.Get(ctx, metricsServiceName, metricsService); err != nil {
@@ -467,14 +456,15 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 
 	// Create ConfigMap, PVC and copier Pod for each endpoint
 	doneCounter := 0
-	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+	for endpointIdx, endpointSpec := range experiment.Spec.EndpointSpecs {
 		switch rc.EndpointDataOptions[endpointSpec.EndpointName] {
 		case windtunnelv1alpha1.EndpointDataOptionPlainText:
 			// ConfigMap
 			configMap, err := loadgen.CreateConfigMapWithPlainText(
 				experiment,
-				&endpointSpec,
+				endpointIdx,
 				rc.Endpoints[endpointSpec.EndpointName],
+				endpointSpec.DataSpec.PlainText,
 				rc.EndpointLoadPatterns[endpointSpec.EndpointName],
 				rc.EndpointProtocols[endpointSpec.EndpointName],
 			)
@@ -503,7 +493,7 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 			// ConfigMap
 			configMap, err := loadgen.CreateConfigMapWithDataSet(
 				experiment,
-				&endpointSpec,
+				endpointIdx,
 				rc.Endpoints[endpointSpec.EndpointName],
 				rc.EndpointDataSets[endpointSpec.EndpointName],
 				rc.EndpointLoadPatterns[endpointSpec.EndpointName],
@@ -529,7 +519,7 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 			}
 
 			// PVC
-			pvc := loadgen.CreatePVC(experiment, &endpointSpec, rc.EndpointDataSets[endpointSpec.EndpointName])
+			pvc := loadgen.CreatePVC(experiment, endpointIdx, &endpointSpec, rc.EndpointDataSets[endpointSpec.EndpointName])
 			if err := ctrl.SetControllerReference(experiment, pvc, r.Scheme); err != nil {
 				logger.Error(err, fmt.Sprintf("Cannot set controller reference for PVC for endpoint \"%s\"",
 					endpointSpec.EndpointName,
@@ -547,7 +537,7 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 			copierJob := &kbatch.Job{}
 			copierJobName := types.NamespacedName{
 				Namespace: experiment.Namespace,
-				Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointSpec.EndpointName),
+				Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointIdx),
 			}
 			if err := r.Get(ctx, copierJobName, copierJob); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, fmt.Sprintf("Lost copier Job \"%s\" for endpoint \"%s\"",
@@ -573,7 +563,7 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 					}
 				}
 			}
-			copierJob = loadgen.CreateCopierJob(experiment, &endpointSpec, configMap, rc.EndpointDataSets[endpointSpec.EndpointName])
+			copierJob = loadgen.CreateCopierJob(experiment, endpointIdx, &endpointSpec, configMap, rc.EndpointDataSets[endpointSpec.EndpointName])
 			if err := ctrl.SetControllerReference(experiment, copierJob, r.Scheme); err != nil {
 				logger.Error(err, fmt.Sprintf("Cannot set controller reference for copier Job for endpoint \"%s\"",
 					endpointSpec.EndpointName,
@@ -593,13 +583,13 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 	}
 
 	// Create TestRun for each endpoint
-	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
-		testRun := loadgen.CreateTestRun(experiment, &endpointSpec)
+	for endpointIdx, endpointSpec := range experiment.Spec.EndpointSpecs {
+		testRun := loadgen.CreateTestRun(experiment, endpointIdx, &endpointSpec)
 		switch rc.EndpointDataOptions[endpointSpec.EndpointName] {
 		case windtunnelv1alpha1.EndpointDataOptionPlainText:
 			testRun.Spec.Script = k6v1alpha1.K6Script{
 				ConfigMap: k6v1alpha1.K6Configmap{
-					Name: utils.GetTestRunConfigMapName(experiment.Name, endpointSpec.EndpointName),
+					Name: utils.GetTestRunName(experiment.Name, endpointIdx),
 					File: filenameScript,
 				},
 			}
@@ -607,7 +597,7 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 		case windtunnelv1alpha1.EndpointDataOptionDataSet:
 			testRun.Spec.Script = k6v1alpha1.K6Script{
 				VolumeClaim: k6v1alpha1.K6VolumeClaim{
-					Name: utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+					Name: utils.GetTestRunName(experiment.Name, endpointIdx),
 					File: filenameScript,
 				},
 			}
@@ -640,11 +630,11 @@ func (r *ExperimentReconciler) reconcileRunning(ctx context.Context, experiment 
 
 	// Check if all TestRuns are finished
 	doneCounter := 0
-	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+	for endpointIdx, endpointSpec := range experiment.Spec.EndpointSpecs {
 		testRun := &k6v1alpha1.TestRun{}
 		testRunName := types.NamespacedName{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		}
 		if err := r.Get(ctx, testRunName, testRun); err != nil {
 			logger.Error(err, fmt.Sprintf("Lost TestRun \"%s\" for endpoint \"%s\"", testRunName, endpointSpec.EndpointName))
@@ -686,25 +676,13 @@ func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment
 		return true, ctrl.Result{RequeueAfter: waitTime}, nil
 	}
 
-	// Proceed to the next state
-	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentCompleted
-	experiment.Status.CompletionTime = ptr.To(metav1.Now())
-	return false, ctrl.Result{}, nil
-}
-
-// reconcileCompleted reconciles the Experiment when it is completed.
-// It returns a flag of whether the current reconciliation loop should stop,
-// the reconciliation result, and an error, if any.
-func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experiment *windtunnelv1alpha1.Experiment, rc *ExperimentReconcilerContext) (bool, ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
 	// Remove the resources created for the Experiment
-	for _, endpointSpec := range experiment.Spec.EndpointSpecs {
+	for endpointIdx, endpointSpec := range experiment.Spec.EndpointSpecs {
 		// TestRun
 		testRun := &k6v1alpha1.TestRun{}
 		testRunName := types.NamespacedName{
 			Namespace: experiment.Namespace,
-			Name:      utils.GetTestRunName(experiment.Name, endpointSpec.EndpointName),
+			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		}
 		if err := r.Get(ctx, testRunName, testRun); client.IgnoreNotFound(err) != nil {
 			logger.Error(err, fmt.Sprintf("Lost TestRun \"%s\" for endpoint \"%s\"", testRunName, endpointSpec.EndpointName))
@@ -723,7 +701,7 @@ func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experimen
 			configMap := &corev1.ConfigMap{}
 			configMapName := types.NamespacedName{
 				Namespace: experiment.Namespace,
-				Name:      utils.GetTestRunConfigMapName(experiment.Name, endpointSpec.EndpointName),
+				Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 			}
 			if err := r.Get(ctx, configMapName, configMap); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, fmt.Sprintf("Lost ConfigMap \"%s\" for endpoint \"%s\"",
@@ -747,7 +725,7 @@ func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experimen
 			copierJob := &kbatch.Job{}
 			copierJobName := types.NamespacedName{
 				Namespace: experiment.Namespace,
-				Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointSpec.EndpointName),
+				Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointIdx),
 			}
 			if err := r.Get(ctx, copierJobName, copierJob); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, fmt.Sprintf("Lost copier Job \"%s\" for endpoint \"%s\"",
@@ -775,7 +753,7 @@ func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experimen
 			configMap := &corev1.ConfigMap{}
 			configMapName := types.NamespacedName{
 				Namespace: experiment.Namespace,
-				Name:      utils.GetTestRunConfigMapName(experiment.Name, endpointSpec.EndpointName),
+				Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 			}
 			if err := r.Get(ctx, configMapName, configMap); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, fmt.Sprintf("Lost ConfigMap \"%s\" for endpoint \"%s\"",
@@ -798,7 +776,7 @@ func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experimen
 			pvc := &corev1.PersistentVolumeClaim{}
 			pvcName := types.NamespacedName{
 				Namespace: experiment.Namespace,
-				Name:      utils.GetTestRunPVCName(experiment.Name, endpointSpec.EndpointName),
+				Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 			}
 			if err := r.Get(ctx, pvcName, pvc); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, fmt.Sprintf("Lost PVC \"%s\" for endpoint \"%s\"", pvcName, endpointSpec.EndpointName))
@@ -818,7 +796,9 @@ func (r *ExperimentReconciler) reconcileCompleted(ctx context.Context, experimen
 		return true, ctrl.Result{}, err
 	}
 
-	// Stop the reconciliation loop and update the status anyway
+	// Stop the reconciliation loop
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentCompleted
+	experiment.Status.CompletionTime = ptr.To(metav1.Now())
 	return true, ctrl.Result{}, nil
 }
 
@@ -855,7 +835,7 @@ func (r *ExperimentReconciler) releasePipeline(ctx context.Context, rc *Experime
 		} else {
 			metricsServiceName = types.NamespacedName{
 				Namespace: rc.Pipeline.Namespace,
-				Name:      utils.GetPipelineMetricsServiceName(rc.Pipeline.Name),
+				Name:      utils.GetMetricsServiceName(rc.Pipeline.Name),
 			}
 		}
 		if err := r.Get(ctx, metricsServiceName, metricsService); err != nil {
