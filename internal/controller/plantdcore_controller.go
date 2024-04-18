@@ -63,6 +63,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Deployment",
 			curProxyDeployment,
 			core.GetProxyDeployment(plantDCore),
 		); err != nil {
@@ -72,6 +73,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Service",
 			&corev1.Service{},
 			core.GetProxyService(plantDCore),
 		); err != nil {
@@ -87,6 +89,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Deployment",
 			curStudioDeployment,
 			core.GetStudioDeployment(plantDCore),
 		); err != nil {
@@ -96,6 +99,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Service",
 			&corev1.Service{},
 			core.GetStudioService(plantDCore),
 		); err != nil {
@@ -111,6 +115,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Prometheus",
 			curPrometheusObject,
 			core.GetPrometheusObject(plantDCore),
 		); err != nil {
@@ -120,12 +125,13 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Service",
 			&corev1.Service{},
 			core.GetPrometheusService(plantDCore),
 		); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.setPrometheusComponentStatus(&plantDCore.Status.StudioStatus, true, curPrometheusObject)
+		r.setPrometheusComponentStatus(&plantDCore.Status.PrometheusStatus, true, curPrometheusObject)
 	}
 
 	hasThanosObjStoreCfg := plantDCore.Spec.ThanosConfig.ObjectStoreConfig != nil
@@ -137,6 +143,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			hasThanosObjStoreCfg,
+			"StatefulSet",
 			curThanosStoreStatefulSet,
 			core.GetThanosStoreStatefulSet(plantDCore),
 		); err != nil {
@@ -146,6 +153,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			hasThanosObjStoreCfg,
+			"Service",
 			&corev1.Service{},
 			core.GetThanosStoreService(plantDCore),
 		); err != nil {
@@ -161,6 +169,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			hasThanosObjStoreCfg,
+			"StatefulSet",
 			curThanosCompactorStatefulSet,
 			core.GetThanosCompactorStatefulSet(plantDCore),
 		); err != nil {
@@ -170,6 +179,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			hasThanosObjStoreCfg,
+			"Service",
 			&corev1.Service{},
 			core.GetThanosCompactorService(plantDCore),
 		); err != nil {
@@ -184,7 +194,8 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.reconcileObject(
 			ctx,
 			plantDCore,
-			hasThanosObjStoreCfg,
+			true,
+			"StatefulSet",
 			curThanosQuerierStatefulSet,
 			core.GetThanosQuerierStatefulSet(plantDCore),
 		); err != nil {
@@ -193,13 +204,14 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.reconcileObject(
 			ctx,
 			plantDCore,
-			hasThanosObjStoreCfg,
+			true,
+			"Service",
 			&corev1.Service{},
 			core.GetThanosQuerierService(plantDCore),
 		); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.setStatefulSetComponentStatus(&plantDCore.Status.ThanosQuerierStatus, hasThanosObjStoreCfg, curThanosQuerierStatefulSet)
+		r.setStatefulSetComponentStatus(&plantDCore.Status.ThanosQuerierStatus, true, curThanosQuerierStatefulSet)
 	}
 
 	// Redis
@@ -209,6 +221,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Deployment",
 			curRedisDeployment,
 			core.GetRedisDeployment(plantDCore),
 		); err != nil {
@@ -218,6 +231,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Service",
 			&corev1.Service{},
 			core.GetRedisService(plantDCore),
 		); err != nil {
@@ -233,6 +247,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Deployment",
 			curOpenCostDeployment,
 			core.GetOpenCostDeployment(plantDCore),
 		); err != nil {
@@ -242,6 +257,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"Service",
 			&corev1.Service{},
 			core.GetOpenCostService(plantDCore),
 		); err != nil {
@@ -251,6 +267,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"ServiceMonitor",
 			&monitoringv1.ServiceMonitor{},
 			core.GetOpenCostServiceMonitor(plantDCore),
 		); err != nil {
@@ -260,6 +277,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			ctx,
 			plantDCore,
 			true,
+			"ServiceMonitor",
 			&monitoringv1.ServiceMonitor{},
 			core.GetCAdvisorServiceMonitor(plantDCore),
 		); err != nil {
@@ -272,7 +290,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 // reconcileObject ensures the current state of the object matches the desired state.
-func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore, shouldExist bool, curObj client.Object, desiredObj client.Object) error {
+func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *windtunnelv1alpha1.PlantDCore, shouldExist bool, kind string, curObj client.Object, desiredObj client.Object) error {
 	logger := log.FromContext(ctx)
 
 	// Get current object
@@ -280,49 +298,53 @@ func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *
 		Namespace: desiredObj.GetNamespace(),
 		Name:      desiredObj.GetName(),
 	}
-	if err := r.Get(ctx, curObjName, curObj); client.IgnoreNotFound(err) != nil {
-		logger.Error(err, fmt.Sprintf("Cannot get %s/%s", curObj.GetObjectKind().GroupVersionKind().Kind, curObjName))
-		return err
-	} else if apierrors.IsNotFound(err) {
+	if err := r.Get(ctx, curObjName, curObj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			logger.Error(err, fmt.Sprintf("Cannot get %s/%s", kind, curObjName))
+			return err
+		}
+
 		// Object does not exist, create it if necessary
 		if shouldExist {
 			// Setting last-applied annotation before setting controller reference,
 			// because a later comparison happens between the last-applied annotation and the desired object,
 			// and the desired object does not have the controller reference.
 			if err := patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
-				logger.Error(err, fmt.Sprintf("Cannot set last-applied annotation for %s", getObjectName(desiredObj)))
+				logger.Error(err, fmt.Sprintf("Cannot set last-applied annotation for %s", getObjectName(kind, desiredObj)))
 				return err
 			}
 			if err := ctrl.SetControllerReference(plantDCore, desiredObj, r.Scheme); err != nil {
-				logger.Error(err, fmt.Sprintf("Cannot set controller reference for %s", getObjectName(desiredObj)))
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for %s", getObjectName(kind, desiredObj)))
 				return err
 			}
 			if err := r.Create(ctx, desiredObj); err != nil {
-				logger.Error(err, fmt.Sprintf("Cannot create %s", getObjectName(desiredObj)))
+				logger.Error(err, fmt.Sprintf("Cannot create %s", getObjectName(kind, desiredObj)))
 				return err
 			}
-			logger.Info(fmt.Sprintf("Created %s", getObjectName(desiredObj)))
-			return nil
+			logger.Info(fmt.Sprintf("Created %s", getObjectName(kind, desiredObj)))
 		}
-	} else {
-		// Object already exists, delete it if necessary
-		if !shouldExist {
-			if err := r.Delete(ctx, curObj); err != nil {
-				logger.Error(err, fmt.Sprintf("Cannot delete %s", getObjectName(curObj)))
-				return err
-			}
-			logger.Info(fmt.Sprintf("Deleted %s", getObjectName(curObj)))
-			return nil
+
+		return nil
+	}
+
+	// Object already exists, delete it if necessary
+	if !shouldExist {
+		if err := r.Delete(ctx, curObj); err != nil {
+			logger.Error(err, fmt.Sprintf("Cannot delete %s", getObjectName(kind, curObj)))
+			return err
 		}
+		logger.Info(fmt.Sprintf("Deleted %s", getObjectName(kind, curObj)))
+		return nil
 	}
 
 	// Object already exists, compare and update if necessary
 	compareOpts := []patch.CalculateOption{
 		patch.IgnoreStatusFields(),
+		patch.IgnoreVolumeClaimTemplateTypeMetaAndStatus(),
 	}
 	patchResult, err := patch.DefaultPatchMaker.Calculate(curObj, desiredObj, compareOpts...)
 	if err != nil {
-		logger.Error(err, fmt.Sprintf("Cannot calculate patch for %s", getObjectName(desiredObj)))
+		logger.Error(err, fmt.Sprintf("Cannot calculate patch for %s", getObjectName(kind, desiredObj)))
 		return err
 	}
 	if patchResult.IsEmpty() {
@@ -330,21 +352,21 @@ func (r *PlantDCoreReconciler) reconcileObject(ctx context.Context, plantDCore *
 	}
 
 	if err = patch.DefaultAnnotator.SetLastAppliedAnnotation(desiredObj); err != nil {
-		logger.Error(err, fmt.Sprintf("Cannot set last-applied annotation for %s", getObjectName(desiredObj)))
+		logger.Error(err, fmt.Sprintf("Cannot set last-applied annotation for %s", getObjectName(kind, desiredObj)))
 		return err
 	}
 	if err = ctrl.SetControllerReference(plantDCore, desiredObj, r.Scheme); err != nil {
-		logger.Error(err, fmt.Sprintf("Cannot set controller reference for %s", getObjectName(desiredObj)))
+		logger.Error(err, fmt.Sprintf("Cannot set controller reference for %s", getObjectName(kind, desiredObj)))
 		return err
 	}
-	// Avoid error "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update".
-	// See https://github.com/argoproj/argo-cd/issues/3657.
+	// Avoid "metadata.resourceVersion: Invalid value: 0x0: must be specified for an update" error in some cases,
+	// see https://github.com/argoproj/argo-cd/issues/3657.
 	desiredObj.SetResourceVersion(curObj.GetResourceVersion())
 	if err = r.Update(ctx, desiredObj); err != nil {
-		logger.Error(err, fmt.Sprintf("Cannot update %s", getObjectName(desiredObj)))
+		logger.Error(err, fmt.Sprintf("Cannot update %s", getObjectName(kind, desiredObj)))
 		return err
 	}
-	logger.Info(fmt.Sprintf("Updated %s", getObjectName(desiredObj)))
+	logger.Info(fmt.Sprintf("Updated %s", getObjectName(kind, desiredObj)))
 
 	return nil
 }
@@ -357,13 +379,13 @@ func (r *PlantDCoreReconciler) setDeploymentComponentStatus(componentStatus *win
 		componentStatus.NumDesired = 0
 		return
 	}
-	if deployment.Status.ReadyReplicas > 0 && deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
+	if deployment.Status.ReadyReplicas > 0 && deployment.Status.ReadyReplicas == deployment.Status.Replicas {
 		componentStatus.Text = windtunnelv1alpha1.ComponentReady
 	} else {
 		componentStatus.Text = windtunnelv1alpha1.ComponentNotReady
 	}
 	componentStatus.NumReady = deployment.Status.ReadyReplicas
-	componentStatus.NumDesired = *deployment.Spec.Replicas
+	componentStatus.NumDesired = deployment.Status.Replicas
 }
 
 // setStatefulSetComponentStatus sets the ComponentStatus based on the StatefulSet.
@@ -374,13 +396,13 @@ func (r *PlantDCoreReconciler) setStatefulSetComponentStatus(componentStatus *wi
 		componentStatus.NumDesired = 0
 		return
 	}
-	if statefulSet.Status.ReadyReplicas > 0 && statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas {
+	if statefulSet.Status.ReadyReplicas > 0 && statefulSet.Status.ReadyReplicas == statefulSet.Status.Replicas {
 		componentStatus.Text = windtunnelv1alpha1.ComponentReady
 	} else {
 		componentStatus.Text = windtunnelv1alpha1.ComponentNotReady
 	}
 	componentStatus.NumReady = statefulSet.Status.ReadyReplicas
-	componentStatus.NumDesired = *statefulSet.Spec.Replicas
+	componentStatus.NumDesired = statefulSet.Status.Replicas
 }
 
 // setPrometheusComponentStatus sets the ComponentStatus based on the Prometheus object.
@@ -391,18 +413,18 @@ func (r *PlantDCoreReconciler) setPrometheusComponentStatus(componentStatus *win
 		componentStatus.NumDesired = 0
 		return
 	}
-	if prometheus.Status.AvailableReplicas > 0 && prometheus.Status.AvailableReplicas == *prometheus.Spec.Replicas {
+	if prometheus.Status.AvailableReplicas > 0 && prometheus.Status.AvailableReplicas == prometheus.Status.Replicas {
 		componentStatus.Text = windtunnelv1alpha1.ComponentReady
 	} else {
 		componentStatus.Text = windtunnelv1alpha1.ComponentNotReady
 	}
 	componentStatus.NumReady = prometheus.Status.AvailableReplicas
-	componentStatus.NumDesired = *prometheus.Spec.Replicas
+	componentStatus.NumDesired = prometheus.Status.Replicas
 }
 
 // getObjectName returns the string representation of the object, containing its kind, namespace, and name.
-func getObjectName(obj client.Object) string {
-	return fmt.Sprintf("%s/%s/%s", obj.GetObjectKind().GroupVersionKind().Kind, obj.GetNamespace(), obj.GetName())
+func getObjectName(kind string, obj client.Object) string {
+	return fmt.Sprintf("%s/%s/%s", kind, obj.GetNamespace(), obj.GetName())
 }
 
 // SetupWithManager sets up the controller with the Manager.

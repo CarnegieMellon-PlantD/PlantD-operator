@@ -95,7 +95,7 @@ make deploy
 make deploy IMG=<custom-image>
 
 # Undeploy
-kubectl delete plantdcore plantd-operator-core -n plantd-operator-system
+kubectl delete plantdcore default -n plantd-operator-system
 make undeploy
 ```
 

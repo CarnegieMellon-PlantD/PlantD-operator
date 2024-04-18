@@ -56,13 +56,29 @@ func CreateExternalNameService(pipeline *windtunnelv1alpha1.Pipeline) (*corev1.S
 
 // CreateServiceMonitor creates a ServiceMonitor for a Pipeline's metrics Service.
 func CreateServiceMonitor(pipeline *windtunnelv1alpha1.Pipeline) (*monitoringv1.ServiceMonitor, error) {
-	endpointPort := pipeline.Spec.MetricsEndpoint.Port
-	if endpointPort == "" {
-		endpointPort = defaultEndpointPort
+	var endpointPort string
+	var endpointPath string
+	if pipeline.Spec.InCluster {
+		endpointPort = pipeline.Spec.MetricsEndpoint.Port
+		if endpointPort == "" {
+			endpointPort = defaultEndpointPort
+		}
+
+		endpointPath = pipeline.Spec.MetricsEndpoint.Path
+		if endpointPath == "" {
+			endpointPath = defaultEndpointPath
+		}
+	} else {
+		endpointPort = servicePortName
+		path, err := utils.GetURLPath(pipeline.Spec.MetricsEndpoint.HTTP.URL)
+		if err != nil {
+			return nil, err
+		}
+		endpointPath = path
 	}
-	endpointPath := pipeline.Spec.MetricsEndpoint.Path
-	if endpointPath == "" {
-		endpointPath = defaultEndpointPath
+
+	if pipeline.Spec.InCluster {
+
 	}
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{

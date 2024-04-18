@@ -86,19 +86,8 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, "Unable to fetch Pipeline")
+		logger.Error(err, "Unable to fetch Experiment")
 		return ctrl.Result{}, err
-	}
-
-	// Initiate the reconciler context
-	rc := NewExperimentReconcilerContext()
-	stop, result, err := r.getRelatedResources(ctx, experiment, rc)
-	if stop {
-		if err := r.Status().Update(ctx, experiment); err != nil {
-			logger.Error(err, "Cannot update the status")
-			return ctrl.Result{}, err
-		}
-		return result, err
 	}
 
 	// Check if the Experiment is being deleted
@@ -114,9 +103,21 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	} else {
 		if controllerutil.ContainsFinalizer(experiment, experimentFinalizerName) {
-			if err := r.releasePipeline(ctx, rc); err != nil {
-				return ctrl.Result{}, err
+			// Try to release the Pipeline
+			pipeline := &windtunnelv1alpha1.Pipeline{}
+			pipelineName := types.NamespacedName{
+				Namespace: experiment.Spec.PipelineRef.Namespace,
+				Name:      experiment.Spec.PipelineRef.Name,
 			}
+			if err := r.Get(ctx, pipelineName, pipeline); err != nil {
+				logger.Error(err, fmt.Sprintf("Lost Pipeline \"%s\"", pipelineName))
+			} else {
+				if err := r.releasePipeline(ctx, pipeline); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
+			// Remove finalizer from the Experiment
 			controllerutil.RemoveFinalizer(experiment, experimentFinalizerName)
 			if err := r.Update(ctx, experiment); err != nil {
 				logger.Error(err, "Cannot remove finalizer")
@@ -125,6 +126,22 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Info("Removed finalizer")
 		}
 		return ctrl.Result{}, nil
+	}
+
+	// No need to reconcile if the Experiment is completed or failed
+	if experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted || experiment.Status.JobStatus == windtunnelv1alpha1.ExperimentFailed {
+		return ctrl.Result{}, nil
+	}
+
+	// Initiate the reconciler context
+	rc := NewExperimentReconcilerContext()
+	stop, result, err := r.getRelatedResources(ctx, experiment, rc)
+	if stop {
+		if err := r.Status().Update(ctx, experiment); err != nil {
+			logger.Error(err, "Cannot update the status")
+			return ctrl.Result{}, err
+		}
+		return result, err
 	}
 
 	if experiment.Status.JobStatus == "" {
@@ -354,14 +371,9 @@ func (r *ExperimentReconciler) reconciledScheduled(ctx context.Context, experime
 // It returns a flag of whether the current reconciliation loop should stop,
 // the reconciliation result, and an error, if any.
 func (r *ExperimentReconciler) reconcileWaitingDataSet(ctx context.Context, experiment *windtunnelv1alpha1.Experiment, rc *ExperimentReconcilerContext) (bool, ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	for endpointName, dataSet := range rc.EndpointDataSets {
+	for _, dataSet := range rc.EndpointDataSets {
 		// Check if the DataSet is in "Success" status
 		if dataSet.Status.JobStatus != windtunnelv1alpha1.DataSetJobSuccess {
-			logger.Info(fmt.Sprintf("DataSet \"%s\" from endpoint \"%s\" is in status \"%s\", waiting for it",
-				utils.GetNamespacedName(dataSet), endpointName, dataSet.Status.JobStatus,
-			))
 			return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 		}
 	}
@@ -379,21 +391,10 @@ func (r *ExperimentReconciler) reconcileWaitingPipeline(ctx context.Context, exp
 
 	// Check if the Pipeline is in "Ready" status
 	if rc.Pipeline.Status.Availability != windtunnelv1alpha1.PipelineReady {
-		logger.Info(fmt.Sprintf("Pipeline \"%s\" is in status \"%s\", waiting for it",
-			utils.GetNamespacedName(rc.Pipeline), rc.Pipeline.Status.Availability,
-		))
 		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 	}
 
-	// Lock the Pipeline by adding the Experiment finalizer and setting its status to "In-Use"
-	if !controllerutil.ContainsFinalizer(rc.Pipeline, experimentFinalizerName) {
-		controllerutil.AddFinalizer(rc.Pipeline, experimentFinalizerName)
-		if err := r.Update(ctx, rc.Pipeline); err != nil {
-			logger.Error(err, "Cannot add finalizer to the Pipeline")
-			return true, ctrl.Result{}, err
-		}
-		logger.Info("Added finalizer to the Pipeline")
-	}
+	// Lock the Pipeline by setting its status to "In-Use"
 	rc.Pipeline.Status.Availability = windtunnelv1alpha1.PipelineInUse
 	if err := r.Status().Update(ctx, rc.Pipeline); err != nil {
 		logger.Error(err, "Cannot update the status of the Pipeline")
@@ -792,7 +793,7 @@ func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment
 	}
 
 	// Release the Pipeline
-	if err := r.releasePipeline(ctx, rc); err != nil {
+	if err := r.releasePipeline(ctx, rc.Pipeline); err != nil {
 		return true, ctrl.Result{}, err
 	}
 
@@ -802,40 +803,32 @@ func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment
 	return true, ctrl.Result{}, nil
 }
 
-// releasePipeline unlocks the Pipeline by removing the Experiment finalizer and setting its status to "Ready".
+// releasePipeline unlocks the Pipeline by setting its status to "Ready".
 // It also removes the Experiment label from the metrics Service.
-func (r *ExperimentReconciler) releasePipeline(ctx context.Context, rc *ExperimentReconcilerContext) error {
+func (r *ExperimentReconciler) releasePipeline(ctx context.Context, pipeline *windtunnelv1alpha1.Pipeline) error {
 	logger := log.FromContext(ctx)
 
-	// Unlock the Pipeline by removing the Experiment finalizer and setting its status to "Ready"
-	if controllerutil.ContainsFinalizer(rc.Pipeline, experimentFinalizerName) {
-		controllerutil.RemoveFinalizer(rc.Pipeline, experimentFinalizerName)
-		if err := r.Update(ctx, rc.Pipeline); err != nil {
-			logger.Error(err, "Cannot remove finalizer from the Pipeline")
-			return err
-		}
-		logger.Info("Removed finalizer from the Pipeline")
-	}
-	rc.Pipeline.Status.Availability = windtunnelv1alpha1.PipelineReady
-	if err := r.Status().Update(ctx, rc.Pipeline); err != nil {
+	// Unlock the Pipeline by setting its status to "Ready"
+	pipeline.Status.Availability = windtunnelv1alpha1.PipelineReady
+	if err := r.Status().Update(ctx, pipeline); err != nil {
 		logger.Error(err, "Cannot update the status of the Pipeline")
 		return err
 	}
 	logger.Info("Set the Pipeline status to \"Ready\"")
 
 	// Remove the Experiment label for the metrics Service
-	if containMetricsEndpoint(rc.Pipeline) {
+	if containMetricsEndpoint(pipeline) {
 		metricsService := &corev1.Service{}
 		var metricsServiceName types.NamespacedName
-		if rc.Pipeline.Spec.InCluster {
+		if pipeline.Spec.InCluster {
 			metricsServiceName = types.NamespacedName{
-				Namespace: rc.Pipeline.Namespace,
-				Name:      rc.Pipeline.Spec.MetricsEndpoint.ServiceRef.Name,
+				Namespace: pipeline.Namespace,
+				Name:      pipeline.Spec.MetricsEndpoint.ServiceRef.Name,
 			}
 		} else {
 			metricsServiceName = types.NamespacedName{
-				Namespace: rc.Pipeline.Namespace,
-				Name:      utils.GetMetricsServiceName(rc.Pipeline.Name),
+				Namespace: pipeline.Namespace,
+				Name:      utils.GetMetricsServiceName(pipeline.Name),
 			}
 		}
 		if err := r.Get(ctx, metricsServiceName, metricsService); err != nil {

@@ -486,10 +486,10 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Only the scheme, host, and port of the `http.url` field will be used. Must be set if `inCluster` is set to `false` in the Pipeline. |
+| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Only the `http.url` field will be used. Must be set if `inCluster` is set to `false` in the Pipeline. |
 | `serviceRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the Service. The Service must be in the same namespace as the Pipeline. Must be set if `inCluster` is set to `true` in the Pipeline. |
-| `port` _string_ | Name of the Service port to use. Default to "metrics". |
-| `path` _string_ | Path of the endpoint. Default to "/metrics". |
+| `port` _string_ | Name of the Service port to use. Effective only when `inCluster` is set to `true` in the Pipeline. Default to "metrics". |
+| `path` _string_ | Path of the endpoint. Effective only when `inCluster` is set to `true` in the Pipeline. Default to "/metrics". |
 
 
 #### NaturalIntRange

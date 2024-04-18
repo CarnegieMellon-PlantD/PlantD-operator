@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"net/url"
+	"path"
 	"strconv"
 )
 
@@ -38,4 +39,15 @@ func GetURLPort(in string) (int, error) {
 	default:
 		return 0, fmt.Errorf("unsupported scheme \"%s\" in URL", u.Scheme)
 	}
+}
+
+// GetURLPath returns the path of the URL.
+func GetURLPath(in string) (string, error) {
+	u, err := url.Parse(in)
+	if err != nil {
+		return "", err
+	}
+
+	// Ensure the leading slash is present
+	return path.Join("/", u.Path), nil
 }

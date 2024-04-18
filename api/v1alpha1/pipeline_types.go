@@ -34,7 +34,7 @@ type PipelineEndpoint struct {
 // MetricsEndpoint defines the endpoint for metrics scraping in Pipeline.
 type MetricsEndpoint struct {
 	// Configurations of the HTTP protocol.
-	// Only the scheme, host, and port of the `http.url` field will be used.
+	// Only the `http.url` field will be used.
 	// Must be set if `inCluster` is set to `false` in the Pipeline.
 	HTTP *HTTP `json:"http,omitempty"`
 	// Reference to the Service.
@@ -42,9 +42,11 @@ type MetricsEndpoint struct {
 	// Must be set if `inCluster` is set to `true` in the Pipeline.
 	ServiceRef *corev1.LocalObjectReference `json:"serviceRef,omitempty"`
 	// Name of the Service port to use.
+	// Effective only when `inCluster` is set to `true` in the Pipeline.
 	// Default to "metrics".
 	Port string `json:"port,omitempty"`
 	// Path of the endpoint.
+	// Effective only when `inCluster` is set to `true` in the Pipeline.
 	// Default to "/metrics".
 	Path string `json:"path,omitempty"`
 }

@@ -83,9 +83,9 @@ spec:
                 description: Endpoint for metrics scraping.
                 properties:
                   http:
-                    description: Configurations of the HTTP protocol. Only the scheme,
-                      host, and port of the `http.url` field will be used. Must be
-                      set if `inCluster` is set to `false` in the Pipeline.
+                    description: Configurations of the HTTP protocol. Only the `http.url`
+                      field will be used. Must be set if `inCluster` is set to `false`
+                      in the Pipeline.
                     properties:
                       headers:
                         additionalProperties:
@@ -103,10 +103,12 @@ spec:
                     - url
                     type: object
                   path:
-                    description: Path of the endpoint. Default to "/metrics".
+                    description: Path of the endpoint. Effective only when `inCluster`
+                      is set to `true` in the Pipeline. Default to "/metrics".
                     type: string
                   port:
-                    description: Name of the Service port to use. Default to "metrics".
+                    description: Name of the Service port to use. Effective only when
+                      `inCluster` is set to `true` in the Pipeline. Default to "metrics".
                     type: string
                   serviceRef:
                     description: Reference to the Service. The Service must be in

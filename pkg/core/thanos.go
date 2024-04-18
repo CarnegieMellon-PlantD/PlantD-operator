@@ -43,23 +43,19 @@ var (
 	thanosStoreServiceHttpPort       = config.GetInt32("core.thanos.store.serviceHttpPort")
 	thanosStorePath                  = config.GetString("core.thanos.store.path")
 
-	thanosCompactorName                  = config.GetString("core.thanos.compactor.name")
-	thanosCompactorLabels                = config.GetStringMapString("core.thanos.compactor.labels")
-	thanosCompactorDefaultReplicas       = config.GetInt32("core.thanos.compactor.defaultReplicas")
-	thanosCompactorDefaultCPURequest     = config.GetString("core.thanos.compactor.defaultCPURequest")
-	thanosCompactorDefaultMemoryRequest  = config.GetString("core.thanos.compactor.defaultMemoryRequest")
-	thanosCompactorDefaultCPULimit       = config.GetString("core.thanos.compactor.defaultCPULimit")
-	thanosCompactorDefaultMemoryLimit    = config.GetString("core.thanos.compactor.defaultMemoryLimit")
-	thanosCompactorDefaultStorageSize    = config.GetString("core.thanos.compactor.defaultStorageSize")
-	thanosCompactorContainerGrpcPortName = config.GetString("core.thanos.compactor.containerGrpcPortName")
-	thanosCompactorContainerGrpcPort     = config.GetInt32("core.thanos.compactor.containerGrpcPort")
-	thanosCompactorContainerHttpPortName = config.GetString("core.thanos.compactor.containerHttpPortName")
-	thanosCompactorContainerHttpPort     = config.GetInt32("core.thanos.compactor.containerHttpPort")
-	thanosCompactorServiceGrpcPortName   = config.GetString("core.thanos.compactor.serviceGrpcPortName")
-	thanosCompactorServiceGrpcPort       = config.GetInt32("core.thanos.compactor.serviceGrpcPort")
-	thanosCompactorServiceHttpPortName   = config.GetString("core.thanos.compactor.serviceHttpPortName")
-	thanosCompactorServiceHttpPort       = config.GetInt32("core.thanos.compactor.serviceHttpPort")
-	thanosCompactorPath                  = config.GetString("core.thanos.compactor.path")
+	thanosCompactorName                 = config.GetString("core.thanos.compactor.name")
+	thanosCompactorLabels               = config.GetStringMapString("core.thanos.compactor.labels")
+	thanosCompactorDefaultReplicas      = config.GetInt32("core.thanos.compactor.defaultReplicas")
+	thanosCompactorDefaultCPURequest    = config.GetString("core.thanos.compactor.defaultCPURequest")
+	thanosCompactorDefaultMemoryRequest = config.GetString("core.thanos.compactor.defaultMemoryRequest")
+	thanosCompactorDefaultCPULimit      = config.GetString("core.thanos.compactor.defaultCPULimit")
+	thanosCompactorDefaultMemoryLimit   = config.GetString("core.thanos.compactor.defaultMemoryLimit")
+	thanosCompactorDefaultStorageSize   = config.GetString("core.thanos.compactor.defaultStorageSize")
+	thanosCompactorContainerPortName    = config.GetString("core.thanos.compactor.containerPortName")
+	thanosCompactorContainerPort        = config.GetInt32("core.thanos.compactor.containerPort")
+	thanosCompactorServicePortName      = config.GetString("core.thanos.compactor.servicePortName")
+	thanosCompactorServicePort          = config.GetInt32("core.thanos.compactor.servicePort")
+	thanosCompactorPath                 = config.GetString("core.thanos.compactor.path")
 
 	thanosQuerierName                  = config.GetString("core.thanos.querier.name")
 	thanosQuerierLabels                = config.GetStringMapString("core.thanos.querier.labels")
@@ -157,20 +153,13 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 							},
 						},
 					},
-				},
-			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "data-volume",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: storageSize,
+					Volumes: []corev1.Volume{
+						{
+							Name: "data-volume",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									SizeLimit: &storageSize,
+								},
 							},
 						},
 					},
@@ -261,8 +250,7 @@ func GetThanosCompactorStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *a
 								"compact",
 								"--wait",
 								fmt.Sprintf("--data-dir=%s", thanosCompactorPath),
-								fmt.Sprintf("--grpc-address=0.0.0.0:%d", thanosCompactorContainerGrpcPort),
-								fmt.Sprintf("--http-address=0.0.0.0:%d", thanosCompactorContainerHttpPort),
+								fmt.Sprintf("--http-address=0.0.0.0:%d", thanosCompactorContainerPort),
 								"--objstore.config=$(OBJSTORE_CONFIG)",
 							},
 							Env: []corev1.EnvVar{
@@ -276,12 +264,8 @@ func GetThanosCompactorStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *a
 							Resources: resources,
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          thanosCompactorContainerGrpcPortName,
-									ContainerPort: thanosCompactorContainerGrpcPort,
-								},
-								{
-									Name:          thanosCompactorContainerHttpPortName,
-									ContainerPort: thanosCompactorContainerHttpPort,
+									Name:          thanosCompactorContainerPortName,
+									ContainerPort: thanosCompactorContainerPort,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -292,20 +276,13 @@ func GetThanosCompactorStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *a
 							},
 						},
 					},
-				},
-			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "data-volume",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: storageSize,
+					Volumes: []corev1.Volume{
+						{
+							Name: "data-volume",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									SizeLimit: &storageSize,
+								},
 							},
 						},
 					},
@@ -328,16 +305,10 @@ func GetThanosCompactorService(plantDCore *windtunnelv1alpha1.PlantDCore) *corev
 			Type: corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
-					Name:       thanosCompactorServiceGrpcPortName,
+					Name:       thanosCompactorServicePortName,
 					Protocol:   corev1.ProtocolTCP,
-					Port:       thanosCompactorServiceGrpcPort,
-					TargetPort: intstr.FromString(thanosCompactorContainerGrpcPortName),
-				},
-				{
-					Name:       thanosCompactorServiceHttpPortName,
-					Protocol:   corev1.ProtocolTCP,
-					Port:       thanosCompactorServiceHttpPort,
-					TargetPort: intstr.FromString(thanosCompactorContainerHttpPortName),
+					Port:       thanosCompactorServicePort,
+					TargetPort: intstr.FromString(thanosCompactorContainerPortName),
 				},
 			},
 			Selector: thanosCompactorLabels,

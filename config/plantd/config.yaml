@@ -32,7 +32,7 @@ loadGenerator:
     remoteWriteArgs: --out experimental-prometheus-rw
     remoteWriteEnvVar:
       name: K6_PROMETHEUS_RW_SERVER_URL
-      value: http://prometheus-service.plantd-operator-system.svc:9090/api/v1/write
+      value: http://plantd-prometheus.plantd-operator-system.svc:9090/api/v1/write
 rbac:
   serviceAccount:
     controllerManager: plantd-operator-controller-manager # See ../rbac/service_account.yaml
@@ -69,7 +69,7 @@ core:
     servicePort: 80
   prometheus:
     name: plantd-prometheus
-    defaultScrapeInterval: 30s
+    defaultScrapeInterval: 15s
     defaultReplicas: 1
     defaultCPURequest: 100m
     defaultMemoryRequest: 100Mi
@@ -116,19 +116,15 @@ core:
       defaultCPULimit: 200m
       defaultMemoryLimit: 200Mi
       defaultStorageSize: 10Gi
-      containerGrpcPortName: grpc
-      containerGrpcPort: 10901
-      containerHttpPortName: http
-      containerHttpPort: 10902
-      serviceGrpcPortName: grpc
-      serviceGrpcPort: 10901
-      serviceHttpPortName: http
-      serviceHttpPort: 10902
+      containerPortName: http
+      containerPort: 10902
+      servicePortName: http
+      servicePort: 10902
       path: /var/thanos/compactor
     querier:
-      name: plantd-thanos-store
+      name: plantd-thanos-querier
       labels:
-        plantd-app: thanos-store
+        plantd-app: thanos-querier
       defaultReplicas: 1
       defaultCPURequest: 50m
       defaultMemoryRequest: 50Mi
@@ -137,11 +133,11 @@ core:
       containerGrpcPortName: grpc
       containerGrpcPort: 10901
       containerHttpPortName: http
-      containerHttpPort: 10902
+      containerHttpPort: 9090
       serviceGrpcPortName: grpc
       serviceGrpcPort: 10901
       serviceHttpPortName: http
-      serviceHttpPort: 10902
+      serviceHttpPort: 9090
   redis:
     name: plantd-redis
     labels:
