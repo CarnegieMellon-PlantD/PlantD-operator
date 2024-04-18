@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	metricsServiceLabelKeyPipeline = config.GetViper().GetString("monitor.service.labelKeys.pipeline")
+	metricsServiceLabelKeyPipeline = config.GetString("monitor.service.labelKeys.pipeline")
 )
 
 // PipelineReconciler reconciles a Pipeline object

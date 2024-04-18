@@ -95,16 +95,11 @@ make deploy
 make deploy IMG=<custom-image>
 
 # Undeploy
+kubectl delete plantdcore plantd-operator-core -n plantd-operator-system
 make undeploy
 ```
 
-**NOTE**: Remember to run
-
-```shell
-kubectl delete plantdcore -n plantd-operator-system plantdcore-core
-```
-
-before undeploying the operator, since the undeploying command will remove PlantD controllers before removing the `PlantDCore` resource, and the `PlantDCore` resource has a finalizer that will prevent the entire process from completing given the operator is removed before.
+**NOTE**: Remember to delete the `PlantDCore` resource before undeploying the operator. The undeploy command may delete PlantD controllers and then remove the `PlantDCore` resource. However, the `PlantDCore` resource has a finalizer, and it cannot be deleted if the controllers are not running. So, you need to delete the `PlantDCore` resource first.
 
 ### Release
 

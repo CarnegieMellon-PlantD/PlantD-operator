@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	serviceLabelKeyPipeline   = config.GetViper().GetString("monitor.service.labelKeys.pipeline")
-	serviceLabelKeyExperiment = config.GetViper().GetString("monitor.service.labelKeys.experiment")
-	servicePortName           = config.GetViper().GetString("monitor.service.portName")
-	serviceMonitorLabels      = config.GetViper().GetStringMapString("monitor.serviceMonitor.labels")
-	defaultEndpointPort       = config.GetViper().GetString("monitor.serviceMonitor.endpoint.defaultPort")
-	defaultEndpointPath       = config.GetViper().GetString("monitor.serviceMonitor.endpoint.defaultPath")
+	serviceLabelKeyPipeline   = config.GetString("monitor.service.labelKeys.pipeline")
+	serviceLabelKeyExperiment = config.GetString("monitor.service.labelKeys.experiment")
+	servicePortName           = config.GetString("monitor.service.portName")
+	serviceMonitorLabels      = config.GetStringMapString("monitor.serviceMonitor.labels")
+	defaultEndpointPort       = config.GetString("monitor.serviceMonitor.endpoint.defaultPort")
+	defaultEndpointPath       = config.GetString("monitor.serviceMonitor.endpoint.defaultPath")
 )
 
 // CreateExternalNameService creates a metrics Service of type ExternalName. For out-cluster Pipeline only.
@@ -75,16 +75,16 @@ func CreateServiceMonitor(pipeline *windtunnelv1alpha1.Pipeline) (*monitoringv1.
 		Spec: monitoringv1.ServiceMonitorSpec{
 			// Set `job` label of all Prometheus metrics to Experiment label value
 			JobLabel: serviceLabelKeyExperiment,
+			// Use the Pipeline label to select metrics Service
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					serviceLabelKeyPipeline: pipeline.Name,
+				},
+			},
 			// The metrics Service must be in the same namespace as the Pipeline
 			NamespaceSelector: monitoringv1.NamespaceSelector{
 				MatchNames: []string{
 					pipeline.Namespace,
-				},
-			},
-			// Use the Pipeline label to select Service
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					serviceLabelKeyPipeline: pipeline.Name,
 				},
 			},
 			Endpoints: []monitoringv1.Endpoint{

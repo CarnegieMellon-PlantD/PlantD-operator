@@ -18,17 +18,17 @@ import (
 )
 
 var (
-	filenameScript       = config.GetViper().GetString("loadGenerator.filename.script")
-	filenameEndpoint     = config.GetViper().GetString("loadGenerator.filename.endpoint")
-	filenamePlainText    = config.GetViper().GetString("loadGenerator.filename.plainText")
-	filenameDataSet      = config.GetViper().GetString("loadGenerator.filename.dataSet")
-	filenameLoadPattern  = config.GetViper().GetString("loadGenerator.filename.loadPattern")
-	defaultStorageSize   = config.GetViper().GetString("dataGenerator.defaultStorageSize")
-	copierImage          = config.GetViper().GetString("loadGenerator.copier.image")
-	copierBackoffLimit   = config.GetViper().GetInt32("loadGenerator.copier.backoffLimit")
-	testRunRWArgs        = config.GetViper().GetString("loadGenerator.testRun.remoteWriteArgs")
-	testRunRWEnvVarName  = config.GetViper().GetString("loadGenerator.testRun.remoteWriteEnvVar.name")
-	testRunRWEnvVarValue = config.GetViper().GetString("loadGenerator.testRun.remoteWriteEnvVar.value")
+	filenameScript       = config.GetString("loadGenerator.filename.script")
+	filenameEndpoint     = config.GetString("loadGenerator.filename.endpoint")
+	filenamePlainText    = config.GetString("loadGenerator.filename.plainText")
+	filenameDataSet      = config.GetString("loadGenerator.filename.dataSet")
+	filenameLoadPattern  = config.GetString("loadGenerator.filename.loadPattern")
+	copierImage          = config.GetString("loadGenerator.copier.image")
+	copierBackoffLimit   = config.GetInt32("loadGenerator.copier.backoffLimit")
+	testRunRWArgs        = config.GetString("loadGenerator.testRun.remoteWriteArgs")
+	testRunRWEnvVarName  = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.name")
+	testRunRWEnvVarValue = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.value")
+	defaultStorageSize   = config.GetString("dataGenerator.defaultStorageSize")
 )
 
 // CreateConfigMapWithPlainText creates a ConfigMap for EndpointSpec with plain text data.
@@ -49,7 +49,7 @@ func CreateConfigMapWithPlainText(experiment *windtunnelv1alpha1.Experiment, end
 			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		},
 		Data: map[string]string{
-			filenameScript:      config.GetViper().GetString(fmt.Sprintf("loadGenerator.script.%s.plainText", protocol)),
+			filenameScript:      config.GetString(fmt.Sprintf("loadGenerator.script.%s.plainText", protocol)),
 			filenameEndpoint:    string(jsonEndpoint),
 			filenamePlainText:   text,
 			filenameLoadPattern: string(jsonLoadPattern),
@@ -80,7 +80,7 @@ func CreateConfigMapWithDataSet(experiment *windtunnelv1alpha1.Experiment, endpo
 			Name:      utils.GetTestRunName(experiment.Name, endpointIdx),
 		},
 		Data: map[string]string{
-			filenameScript:      config.GetViper().GetString(fmt.Sprintf("loadGenerator.script.%s.dataSet", protocol)),
+			filenameScript:      config.GetString(fmt.Sprintf("loadGenerator.script.%s.dataSet", protocol)),
 			filenameEndpoint:    string(jsonEndpoint),
 			filenameDataSet:     string(jsonDataSet),
 			filenameLoadPattern: string(jsonLoadPattern),
@@ -97,7 +97,6 @@ func CreatePVC(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, endpo
 		storageSize = *dataSet.Spec.StorageSize
 	} else {
 		storageSize = resource.MustParse(defaultStorageSize)
-
 	}
 
 	pvc := &corev1.PersistentVolumeClaim{

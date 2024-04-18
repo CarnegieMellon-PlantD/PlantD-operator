@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	dataSetLogsTimeout     = 30 * time.Second
 	dataSetPollingInterval = 2 * time.Second
+	dataSetLogsTimeout     = 30 * time.Second
 )
 
 // DataSetReconciler reconciles a DataSet object

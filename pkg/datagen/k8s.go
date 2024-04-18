@@ -15,14 +15,14 @@ import (
 )
 
 var (
-	defaultImage       = config.GetViper().GetString("dataGenerator.defaultImage")
-	defaultParallelism = config.GetViper().GetInt32("dataGenerator.defaultParallelism")
-	backoffLimit       = config.GetViper().GetInt32("dataGenerator.backoffLimit")
-	defaultStorageSize = config.GetViper().GetString("dataGenerator.defaultStorageSize")
-	path               = config.GetViper().GetString("dataGenerator.path")
+	defaultImage       = config.GetString("dataGenerator.defaultImage")
+	defaultParallelism = config.GetInt32("dataGenerator.defaultParallelism")
+	backoffLimit       = config.GetInt32("dataGenerator.backoffLimit")
+	defaultStorageSize = config.GetString("dataGenerator.defaultStorageSize")
+	path               = config.GetString("dataGenerator.path")
 )
 
-// CreateJob creates a Job based on the DataSet configuration.
+// CreateJob creates a data generator Job based on the DataSet configuration.
 func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
 	// Calculate the number of parallel jobs and step size
 	parallelism := dataSet.Spec.Parallelism
@@ -112,7 +112,7 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 	return job, nil
 }
 
-// CreatePVC creates a PersistentVolumeClaim for the data generator job.
+// CreatePVC creates a PersistentVolumeClaim for the data generator Job.
 func CreatePVC(pvcName string, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
 	var storageSize resource.Quantity
 	if dataSet.Spec.StorageSize != nil && !dataSet.Spec.StorageSize.IsZero() {

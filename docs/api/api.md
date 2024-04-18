@@ -53,6 +53,33 @@ _Appears in:_
 | `formula` _[Formula](#formula)_ | Formula to be applied for populating the data in the column. This field has precedence over the `type` fields. |
 
 
+#### ComponentStatus
+
+
+
+ComponentStatus defines the status of a component.
+
+_Appears in:_
+- [PlantDCoreStatus](#plantdcorestatus)
+
+| Field | Description |
+| --- | --- |
+| `text` _[ComponentStatusText](#componentstatustext)_ | Component status string. |
+| `numReady` _integer_ | Number of ready replicas. |
+| `numDesired` _integer_ | Number of desired replicas. |
+
+
+#### ComponentStatusText
+
+_Underlying type:_ _string_
+
+ComponentStatusText defines the status of a component.
+
+_Appears in:_
+- [ComponentStatus](#componentstatus)
+
+
+
 #### CostExporter
 
 
@@ -217,16 +244,16 @@ _Appears in:_
 
 
 
-DeploymentConfig defines the desired state of modules managed as Deployment
+DeploymentConfig defines the desired state of a component deployed as Deployment.
 
 _Appears in:_
 - [PlantDCoreSpec](#plantdcorespec)
 
 | Field | Description |
 | --- | --- |
-| `image` _string_ | Image defines the container image to use |
-| `replicas` _integer_ | Replicas defines the desired number of replicas |
-| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources defines the resource requirements per replica |
+| `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
 
 
 #### DigitalTwin
@@ -357,8 +384,8 @@ _Appears in:_
 | --- | --- |
 | `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
 | `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
-| `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
+| `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. |
 
 
 
@@ -533,6 +560,24 @@ _Appears in:_
 
 
 
+#### OpenCostConfig
+
+
+
+OpenCostConfig defines the desired state of an OpenCost component.
+
+_Appears in:_
+- [PlantDCoreSpec](#plantdcorespec)
+
+| Field | Description |
+| --- | --- |
+| `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use for OpenCost. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements for OpenCost. |
+| `uiImage` _string_ | Container image to use for OpenCost-UI. |
+| `uiResources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements for OpenCost-UI. |
+
+
 #### Pipeline
 
 
@@ -651,18 +696,19 @@ PlantDCoreList contains a list of PlantDCore
 
 
 
-PlantDCoreSpec defines the desired state of PlantDCore
+PlantDCoreSpec defines the desired state of PlantDCore.
 
 _Appears in:_
 - [PlantDCore](#plantdcore)
 
 | Field | Description |
 | --- | --- |
-| `kubeProxy` _[DeploymentConfig](#deploymentconfig)_ | KubeProxyConfig defines the desire state of PlantD Kube Proxy |
-| `studio` _[DeploymentConfig](#deploymentconfig)_ | StudioConfig defines the desire state of PlantD Studio |
-| `prometheus` _[PrometheusConfig](#prometheusconfig)_ | PrometheusConfig defines the desire state of Prometheus |
-| `redis` _[DeploymentConfig](#deploymentconfig)_ | RedisConfig defines the desire state of Redis |
-| `thanosEnabled` _boolean_ | ThanosEnabled defines if Thanos is enabled (True / False) |
+| `proxy` _[DeploymentConfig](#deploymentconfig)_ | PlantD-Proxy configuration. |
+| `studio` _[DeploymentConfig](#deploymentconfig)_ | PlantD-Studio configuration. |
+| `prometheus` _[PrometheusConfig](#prometheusconfig)_ | Prometheus configuration. |
+| `thanos` _[ThanosConfig](#thanosconfig)_ | Thanos configuration. |
+| `redis` _[DeploymentConfig](#deploymentconfig)_ | Redis configuration. |
+| `opencost` _[OpenCostConfig](#opencostconfig)_ | OpenCost configuration. |
 
 
 
@@ -671,16 +717,16 @@ _Appears in:_
 
 
 
-PrometheusConfig defines the desired state of Prometheus
+PrometheusConfig defines the desired state of a Prometheus component.
 
 _Appears in:_
 - [PlantDCoreSpec](#plantdcorespec)
 
 | Field | Description |
 | --- | --- |
-| `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | ScrapeInterval defines the desired time length between scrapings |
-| `replicas` _integer_ | Replicas defines the desired number of replicas |
-| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources defines the resource requirements per replica |
+| `replicas` _integer_ | Number of replicas. |
+| `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | Interval at which Prometheus scrapes metrics. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
 
 
 #### Scenario
@@ -880,6 +926,42 @@ _Appears in:_
 | --- | --- |
 | `target` _integer_ | Target load to reach at the end of the stage. Equivalent to the "ramping-arrival-rate" executor's `stages[].target` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
 | `duration` _string_ | Duration of the stage, also the time to reach the target load. Equivalent to the "ramping-arrival-rate" executor's `stages[].duration` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+
+
+#### ThanosConfig
+
+
+
+ThanosConfig defines the desired state of a Thanos component.
+
+_Appears in:_
+- [PlantDCoreSpec](#plantdcorespec)
+
+| Field | Description |
+| --- | --- |
+| `image` _string_ | Thanos image to use. Must be synced with the `version` field. |
+| `version` _string_ | Thanos version to use. Must be synced with the `image` field. |
+| `objectStoreConfig` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#secretkeyselector-v1-core)_ | Object store configuration for Thanos. Set this field will enable upload in Thanos-Sidecar, and deploy Thanos-Store and Thanos-Compactor. |
+| `sidecar` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Sidecar configuration. The `sidecar.replicas` and `sidecar.storageSize` fields are always ignored. |
+| `store` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Store configuration. This field is ignored if `objectStoreConfig` is not set. |
+| `compactor` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Compactor configuration. This field is ignored if `objectStoreConfig` is not set. |
+| `querier` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Querier configuration. The `querier.storageSize` field is always ignored. |
+
+
+#### ThanosModuleConfig
+
+
+
+ThanosModuleConfig defines the desired state of a module within Thanos component.
+
+_Appears in:_
+- [ThanosConfig](#thanosconfig)
+
+| Field | Description |
+| --- | --- |
+| `replicas` _integer_ | Number of replicas. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
+| `storageSize` _[Quantity](#quantity)_ | Storage size. |
 
 
 #### TrafficModel

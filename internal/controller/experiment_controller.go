@@ -30,8 +30,8 @@ const (
 )
 
 var (
-	filenameScript                   = config.GetViper().GetString("loadGenerator.filename.script")
-	metricsServiceLabelKeyExperiment = config.GetViper().GetString("monitor.service.labelKeys.experiment")
+	filenameScript                   = config.GetString("loadGenerator.filename.script")
+	metricsServiceLabelKeyExperiment = config.GetString("monitor.service.labelKeys.experiment")
 )
 
 // ExperimentReconciler reconciles a Experiment object

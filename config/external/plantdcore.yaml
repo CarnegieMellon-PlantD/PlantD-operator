@@ -2,11 +2,6 @@
 apiVersion: windtunnel.plantd.org/v1alpha1
 kind: PlantDCore
 metadata:
-  labels:
-    app.kubernetes.io/name: plantdcore
-    app.kubernetes.io/instance: plantdcore-core
-    app.kubernetes.io/part-of: plantd-operator
-    app.kubernetes.io/created-by: plantd-operator
-  name: plantdcore-core
   namespace: plantd-operator-system
-spec:
+  name: default
+spec: {}
