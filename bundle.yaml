@@ -1100,17 +1100,29 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.kubeProxyStatus
-      name: KubeProxyStatus
+    - jsonPath: .status.proxyStatus.text
+      name: Proxy
       type: string
-    - jsonPath: .status.studioStatus
-      name: StudioStatus
+    - jsonPath: .status.studioStatus.text
+      name: Studio
       type: string
-    - jsonPath: .status.prometheusStatus
-      name: PrometheusStatus
+    - jsonPath: .status.prometheusStatus.text
+      name: Prometheus
       type: string
-    - jsonPath: .status.redisStatus
-      name: RedisStatus
+    - jsonPath: .status.thanosStoreStatus.text
+      name: Thanos-Store
+      type: string
+    - jsonPath: .status.thanosCompactorStatus.text
+      name: Thanos-Compactor
+      type: string
+    - jsonPath: .status.thanosQuerierStatus.text
+      name: Thanos-Querier
+      type: string
+    - jsonPath: .status.redisStatus.text
+      name: Redis
+      type: string
+    - jsonPath: .status.opencostStatus.text
+      name: OpenCost
       type: string
     name: v1alpha1
     schema:

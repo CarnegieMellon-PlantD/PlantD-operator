@@ -286,6 +286,11 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.setDeploymentComponentStatus(&plantDCore.Status.OpenCostStatus, true, curOpenCostDeployment)
 	}
 
+	if err := r.Status().Update(ctx, plantDCore); err != nil {
+		logger.Error(err, "Cannot update the status")
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{RequeueAfter: plantDCorePollingInterval}, nil
 }
 

@@ -135,10 +135,14 @@ type PlantDCoreStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="KubeProxyStatus",type="string",JSONPath=".status.kubeProxyStatus"
-//+kubebuilder:printcolumn:name="StudioStatus",type="string",JSONPath=".status.studioStatus"
-//+kubebuilder:printcolumn:name="PrometheusStatus",type="string",JSONPath=".status.prometheusStatus"
-//+kubebuilder:printcolumn:name="RedisStatus",type="string",JSONPath=".status.redisStatus"
+//+kubebuilder:printcolumn:name="Proxy",type="string",JSONPath=".status.proxyStatus.text"
+//+kubebuilder:printcolumn:name="Studio",type="string",JSONPath=".status.studioStatus.text"
+//+kubebuilder:printcolumn:name="Prometheus",type="string",JSONPath=".status.prometheusStatus.text"
+//+kubebuilder:printcolumn:name="Thanos-Store",type="string",JSONPath=".status.thanosStoreStatus.text"
+//+kubebuilder:printcolumn:name="Thanos-Compactor",type="string",JSONPath=".status.thanosCompactorStatus.text"
+//+kubebuilder:printcolumn:name="Thanos-Querier",type="string",JSONPath=".status.thanosQuerierStatus.text"
+//+kubebuilder:printcolumn:name="Redis",type="string",JSONPath=".status.redisStatus.text"
+//+kubebuilder:printcolumn:name="OpenCost",type="string",JSONPath=".status.opencostStatus.text"
 
 // PlantDCore is the Schema for the plantdcores API
 type PlantDCore struct {
