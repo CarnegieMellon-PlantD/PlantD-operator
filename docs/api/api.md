@@ -943,7 +943,7 @@ _Appears in:_
 | `replicas` _integer_ | Number of replicas. |
 | `image` _string_ | Container image to use. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
-| `storageSize` _[Quantity](#quantity)_ | Storage size. Should not be modified once set. |
+| `storageSize` _[Quantity](#quantity)_ | Storage size. |
 
 
 #### ThanosConfig

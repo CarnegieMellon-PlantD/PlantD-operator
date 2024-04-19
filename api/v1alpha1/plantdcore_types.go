@@ -37,7 +37,6 @@ type StatefulSetConfig struct {
 	// Resources requirements.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 	// Storage size.
-	// Should not be modified once set.
 	StorageSize *resource.Quantity `json:"storageSize,omitempty"`
 }
 

@@ -359,7 +359,7 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: Storage size. Should not be modified once set.
+                    description: Storage size.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                 type: object
@@ -493,7 +493,7 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size. Should not be modified once set.
+                        description: Storage size.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
@@ -587,7 +587,7 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size. Should not be modified once set.
+                        description: Storage size.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
@@ -657,7 +657,7 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size. Should not be modified once set.
+                        description: Storage size.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
@@ -727,7 +727,7 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size. Should not be modified once set.
+                        description: Storage size.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
