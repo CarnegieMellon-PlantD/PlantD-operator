@@ -39,12 +39,15 @@ spec:
                   Experiment. Equivalent to the "ramping-arrival-rate" executor's
                   `maxVUs` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                   for more details.
+                format: int64
+                minimum: 0
                 type: integer
               preAllocatedVUs:
                 description: Number of VUs to pre-allocate before Experiment start.
                   Equivalent to the "ramping-arrival-rate" executor's `preAllocatedVUs`
                   option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                   for more details.
+                format: int64
                 minimum: 0
                 type: integer
               stages:
@@ -65,18 +68,22 @@ spec:
                         to the "ramping-arrival-rate" executor's `stages[].target`
                         option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                         for more details.
+                      format: int64
                       minimum: 0
                       type: integer
                   required:
                   - duration
                   - target
                   type: object
+                minItems: 1
                 type: array
               startRate:
                 description: Number of requests per `timeUnit` period at Experiment
                   start. Equivalent to the "ramping-arrival-rate" executor's `startRate`
                   option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options
                   for more details.
+                format: int64
+                minimum: 0
                 type: integer
               timeUnit:
                 description: Period of time to apply to the `startRate` and `stages[].target`

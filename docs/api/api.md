@@ -53,6 +53,33 @@ _Appears in:_
 | `formula` _[Formula](#formula)_ | Formula to be applied for populating the data in the column. This field has precedence over the `type` fields. |
 
 
+#### ComponentStatus
+
+
+
+ComponentStatus defines the status of a component.
+
+_Appears in:_
+- [PlantDCoreStatus](#plantdcorestatus)
+
+| Field | Description |
+| --- | --- |
+| `text` _[ComponentStatusText](#componentstatustext)_ | Component status string. |
+| `numReady` _integer_ | Number of ready replicas. |
+| `numDesired` _integer_ | Number of desired replicas. |
+
+
+#### ComponentStatusText
+
+_Underlying type:_ _string_
+
+ComponentStatusText defines the status of a component.
+
+_Appears in:_
+- [ComponentStatus](#componentstatus)
+
+
+
 #### CostExporter
 
 
@@ -112,7 +139,6 @@ DataSet is the Schema for the datasets API
 
 _Appears in:_
 - [DataSetList](#datasetlist)
-- [ExperimentStatus](#experimentstatus)
 
 | Field | Description |
 | --- | --- |
@@ -218,16 +244,16 @@ _Appears in:_
 
 
 
-DeploymentConfig defines the desired state of modules managed as Deployment
+DeploymentConfig defines the desired state of a component deployed as Deployment.
 
 _Appears in:_
 - [PlantDCoreSpec](#plantdcorespec)
 
 | Field | Description |
 | --- | --- |
-| `image` _string_ | Image defines the container image to use |
-| `replicas` _integer_ | Replicas defines the desired number of replicas |
-| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources defines the resource requirements per replica |
+| `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
 
 
 #### DigitalTwin
@@ -280,25 +306,7 @@ _Appears in:_
 
 
 
-#### EndpointDataOption
 
-_Underlying type:_ _string_
-
-EndpointDataOption defines the data option used by an EndpointSpec.
-
-_Appears in:_
-- [ExperimentStatus](#experimentstatus)
-
-
-
-#### EndpointProtocol
-
-_Underlying type:_ _string_
-
-EndpointProtocol defines the protocol used by a PipelineEndpoint.
-
-_Appears in:_
-- [ExperimentStatus](#experimentstatus)
 
 
 
@@ -377,6 +385,7 @@ _Appears in:_
 | `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
 | `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
+| `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. |
 
 
 
@@ -398,7 +407,7 @@ _Appears in:_
 
 #### HTTP
 
-_Underlying type:_ _[struct{URL string "json:\"url\""; Method string "json:\"method\""; Headers map[string]string "json:\"headers,omitempty\""}](#struct{url-string-"json:\"url\"";-method-string-"json:\"method\"";-headers-map[string]string-"json:\"headers,omitempty\""})_
+
 
 HTTP defines the configurations of HTTP protocol in endpoint.
 
@@ -406,21 +415,11 @@ _Appears in:_
 - [MetricsEndpoint](#metricsendpoint)
 - [PipelineEndpoint](#pipelineendpoint)
 
-
-
-#### IntRange
-
-
-
-IntRange defines a range using two non-negative integers as boundaries.
-
-_Appears in:_
-- [SchemaSelector](#schemaselector)
-
 | Field | Description |
 | --- | --- |
-| `min` _integer_ | Minimum value of the range. |
-| `max` _integer_ | Maximum value of the range. |
+| `url` _string_ | URL of the HTTP request. |
+| `method` _string_ | Method of the HTTP request. |
+| `headers` _object (keys:string, values:string)_ | Headers of the HTTP request. |
 
 
 #### LoadPattern
@@ -430,7 +429,6 @@ _Appears in:_
 LoadPattern is the Schema for the loadpatterns API
 
 _Appears in:_
-- [ExperimentStatus](#experimentstatus)
 - [LoadPatternList](#loadpatternlist)
 
 | Field | Description |
@@ -488,10 +486,25 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Must be set if `inCluster` is set to `false` in the Pipeline. |
-| `serviceRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Service. Must be set if `inCluster` is set to `true` in the Pipeline. |
-| `port` _string_ | Name of the Service port to use. Default to "metrics". |
-| `path` _string_ | Path of the endpoint. Default to "/metrics". |
+| `http` _[HTTP](#http)_ | Configurations of the HTTP protocol. Only the `http.url` field will be used. Must be set if `inCluster` is set to `false` in the Pipeline. |
+| `serviceRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the Service. The Service must be in the same namespace as the Pipeline. Must be set if `inCluster` is set to `true` in the Pipeline. |
+| `port` _string_ | Name of the Service port to use. Effective only when `inCluster` is set to `true` in the Pipeline. Default to "metrics". |
+| `path` _string_ | Path of the endpoint. Effective only when `inCluster` is set to `true` in the Pipeline. Default to "/metrics". |
+
+
+#### NaturalIntRange
+
+
+
+NaturalIntRange defines a range using two non-negative integers as boundaries.
+
+_Appears in:_
+- [SchemaSelector](#schemaselector)
+
+| Field | Description |
+| --- | --- |
+| `min` _integer_ | Minimum value of the range. |
+| `max` _integer_ | Maximum value of the range. |
 
 
 #### NetCost
@@ -547,6 +560,24 @@ _Appears in:_
 
 
 
+#### OpenCostConfig
+
+
+
+OpenCostConfig defines the desired state of an OpenCost component.
+
+_Appears in:_
+- [PlantDCoreSpec](#plantdcorespec)
+
+| Field | Description |
+| --- | --- |
+| `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use for OpenCost. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements for OpenCost. |
+| `uiImage` _string_ | Container image to use for OpenCost-UI. |
+| `uiResources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements for OpenCost-UI. |
+
+
 #### Pipeline
 
 
@@ -554,7 +585,6 @@ _Appears in:_
 Pipeline is the Schema for the pipelines API
 
 _Appears in:_
-- [ExperimentStatus](#experimentstatus)
 - [PipelineList](#pipelinelist)
 
 | Field | Description |
@@ -583,7 +613,6 @@ _Appears in:_
 PipelineEndpoint defines the endpoint for data ingestion in Pipeline.
 
 _Appears in:_
-- [ExperimentStatus](#experimentstatus)
 - [PipelineSpec](#pipelinespec)
 
 | Field | Description |
@@ -619,13 +648,13 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `inCluster` _boolean_ | Whether the Pipeline is deployed within the cluster or not. When set to `true`, the Pipeline will be accessed by its Services. When set to `false`, Services of type ExternalName will be created to access the Pipeline. |
+| `inCluster` _boolean_ | Whether the Pipeline is deployed within the cluster or not. When set to `false`, Services of type ExternalName will be created to access the Pipeline. When set to `true`, the Pipeline will be accessed by its Services. |
 | `pipelineEndpoints` _[PipelineEndpoint](#pipelineendpoint) array_ | List of endpoints for data ingestion. |
 | `metricsEndpoint` _[MetricsEndpoint](#metricsendpoint)_ | Endpoint for metrics scraping. |
 | `healthCheckURLs` _string array_ | List of URLs for health check. An HTTP GET request will be made to each URL, and all of them should return 200 OK to pass the health check. If the list is empty, no health check will be performed. |
+| `enableCostCalculation` _boolean_ | Whether to enable cost calculation for the Pipeline. |
 | `cloudProvider` _string_ | Cloud provider of the Pipeline. Available values are `aws`, `azure`, and `gcp`. |
 | `tags` _object (keys:string, values:string)_ | Map of tags to select cloud resources of the Pipeline. Equivalent to the tags in the cloud service provider. |
-| `enableCostCalculation` _boolean_ | Whether to enable cost calculation for the Pipeline. |
 
 
 
@@ -667,18 +696,19 @@ PlantDCoreList contains a list of PlantDCore
 
 
 
-PlantDCoreSpec defines the desired state of PlantDCore
+PlantDCoreSpec defines the desired state of PlantDCore.
 
 _Appears in:_
 - [PlantDCore](#plantdcore)
 
 | Field | Description |
 | --- | --- |
-| `kubeProxy` _[DeploymentConfig](#deploymentconfig)_ | KubeProxyConfig defines the desire state of PlantD Kube Proxy |
-| `studio` _[DeploymentConfig](#deploymentconfig)_ | StudioConfig defines the desire state of PlantD Studio |
-| `prometheus` _[PrometheusConfig](#prometheusconfig)_ | PrometheusConfig defines the desire state of Prometheus |
-| `redis` _[DeploymentConfig](#deploymentconfig)_ | RedisConfig defines the desire state of Redis |
-| `thanosEnabled` _boolean_ | ThanosEnabled defines if Thanos is enabled (True / False) |
+| `proxy` _[DeploymentConfig](#deploymentconfig)_ | PlantD-Proxy configuration. |
+| `studio` _[DeploymentConfig](#deploymentconfig)_ | PlantD-Studio configuration. |
+| `prometheus` _[PrometheusConfig](#prometheusconfig)_ | Prometheus configuration. |
+| `thanos` _[ThanosConfig](#thanosconfig)_ | Thanos configuration. |
+| `redis` _[StatefulSetConfig](#statefulsetconfig)_ | Redis configuration. |
+| `opencost` _[OpenCostConfig](#opencostconfig)_ | OpenCost configuration. |
 
 
 
@@ -687,16 +717,16 @@ _Appears in:_
 
 
 
-PrometheusConfig defines the desired state of Prometheus
+PrometheusConfig defines the desired state of a Prometheus component.
 
 _Appears in:_
 - [PlantDCoreSpec](#plantdcorespec)
 
 | Field | Description |
 | --- | --- |
-| `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | ScrapeInterval defines the desired time length between scrapings |
-| `replicas` _integer_ | Replicas defines the desired number of replicas |
-| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources defines the resource requirements per replica |
+| `replicas` _integer_ | Number of replicas. |
+| `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | Interval at which Prometheus scrapes metrics. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
 
 
 #### Scenario
@@ -813,8 +843,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `name` _string_ | Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet. |
-| `numRecords` _[IntRange](#intrange)_ | Range of number of rows to be generated in each output file. |
-| `numFilesPerCompressedFile` _[IntRange](#intrange)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. |
+| `numRecords` _[NaturalIntRange](#naturalintrange)_ | Range of number of rows to be generated in each output file. |
+| `numFilesPerCompressedFile` _[NaturalIntRange](#naturalintrange)_ | Range of number of files to be generated in the compressed file. Take effect only if `compressedFileFormat` is set in the DataSet. |
 
 
 #### SchemaSpec
@@ -885,13 +915,55 @@ _Appears in:_
 
 #### Stage
 
-_Underlying type:_ _[struct{Target int "json:\"target\""; Duration string "json:\"duration\""}](#struct{target-int-"json:\"target\"";-duration-string-"json:\"duration\""})_
+
 
 Stage defines how the load ramps up or down.
 
 _Appears in:_
 - [LoadPatternSpec](#loadpatternspec)
 
+| Field | Description |
+| --- | --- |
+| `target` _integer_ | Target load to reach at the end of the stage. Equivalent to the "ramping-arrival-rate" executor's `stages[].target` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+| `duration` _string_ | Duration of the stage, also the time to reach the target load. Equivalent to the "ramping-arrival-rate" executor's `stages[].duration` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
+
+
+#### StatefulSetConfig
+
+
+
+StatefulSetConfig defines the desired state of a component deployed as StatefulSet.
+
+_Appears in:_
+- [PlantDCoreSpec](#plantdcorespec)
+- [ThanosConfig](#thanosconfig)
+
+| Field | Description |
+| --- | --- |
+| `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
+| `storageSize` _[Quantity](#quantity)_ | Storage size. |
+
+
+#### ThanosConfig
+
+
+
+ThanosConfig defines the desired state of a Thanos component.
+
+_Appears in:_
+- [PlantDCoreSpec](#plantdcorespec)
+
+| Field | Description |
+| --- | --- |
+| `image` _string_ | Thanos image to use. Must be synced with the `version` field. |
+| `version` _string_ | Thanos version to use. Must be synced with the `image` field. |
+| `objectStoreConfig` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#secretkeyselector-v1-core)_ | Object store configuration for Thanos. Set this field will enable upload in Thanos-Sidecar, and deploy Thanos-Store and Thanos-Compactor. |
+| `sidecar` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Sidecar configuration. The `sidecar.replicas`, `sidecar.image` and `sidecar.storageSize` fields are always ignored. |
+| `store` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Store configuration. The `store.image` field is always ignored. This field is ignored if `objectStoreConfig` is not set. |
+| `compactor` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Compactor configuration. The `compactor.image` field is always ignored. This field is ignored if `objectStoreConfig` is not set. |
+| `querier` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Querier configuration. The `querier.image` and `querier.storageSize` fields are always ignored. |
 
 
 #### TrafficModel

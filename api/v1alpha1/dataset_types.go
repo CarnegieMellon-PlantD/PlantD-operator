@@ -11,8 +11,8 @@ type DataSetJobStatus string
 
 const (
 	DataSetJobRunning DataSetJobStatus = "Running"
-	DataSetJobFailed  DataSetJobStatus = "Failed"
 	DataSetJobSuccess DataSetJobStatus = "Success"
+	DataSetJobFailed  DataSetJobStatus = "Failed"
 )
 
 // DataSetErrorType defines the type of error occurred.
@@ -28,10 +28,10 @@ type SchemaSelector struct {
 	// Name of the Schema. Note that the Schema must be present in the same namespace as the DataSet.
 	Name string `json:"name"`
 	// Range of number of rows to be generated in each output file.
-	NumRecords IntRange `json:"numRecords"`
+	NumRecords NaturalIntRange `json:"numRecords"`
 	// Range of number of files to be generated in the compressed file.
 	// Take effect only if `compressedFileFormat` is set in the DataSet.
-	NumFilesPerCompressedFile IntRange `json:"numFilesPerCompressedFile,omitempty"`
+	NumFilesPerCompressedFile NaturalIntRange `json:"numFilesPerCompressedFile,omitempty"`
 }
 
 // DataSetSpec defines the desired state of DataSet.
@@ -44,7 +44,7 @@ type DataSetSpec struct {
 	Parallelism int32 `json:"parallelism,omitempty"`
 	// Size of the PVC for the data generator job.
 	// Default to 2Gi.
-	StorageSize resource.Quantity `json:"storageSize,omitempty"`
+	StorageSize *resource.Quantity `json:"storageSize,omitempty"`
 	// Format of the output file containing generated data.
 	// Available values are `csv` and `binary`.
 	// +kubebuilder.validation:Enum=csv;binary
@@ -66,8 +66,10 @@ type DataSetSpec struct {
 	// compressed files for each Schema.
 	// If `compressedFileFormat` is set and `compressPerSchema` is `true`, this is the total
 	// number of compressed files.
+	// +kubebuilder:validation:Minimum=1
 	NumberOfFiles int32 `json:"numFiles"`
 	// List of Schemas in the DataSet.
+	// +kubebuilder:validation:MinItems=1
 	Schemas []SchemaSelector `json:"schemas"`
 }
 
@@ -91,13 +93,14 @@ type DataSetStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
-// +kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
-// +kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
-// +kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
-// +kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
+//+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
+//+kubebuilder:printcolumn:name="VolumeStatus",type="string",JSONPath=".status.pvcStatus"
+//+kubebuilder:printcolumn:name="ErrorCount",type="integer",JSONPath=".status.errorCount"
+//+kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
+//+kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"
 
 // DataSet is the Schema for the datasets API
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 39",message="must contain at most 39 characters"
 type DataSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

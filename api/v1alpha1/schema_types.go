@@ -36,6 +36,7 @@ type Column struct {
 // SchemaSpec defines the desired state of Schema.
 type SchemaSpec struct {
 	// List of columns in the Schema.
+	// +kubebuilder:validation:MinItems=1
 	Columns []Column `json:"columns"`
 }
 

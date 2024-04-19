@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	image     = config.GetViper().GetString("costService.image")
-	redisHost = config.GetViper().GetString("database.redis.host")
-	redisPort = config.GetViper().GetInt64("database.redis.port")
+	image     = config.GetString("costService.image")
+	redisHost = config.GetString("database.redis.host")
+	redisPort = config.GetInt64("database.redis.port")
 )
 
 func init() {
-	image = config.GetViper().GetString("costService.image")
+	image = config.GetString("costService.image")
 }
 
 // CreateJobByCostService creates a Kubernetes Job based on the Cost Service configuration.

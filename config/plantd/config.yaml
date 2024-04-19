@@ -4,7 +4,7 @@ dataGenerator:
   defaultImage: ghcr.io/carnegiemellon-plantd/datagenerator:latest
   defaultParallelism: 1
   backoffLimit: 0
-  defaultStorageSize: 2Gi
+  defaultStorageSize: 5Gi
   path: /test # Default path where K6 looks for files
 monitor:
   service:
@@ -14,7 +14,7 @@ monitor:
     portName: metrics
   serviceMonitor:
     labels:
-      app: plantd-monitor
+      plantd-app: monitor
     endpoint:
       defaultPort: metrics
       defaultPath: /metrics
@@ -27,12 +27,157 @@ loadGenerator:
     loadPattern: loadpattern.json
   copier:
     image: busybox:1.36.1
+    backoffLimit: 0
   testRun:
     remoteWriteArgs: --out experimental-prometheus-rw
     remoteWriteEnvVar:
       name: K6_PROMETHEUS_RW_SERVER_URL
-      value: http://prometheus-service.plantd-operator-system.svc:9090/api/v1/write
-
+      value: http://plantd-prometheus.plantd-operator-system.svc:9090/api/v1/write
+rbac:
+  serviceAccount:
+    controllerManager: plantd-operator-controller-manager # See ../rbac/service_account.yaml
+    prometheus: plantd-operator-prometheus # See ../rbac/prometheus_service_account.yaml
+    openCost: plantd-operator-opencost # See ../rbac/opencost_service_account.yaml
+core:
+  proxy:
+    name: plantd-proxy
+    labels:
+      plantd-app: proxy
+    defaultReplicas: 1
+    defaultImage: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
+    defaultCPURequest: 50m
+    defaultMemoryRequest: 50Mi
+    defaultCPULimit: 200m
+    defaultMemoryLimit: 200Mi
+    containerPortName: http
+    containerPort: 5000
+    servicePortName: http
+    servicePort: 5000
+  studio:
+    name: plantd-studio
+    labels:
+      plantd-app: studio
+    defaultReplicas: 1
+    defaultImage: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
+    defaultCPURequest: 50m
+    defaultMemoryRequest: 50Mi
+    defaultCPULimit: 200m
+    defaultMemoryLimit: 200Mi
+    containerPortName: http
+    containerPort: 8080
+    servicePortName: http
+    servicePort: 80
+  prometheus:
+    name: plantd-prometheus
+    defaultScrapeInterval: 15s
+    defaultReplicas: 1
+    defaultCPURequest: 100m
+    defaultMemoryRequest: 100Mi
+    defaultCPULimit: 400m
+    defaultMemoryLimit: 400Mi
+    servicePortName: prom-http
+    servicePort: 9090
+  thanos:
+    defaultImage: quay.io/thanos/thanos:v0.34.1
+    defaultVersion: v0.34.1
+    sidecar:
+      defaultCPURequest: 50m
+      defaultMemoryRequest: 50Mi
+      defaultCPULimit: 200m
+      defaultMemoryLimit: 200Mi
+      servicePortName: thanos-grpc
+      servicePort: 10901
+    store:
+      name: plantd-thanos-store
+      labels:
+        plantd-app: thanos-store
+      defaultReplicas: 1
+      defaultCPURequest: 50m
+      defaultMemoryRequest: 50Mi
+      defaultCPULimit: 200m
+      defaultMemoryLimit: 200Mi
+      defaultStorageSize: 10Gi
+      containerGrpcPortName: grpc
+      containerGrpcPort: 10901
+      containerHttpPortName: http
+      containerHttpPort: 10902
+      serviceGrpcPortName: grpc
+      serviceGrpcPort: 10901
+      serviceHttpPortName: http
+      serviceHttpPort: 10902
+      path: /var/thanos/store
+    compactor:
+      name: plantd-thanos-compactor
+      labels:
+        plantd-app: thanos-compactor
+      defaultReplicas: 1
+      defaultCPURequest: 50m
+      defaultMemoryRequest: 50Mi
+      defaultCPULimit: 200m
+      defaultMemoryLimit: 200Mi
+      defaultStorageSize: 10Gi
+      containerPortName: http
+      containerPort: 10902
+      servicePortName: http
+      servicePort: 10902
+      path: /var/thanos/compactor
+    querier:
+      name: plantd-thanos-querier
+      labels:
+        plantd-app: thanos-querier
+      defaultReplicas: 1
+      defaultCPURequest: 50m
+      defaultMemoryRequest: 50Mi
+      defaultCPULimit: 200m
+      defaultMemoryLimit: 200Mi
+      containerGrpcPortName: grpc
+      containerGrpcPort: 10901
+      containerHttpPortName: http
+      containerHttpPort: 9090
+      serviceGrpcPortName: grpc
+      serviceGrpcPort: 10901
+      serviceHttpPortName: http
+      serviceHttpPort: 9090
+  redis:
+    name: plantd-redis
+    labels:
+      plantd-app: redis
+    defaultReplicas: 1
+    defaultImage: redis/redis-stack-server:7.2.0-v10
+    defaultCPURequest: 50m
+    defaultMemoryRequest: 50Mi
+    defaultCPULimit: 400m
+    defaultMemoryLimit: 400Mi
+    defaultStorageSize: 10Gi
+    containerPortName: resp
+    containerPort: 6379
+    servicePortName: resp
+    servicePort: 6379
+    path: /data
+  openCost:
+    name: plantd-opencost
+    labels:
+      plantd-app: opencost
+    defaultReplicas: 1
+    defaultImage: quay.io/kubecost1/kubecost-cost-model:latest
+    defaultCPURequest: 10m
+    defaultMemoryRequest: 50Mi
+    defaultCPULimit: 500m
+    defaultMemoryLimit: 500Mi
+    containerPortName: opencost
+    containerPort: 9003
+    servicePortName: opencost
+    servicePort: 9003
+    ui:
+      defaultImage: quay.io/kubecost1/opencost-ui:1.105.2
+      defaultCPURequest: 10m
+      defaultMemoryRequest: 50Mi
+      defaultCPULimit: 500m
+      defaultMemoryLimit: 500Mi
+      containerPortName: opencost-ui
+      containerPort: 9090
+      servicePortName: opencost-ui
+      servicePort: 9090
 
 costService:
   image: ghcr.io/carnegiemellon-plantd/costexporter:latest
@@ -40,125 +185,6 @@ costService:
     url: http://opencost.plantd-operator-system.svc.cluster.local:9003
 digitalTwin:
   image: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
-plantDCore:
-  serviceAccountName: plantd-operator-controller-manager
-  kubeProxy:
-    labels:
-      app: plantd-proxy
-    containerName: plantd-proxy
-    image: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
-    deploymentName: plantd-proxy-deployment
-    replicas: 1
-    serviceName: plantd-proxy-service
-    port: 5000
-    targetPort: 5000
-  studio:
-    labels:
-      app: plantd-studio
-    containerName: plantd-studio
-    image: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
-    deploymentName: plantd-studio-deployment
-    replicas: 1
-    serviceName: plantd-studio-service
-    port: 80
-    targetPort: 8080
-  prometheus:
-    labels:
-      prometheus: prometheus
-    serviceAccountName: prometheus
-    clusterRoleName: plantd-prometheus-role
-    clusterRoleBindingName: plantd-prometheus-role-binding
-    name: prometheus
-    scrapeInterval: 15s
-    replicas: 1
-    memoryLimit: 1Gi
-    serviceName: prometheus-service
-    port: 9090
-    targetPort: 9090
-    nodePort: 30900
-    securityContext:
-      runAsUser: 1000
-      fsGroup: 2000
-      runAsGroup: 2000
-      runAsNonRoot: true
-    thanos:
-      thanosBaseImage: quay.io/thanos/thanos
-      thanosVersion: v0.34.0
-      thanosConfig:
-        name: thanos-objstore-config
-        key: thanos.yaml
-    thanosQuerier:
-      deploymentName: thanos-querier
-      labels:
-        app: thanos-querier
-      image: quay.io/thanos/thanos:v0.34.0
-      replicas: 1
-      httpPort: 9090
-      grpcPort: 10901
-      url: thanos-sidecar-grpc.plantd-operator-system.svc.cluster.local:10901
-    thanosStore:
-      name: thanos-store
-      serviceName: thanos-store-grpc
-      labels:
-        app: thanos-store
-      image: quay.io/thanos/thanos:v0.34.0
-      replicas: 1
-      volumeSize: 1Gi
-      dataDir: /thanos-data
-      httpPort: 10902
-      grpcPort: 10901
-      url: thanos-store-grpc.plantd-operator-system.svc.cluster.local:10901
-      securityContext:
-        fsGroup: 65534
-        runAsGroup: 65532
-        runAsUser: 65534
-    thanosSidecarService:
-      portName: grpc
-      port: 10901
-
-  redis:
-    labels:
-      app: redis
-    containerName: redis
-    image: redis/redis-stack-server:latest
-    deploymentName: redis-deployment
-    replicas: 1
-    serviceName: redis-service
-    port: 6379
-    targetPort: 6379
-
-opencost:
-  serviceAccount: opencost
-  clusterRole: opencost
-  deployment:
-    image: quay.io/kubecost1/kubecost-cost-model:latest
-    ui-image: quay.io/kubecost1/opencost-ui:1.105.2
-    replicas: 1
-    maxSurge: 1
-    maxUnavailable: 1
-    runAsUser: 1001
-    labels:
-      plantd-opencost: opencost
-  service:
-    port: 9003
-    ui-port: 9090
-    labels:
-      plantd-opencost: opencost
-  opencostServiceMonitor:
-    name: opencost-service-monitor
-    labels:
-      component: plantd-metrics-endpoint
-    selector:
-      plantd-opencost: opencost
-  cadvisorServiceMonitor:
-    name: cadvisor-service-monitor
-    labels:
-      component: plantd-metrics-endpoint
-    selector:
-      k8s-app: kubelet
-    namespaceSelector: kube-system
-
-
 database:
   prometheus:
     # Ensure Prometheus service name, namespace, and port are correct

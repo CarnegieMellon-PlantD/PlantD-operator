@@ -99,11 +99,11 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Schemas: []windtunnelv1alpha1.SchemaSelector{
 					{
 						Name: task.Name,
-						NumRecords: windtunnelv1alpha1.IntRange{
+						NumRecords: windtunnelv1alpha1.NaturalIntRange{
 							Min: 1,
 							Max: 1,
 						},
-						NumFilesPerCompressedFile: windtunnelv1alpha1.IntRange{
+						NumFilesPerCompressedFile: windtunnelv1alpha1.NaturalIntRange{
 							Min: 1,
 							Max: 1,
 						},
@@ -131,7 +131,7 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Stages: []windtunnelv1alpha1.Stage{
 					{
 						Duration: fmt.Sprintf("%ds", EXPERIMENT_DURATION),
-						Target:   int(maxRate),
+						Target:   int64(maxRate),
 					},
 				},
 			},
@@ -149,17 +149,17 @@ func (r *ScenarioReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Name:      experimentName,
 			},
 			Spec: windtunnelv1alpha1.ExperimentSpec{
-				PipelineRef: scenario.Spec.PipelineRef,
+				PipelineRef: &scenario.Spec.PipelineRef,
 				EndpointSpecs: []windtunnelv1alpha1.EndpointSpec{
 					{
 						EndpointName: "upload",
-						DataSpec: windtunnelv1alpha1.DataSpec{
-							DataSetRef: corev1.ObjectReference{
+						DataSpec: &windtunnelv1alpha1.DataSpec{
+							DataSetRef: &corev1.ObjectReference{
 								Namespace: scenario.Namespace,
 								Name:      dataSetName,
 							},
 						},
-						LoadPatternRef: corev1.ObjectReference{
+						LoadPatternRef: &corev1.ObjectReference{
 							Namespace: scenario.Namespace,
 							Name:      loadPatternName,
 						},

@@ -29,9 +29,9 @@ type CostExporterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="JobCompletionTime",type="string",JSONPath=".status.jobCompletionTime"
-// +kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
-// +kubebuilder:printcolumn:name="PodName",type="string",JSONPath=".status.podName"
+//+kubebuilder:printcolumn:name="JobCompletionTime",type="string",JSONPath=".status.jobCompletionTime"
+//+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
+//+kubebuilder:printcolumn:name="PodName",type="string",JSONPath=".status.podName"
 
 // CostExporter is the Schema for the costexporters API
 type CostExporter struct {

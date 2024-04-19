@@ -22,8 +22,8 @@ var (
 )
 
 func init() {
-	promUrl = config.GetViper().GetString("database.prometheus.thanosUrl")
-	redisAddr = fmt.Sprintf("%s:%d", config.GetViper().GetString("database.redis.host"), config.GetViper().GetInt("database.redis.port"))
+	promUrl = config.GetString("database.prometheus.thanosUrl")
+	redisAddr = fmt.Sprintf("%s:%d", config.GetString("database.redis.host"), config.GetInt("database.redis.port"))
 }
 
 type QueryAgent struct {

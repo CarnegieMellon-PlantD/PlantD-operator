@@ -88,11 +88,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// Filter experiments with cloudVendor "aws"
 	experimentsList := &windtunnelv1alpha1.ExperimentList{}
 	for _, experiment := range experiments.Items {
-		if experiment.Status.Pipeline == nil {
-			continue
-		}
-
-		if experiment.Status.Pipeline.Spec.CloudProvider == costExporter.Spec.CloudServiceProvider {
+		if experiment.Status.CloudProvider == costExporter.Spec.CloudServiceProvider {
 			var experimentTime time.Time
 			if !experiment.CreationTimestamp.IsZero() {
 				experimentTime = experiment.CreationTimestamp.Time
@@ -114,7 +110,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// Extract the Name from the experiment's metadata
 		experimentName := experiment.Namespace + "/" + experiment.ObjectMeta.Name
 		// Extract the Tags from the experiment's status field
-		tags := experiment.Status.Pipeline.Spec.Tags
+		tags := experiment.Status.Tags
 
 		// Create a list of Tag pairs for the current experiment's tags
 		var tagsList []Tag

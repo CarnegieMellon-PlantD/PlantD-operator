@@ -11,21 +11,21 @@ import (
 )
 
 var (
-	serviceLabelKeyPipeline   = config.GetViper().GetString("monitor.service.labelKeys.pipeline")
-	serviceLabelKeyExperiment = config.GetViper().GetString("monitor.service.labelKeys.experiment")
-	servicePortName           = config.GetViper().GetString("monitor.service.portName")
-	serviceMonitorLabels      = config.GetViper().GetStringMapString("monitor.serviceMonitor.labels")
-	defaultEndpointPort       = config.GetViper().GetString("monitor.serviceMonitor.endpoint.defaultPort")
-	defaultEndpointPath       = config.GetViper().GetString("monitor.serviceMonitor.endpoint.defaultPath")
+	serviceLabelKeyPipeline   = config.GetString("monitor.service.labelKeys.pipeline")
+	serviceLabelKeyExperiment = config.GetString("monitor.service.labelKeys.experiment")
+	servicePortName           = config.GetString("monitor.service.portName")
+	serviceMonitorLabels      = config.GetStringMapString("monitor.serviceMonitor.labels")
+	defaultEndpointPort       = config.GetString("monitor.serviceMonitor.endpoint.defaultPort")
+	defaultEndpointPath       = config.GetString("monitor.serviceMonitor.endpoint.defaultPath")
 )
 
 // CreateExternalNameService creates a metrics Service of type ExternalName. For out-cluster Pipeline only.
 func CreateExternalNameService(pipeline *windtunnelv1alpha1.Pipeline) (*corev1.Service, error) {
-	hostname, err := pipeline.Spec.MetricsEndpoint.HTTP.GetHostname()
+	hostname, err := utils.GetURLHostname(pipeline.Spec.MetricsEndpoint.HTTP.URL)
 	if err != nil {
 		return nil, err
 	}
-	port, err := pipeline.Spec.MetricsEndpoint.HTTP.GetPort()
+	port, err := utils.GetURLPort(pipeline.Spec.MetricsEndpoint.HTTP.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func CreateExternalNameService(pipeline *windtunnelv1alpha1.Pipeline) (*corev1.S
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: pipeline.Namespace,
-			Name:      utils.GetPipelineMetricsServiceName(pipeline.Name),
+			Name:      utils.GetMetricsServiceName(pipeline.Name),
 			// Set the Pipeline label so that ServiceMonitor can select it
 			Labels: map[string]string{
 				serviceLabelKeyPipeline: pipeline.Name,
@@ -56,42 +56,51 @@ func CreateExternalNameService(pipeline *windtunnelv1alpha1.Pipeline) (*corev1.S
 
 // CreateServiceMonitor creates a ServiceMonitor for a Pipeline's metrics Service.
 func CreateServiceMonitor(pipeline *windtunnelv1alpha1.Pipeline) (*monitoringv1.ServiceMonitor, error) {
-	var metricsServiceNamespace string
+	var endpointPort string
+	var endpointPath string
 	if pipeline.Spec.InCluster {
-		// If the Pipeline is in-cluster, the user creates the metrics Service, and it can be in any namespace
-		metricsServiceNamespace = pipeline.Spec.MetricsEndpoint.ServiceRef.Namespace
+		endpointPort = pipeline.Spec.MetricsEndpoint.Port
+		if endpointPort == "" {
+			endpointPort = defaultEndpointPort
+		}
+
+		endpointPath = pipeline.Spec.MetricsEndpoint.Path
+		if endpointPath == "" {
+			endpointPath = defaultEndpointPath
+		}
 	} else {
-		// If the Pipeline is out-cluster, we have created the metrics Service of type ExternalName,
-		// and it is in the same namespace as the Pipeline
-		metricsServiceNamespace = pipeline.Namespace
+		endpointPort = servicePortName
+		path, err := utils.GetURLPath(pipeline.Spec.MetricsEndpoint.HTTP.URL)
+		if err != nil {
+			return nil, err
+		}
+		endpointPath = path
 	}
 
-	endpointPort := pipeline.Spec.MetricsEndpoint.Port
-	if endpointPort == "" {
-		endpointPort = defaultEndpointPort
-	}
-	endpointPath := pipeline.Spec.MetricsEndpoint.Path
-	if endpointPath == "" {
-		endpointPath = defaultEndpointPath
+	if pipeline.Spec.InCluster {
+
 	}
 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: pipeline.Namespace,
-			Name:      pipeline.Name,
+			Name:      utils.GetMetricsServiceName(pipeline.Name),
 			// Set the labels so that Prometheus can select it
 			Labels: serviceMonitorLabels,
 		},
 		Spec: monitoringv1.ServiceMonitorSpec{
 			// Set `job` label of all Prometheus metrics to Experiment label value
 			JobLabel: serviceLabelKeyExperiment,
-			NamespaceSelector: monitoringv1.NamespaceSelector{
-				MatchNames: []string{metricsServiceNamespace},
-			},
-			// Use the Pipeline label to select Service
+			// Use the Pipeline label to select metrics Service
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					serviceLabelKeyPipeline: pipeline.Name,
+				},
+			},
+			// The metrics Service must be in the same namespace as the Pipeline
+			NamespaceSelector: monitoringv1.NamespaceSelector{
+				MatchNames: []string{
+					pipeline.Namespace,
 				},
 			},
 			Endpoints: []monitoringv1.Endpoint{

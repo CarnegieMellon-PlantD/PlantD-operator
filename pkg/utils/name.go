@@ -11,40 +11,29 @@ func GetNamespacedName(obj v1.Object) string {
 	return fmt.Sprintf("%s/%s", obj.GetNamespace(), obj.GetName())
 }
 
-// GetDataSetJobName returns the name of the Job for the DataSet.
-func GetDataSetJobName(dataSetName string, generation int64) string {
-	return fmt.Sprintf("dataset-%s-%d", dataSetName, generation)
+// GetDataGeneratorName returns the name of the data generator resources for the DataSet.
+// Note that to shorten the name, only the last 4 hex digits of the generation number are used.
+// It is safe because we always delete the old resources before creating new ones.
+func GetDataGeneratorName(dataSetName string, generation int64) string {
+	return fmt.Sprintf("%s-datagen-%x", dataSetName, generation%0x10000)
 }
 
-// GetDataSetPVCName returns the name of the PVC for the DataSet.
-func GetDataSetPVCName(dataSetName string, generation int64) string {
-	return fmt.Sprintf("dataset-%s-%d", dataSetName, generation)
-}
-
-// GetPipelineMetricsServiceName returns the name of the metrics Service for the Pipeline.
-// For out-cluster Pipeline only, for whom we need to create Service of type ExternalName.
-func GetPipelineMetricsServiceName(pipelineName string) string {
+// GetMetricsServiceName returns the name of the metrics Service and ServiceMonitor for the Pipeline.
+func GetMetricsServiceName(pipelineName string) string {
 	return fmt.Sprintf("%s-metrics", pipelineName)
 }
 
-// GetTestRunConfigMapName returns the name of the ConfigMap for the TestRun.
-func GetTestRunConfigMapName(experimentName string, endpointName string) string {
-	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
+// GetTestRunName returns the name of the TestRun for the Experiment.
+// Note that to shorten the name, only the last 4 hex digits of the endpoint index are used.
+// It is safe because we limit the number of EndpointSpecs in the Experiment to be no more than 65535.
+func GetTestRunName(experimentName string, endpointIdx int) string {
+	return fmt.Sprintf("%s-loadgen-%x", experimentName, (endpointIdx+1)%0x10000)
 }
 
-// GetTestRunPVCName returns the name of the PVC for the TestRun.
-// For data option "dataSet" only, which requires a PVC.
-func GetTestRunPVCName(experimentName string, endpointName string) string {
-	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
-}
-
-// GetTestRunCopierPodName returns the name of the copier Pod for the TestRun.
-// The copier Pod is used to copy the configuration and data for the TestRun.
-func GetTestRunCopierPodName(experimentName string, endpointName string) string {
-	return fmt.Sprintf("experiment-%s-%s-copier", experimentName, endpointName)
-}
-
-// GetTestRunName returns the name of the TestRun.
-func GetTestRunName(experimentName string, endpointName string) string {
-	return fmt.Sprintf("experiment-%s-%s", experimentName, endpointName)
+// GetTestRunCopierJobName returns the name of the copier Job for the TestRun.
+// The copier Job is used to copy the configuration and data for the TestRun.
+// Note that to shorten the name, only the last 4 hex digits of the endpoint index are used.
+// It is safe because we limit the number of EndpointSpecs in the Experiment to be no more than 65535.
+func GetTestRunCopierJobName(experimentName string, endpointIdx int) string {
+	return fmt.Sprintf("%s-loadgen-%x-copier", experimentName, (endpointIdx+1)%0x10000)
 }

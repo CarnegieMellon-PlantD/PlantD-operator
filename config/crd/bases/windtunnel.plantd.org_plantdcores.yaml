@@ -15,17 +15,29 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.kubeProxyStatus
-      name: KubeProxyStatus
+    - jsonPath: .status.proxyStatus.text
+      name: Proxy
       type: string
-    - jsonPath: .status.studioStatus
-      name: StudioStatus
+    - jsonPath: .status.studioStatus.text
+      name: Studio
       type: string
-    - jsonPath: .status.prometheusStatus
-      name: PrometheusStatus
+    - jsonPath: .status.prometheusStatus.text
+      name: Prometheus
       type: string
-    - jsonPath: .status.redisStatus
-      name: RedisStatus
+    - jsonPath: .status.thanosStoreStatus.text
+      name: Thanos-Store
+      type: string
+    - jsonPath: .status.thanosCompactorStatus.text
+      name: Thanos-Compactor
+      type: string
+    - jsonPath: .status.thanosQuerierStatus.text
+      name: Thanos-Querier
+      type: string
+    - jsonPath: .status.redisStatus.text
+      name: Redis
+      type: string
+    - jsonPath: .status.opencostStatus.text
+      name: OpenCost
       type: string
     name: v1alpha1
     schema:
@@ -45,21 +57,73 @@ spec:
           metadata:
             type: object
           spec:
-            description: PlantDCoreSpec defines the desired state of PlantDCore
+            description: PlantDCoreSpec defines the desired state of PlantDCore.
             properties:
-              kubeProxy:
-                description: KubeProxyConfig defines the desire state of PlantD Kube
-                  Proxy
+              opencost:
+                description: OpenCost configuration.
                 properties:
                   image:
-                    description: Image defines the container image to use
+                    description: Container image to use for OpenCost.
                     type: string
                   replicas:
-                    description: Replicas defines the desired number of replicas
+                    description: Number of replicas.
                     format: int32
+                    minimum: 1
                     type: integer
                   resources:
-                    description: Resources defines the resource requirements per replica
+                    description: Resources requirements for OpenCost.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  uiImage:
+                    description: Container image to use for OpenCost-UI.
+                    type: string
+                  uiResources:
+                    description: Resources requirements for OpenCost-UI.
                     properties:
                       claims:
                         description: "Claims lists the names of resources, defined
@@ -109,14 +173,15 @@ spec:
                     type: object
                 type: object
               prometheus:
-                description: PrometheusConfig defines the desire state of Prometheus
+                description: Prometheus configuration.
                 properties:
                   replicas:
-                    description: Replicas defines the desired number of replicas
+                    description: Number of replicas.
                     format: int32
+                    minimum: 1
                     type: integer
                   resources:
-                    description: Resources defines the resource requirements per replica
+                    description: Resources requirements.
                     properties:
                       claims:
                         description: "Claims lists the names of resources, defined
@@ -165,23 +230,23 @@ spec:
                         type: object
                     type: object
                   scrapeInterval:
-                    description: ScrapeInterval defines the desired time length between
-                      scrapings
+                    description: Interval at which Prometheus scrapes metrics.
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
                     type: string
                 type: object
-              redis:
-                description: RedisConfig defines the desire state of Redis
+              proxy:
+                description: PlantD-Proxy configuration.
                 properties:
                   image:
-                    description: Image defines the container image to use
+                    description: Container image to use.
                     type: string
                   replicas:
-                    description: Replicas defines the desired number of replicas
+                    description: Number of replicas.
                     format: int32
+                    minimum: 1
                     type: integer
                   resources:
-                    description: Resources defines the resource requirements per replica
+                    description: Resources requirements.
                     properties:
                       claims:
                         description: "Claims lists the names of resources, defined
@@ -229,19 +294,88 @@ spec:
                           Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                         type: object
                     type: object
+                type: object
+              redis:
+                description: Redis configuration.
+                properties:
+                  image:
+                    description: Container image to use.
+                    type: string
+                  replicas:
+                    description: Number of replicas.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  resources:
+                    description: Resources requirements.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  storageSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Storage size.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                 type: object
               studio:
-                description: StudioConfig defines the desire state of PlantD Studio
+                description: PlantD-Studio configuration.
                 properties:
                   image:
-                    description: Image defines the container image to use
+                    description: Container image to use.
                     type: string
                   replicas:
-                    description: Replicas defines the desired number of replicas
+                    description: Number of replicas.
                     format: int32
+                    minimum: 1
                     type: integer
                   resources:
-                    description: Resources defines the resource requirements per replica
+                    description: Resources requirements.
                     properties:
                       claims:
                         description: "Claims lists the names of resources, defined
@@ -290,43 +424,442 @@ spec:
                         type: object
                     type: object
                 type: object
-              thanosEnabled:
-                description: ThanosEnabled defines if Thanos is enabled (True / False)
-                type: boolean
+              thanos:
+                description: Thanos configuration.
+                properties:
+                  compactor:
+                    description: Thanos-Compactor configuration. The `compactor.image`
+                      field is always ignored. This field is ignored if `objectStoreConfig`
+                      is not set.
+                    properties:
+                      image:
+                        description: Container image to use.
+                        type: string
+                      replicas:
+                        description: Number of replicas.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      resources:
+                        description: Resources requirements.
+                        properties:
+                          claims:
+                            description: "Claims lists the names of resources, defined
+                              in spec.resourceClaims, that are used by this container.
+                              \n This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate. \n This field
+                              is immutable. It can only be set for containers."
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: Name must match the name of one entry
+                                    in pod.spec.resourceClaims of the Pod where this
+                                    field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Limits describes the maximum amount of compute
+                              resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Requests describes the minimum amount of
+                              compute resources required. If Requests is omitted for
+                              a container, it defaults to Limits if that is explicitly
+                              specified, otherwise to an implementation-defined value.
+                              Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                        type: object
+                      storageSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  image:
+                    description: Thanos image to use. Must be synced with the `version`
+                      field.
+                    type: string
+                  objectStoreConfig:
+                    description: Object store configuration for Thanos. Set this field
+                      will enable upload in Thanos-Sidecar, and deploy Thanos-Store
+                      and Thanos-Compactor.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  querier:
+                    description: Thanos-Querier configuration. The `querier.image`
+                      and `querier.storageSize` fields are always ignored.
+                    properties:
+                      image:
+                        description: Container image to use.
+                        type: string
+                      replicas:
+                        description: Number of replicas.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      resources:
+                        description: Resources requirements.
+                        properties:
+                          claims:
+                            description: "Claims lists the names of resources, defined
+                              in spec.resourceClaims, that are used by this container.
+                              \n This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate. \n This field
+                              is immutable. It can only be set for containers."
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: Name must match the name of one entry
+                                    in pod.spec.resourceClaims of the Pod where this
+                                    field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Limits describes the maximum amount of compute
+                              resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Requests describes the minimum amount of
+                              compute resources required. If Requests is omitted for
+                              a container, it defaults to Limits if that is explicitly
+                              specified, otherwise to an implementation-defined value.
+                              Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                        type: object
+                      storageSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  sidecar:
+                    description: Thanos-Sidecar configuration. The `sidecar.replicas`,
+                      `sidecar.image` and `sidecar.storageSize` fields are always
+                      ignored.
+                    properties:
+                      image:
+                        description: Container image to use.
+                        type: string
+                      replicas:
+                        description: Number of replicas.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      resources:
+                        description: Resources requirements.
+                        properties:
+                          claims:
+                            description: "Claims lists the names of resources, defined
+                              in spec.resourceClaims, that are used by this container.
+                              \n This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate. \n This field
+                              is immutable. It can only be set for containers."
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: Name must match the name of one entry
+                                    in pod.spec.resourceClaims of the Pod where this
+                                    field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Limits describes the maximum amount of compute
+                              resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Requests describes the minimum amount of
+                              compute resources required. If Requests is omitted for
+                              a container, it defaults to Limits if that is explicitly
+                              specified, otherwise to an implementation-defined value.
+                              Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                        type: object
+                      storageSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  store:
+                    description: Thanos-Store configuration. The `store.image` field
+                      is always ignored. This field is ignored if `objectStoreConfig`
+                      is not set.
+                    properties:
+                      image:
+                        description: Container image to use.
+                        type: string
+                      replicas:
+                        description: Number of replicas.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      resources:
+                        description: Resources requirements.
+                        properties:
+                          claims:
+                            description: "Claims lists the names of resources, defined
+                              in spec.resourceClaims, that are used by this container.
+                              \n This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate. \n This field
+                              is immutable. It can only be set for containers."
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: Name must match the name of one entry
+                                    in pod.spec.resourceClaims of the Pod where this
+                                    field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Limits describes the maximum amount of compute
+                              resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: 'Requests describes the minimum amount of
+                              compute resources required. If Requests is omitted for
+                              a container, it defaults to Limits if that is explicitly
+                              specified, otherwise to an implementation-defined value.
+                              Requests cannot exceed Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                            type: object
+                        type: object
+                      storageSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  version:
+                    description: Thanos version to use. Must be synced with the `image`
+                      field.
+                    type: string
+                type: object
             type: object
           status:
-            description: PlantDCoreStatus defines the observed state of PlantDCore
+            description: PlantDCoreStatus defines the observed state of PlantDCore.
             properties:
-              kubeProxyReady:
-                description: KubeProxyReady shows if the PlantD Kube Proxy is ready
-                type: boolean
-              kubeProxyStatus:
-                description: KubeProxyStatus shows the status of the PlantD Proxy
-                type: string
-              prometheusReady:
-                description: PrometheusReady shows if the Prometheus is ready
-                type: boolean
+              opencostStatus:
+                description: OpenCost status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
               prometheusStatus:
-                description: PrometheusStatus shows the status of the Prometheus
-                type: string
-              redisReady:
-                description: RedisReady shows if the Redis is ready
-                type: boolean
+                description: Prometheus status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
+              proxyStatus:
+                description: PlantD-Proxy status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
               redisStatus:
-                description: RedisStatus shows the status of the Redis
-                type: string
-              studioReady:
-                description: StudioReady shows if the PlantD Studio is ready
-                type: boolean
+                description: Redis status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
               studioStatus:
-                description: StudioStatus shows the status of the PlantD Studio
-                type: string
-              thanosReady:
-                description: ThanosReady shows if the Thanos is ready
-                type: boolean
-              thanosStatus:
-                description: Thanos status
-                type: string
+                description: PlantD-Studio status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
+              thanosCompactorStatus:
+                description: Thanos-Compactor status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
+              thanosQuerierStatus:
+                description: Thanos-Querier status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
+              thanosStoreStatus:
+                description: Thanos-Store status.
+                properties:
+                  numDesired:
+                    description: Number of desired replicas.
+                    format: int32
+                    type: integer
+                  numReady:
+                    description: Number of ready replicas.
+                    format: int32
+                    type: integer
+                  text:
+                    description: Component status string.
+                    type: string
+                type: object
             type: object
         type: object
     served: true

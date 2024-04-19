@@ -15,14 +15,14 @@ import (
 )
 
 var (
-	defaultImage       = config.GetViper().GetString("dataGenerator.defaultImage")
-	defaultParallelism = config.GetViper().GetInt32("dataGenerator.defaultParallelism")
-	backoffLimit       = config.GetViper().GetInt32("dataGenerator.backoffLimit")
-	defaultStorageSize = config.GetViper().GetString("dataGenerator.defaultStorageSize")
-	path               = config.GetViper().GetString("dataGenerator.path")
+	defaultImage       = config.GetString("dataGenerator.defaultImage")
+	defaultParallelism = config.GetInt32("dataGenerator.defaultParallelism")
+	backoffLimit       = config.GetInt32("dataGenerator.backoffLimit")
+	defaultStorageSize = config.GetString("dataGenerator.defaultStorageSize")
+	path               = config.GetString("dataGenerator.path")
 )
 
-// CreateJob creates a Job based on the DataSet configuration.
+// CreateJob creates a data generator Job based on the DataSet configuration.
 func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataSet, schemaMap map[string]*windtunnelv1alpha1.Schema) (*kbatch.Job, error) {
 	// Calculate the number of parallel jobs and step size
 	parallelism := dataSet.Spec.Parallelism
@@ -89,7 +89,7 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "data-volume",
+									Name:      "data",
 									MountPath: path,
 								},
 							},
@@ -97,7 +97,7 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "data-volume",
+							Name: "data",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: pvcName,
@@ -112,10 +112,12 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 	return job, nil
 }
 
-// CreatePVC creates a PersistentVolumeClaim for the data generator job.
+// CreatePVC creates a PersistentVolumeClaim for the data generator Job.
 func CreatePVC(pvcName string, dataSet *windtunnelv1alpha1.DataSet) *corev1.PersistentVolumeClaim {
-	storageSize := dataSet.Spec.StorageSize
-	if storageSize.IsZero() {
+	var storageSize resource.Quantity
+	if dataSet.Spec.StorageSize != nil && !dataSet.Spec.StorageSize.IsZero() {
+		storageSize = *dataSet.Spec.StorageSize
+	} else {
 		storageSize = resource.MustParse(defaultStorageSize)
 	}
 
@@ -128,7 +130,7 @@ func CreatePVC(pvcName string, dataSet *windtunnelv1alpha1.DataSet) *corev1.Pers
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: storageSize,
 				},
