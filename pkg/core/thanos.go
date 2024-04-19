@@ -94,8 +94,10 @@ func GetThanosStoreStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *appsv
 		thanosStoreDefaultMemoryLimit,
 	)
 
-	storageSize := plantDCore.Spec.ThanosConfig.StoreConfig.StorageSize
-	if storageSize.IsZero() {
+	var storageSize resource.Quantity
+	if plantDCore.Spec.ThanosConfig.StoreConfig.StorageSize != nil && !plantDCore.Spec.ThanosConfig.StoreConfig.StorageSize.IsZero() {
+		storageSize = *plantDCore.Spec.ThanosConfig.StoreConfig.StorageSize
+	} else {
 		storageSize = resource.MustParse(thanosStoreDefaultStorageSize)
 	}
 
@@ -221,8 +223,10 @@ func GetThanosCompactorStatefulSet(plantDCore *windtunnelv1alpha1.PlantDCore) *a
 		thanosCompactorDefaultMemoryLimit,
 	)
 
-	storageSize := plantDCore.Spec.ThanosConfig.CompactorConfig.StorageSize
-	if storageSize.IsZero() {
+	var storageSize resource.Quantity
+	if plantDCore.Spec.ThanosConfig.CompactorConfig.StorageSize != nil && !plantDCore.Spec.ThanosConfig.CompactorConfig.StorageSize.IsZero() {
+		storageSize = *plantDCore.Spec.ThanosConfig.CompactorConfig.StorageSize
+	} else {
 		storageSize = resource.MustParse(thanosCompactorDefaultStorageSize)
 	}
 

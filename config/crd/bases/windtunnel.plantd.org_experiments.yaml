@@ -170,9 +170,6 @@ spec:
                 maxItems: 65535
                 minItems: 1
                 type: array
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -210,9 +207,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               scheduledTime:
                 description: Scheduled time to run the Experiment.
                 format: date-time

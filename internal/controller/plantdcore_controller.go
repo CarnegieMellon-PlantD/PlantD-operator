@@ -216,14 +216,14 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Redis
 	{
-		curRedisDeployment := &appsv1.Deployment{}
+		curRedisStatefulSet := &appsv1.StatefulSet{}
 		if err := r.reconcileObject(
 			ctx,
 			plantDCore,
 			true,
-			"Deployment",
-			curRedisDeployment,
-			core.GetRedisDeployment(plantDCore),
+			"StatefulSet",
+			curRedisStatefulSet,
+			core.GetRedisStatefulSet(plantDCore),
 		); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -237,7 +237,7 @@ func (r *PlantDCoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.setDeploymentComponentStatus(&plantDCore.Status.RedisStatus, true, curRedisDeployment)
+		r.setStatefulSetComponentStatus(&plantDCore.Status.RedisStatus, true, curRedisStatefulSet)
 	}
 
 	// OpenCost

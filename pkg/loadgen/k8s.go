@@ -142,15 +142,15 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int,
 							Command: []string{"/bin/sh", "-c", "cp -RL /configmap/* /testrun && cp -RL /dataset/* /testrun"},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "configmap-volume",
+									Name:      "configmap",
 									MountPath: "/configmap",
 								},
 								{
-									Name:      "dataset-volume",
+									Name:      "dataset",
 									MountPath: "/dataset",
 								},
 								{
-									Name:      "testrun-volume",
+									Name:      "testrun",
 									MountPath: "/testrun",
 								},
 							},
@@ -158,7 +158,7 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int,
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "configmap-volume",
+							Name: "configmap",
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
@@ -168,7 +168,7 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int,
 							},
 						},
 						{
-							Name: "dataset-volume",
+							Name: "dataset",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: utils.GetDataGeneratorName(dataSet.Name, dataSet.Generation),
@@ -176,7 +176,7 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int,
 							},
 						},
 						{
-							Name: "testrun-volume",
+							Name: "testrun",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: utils.GetTestRunName(experiment.Name, endpointIdx),

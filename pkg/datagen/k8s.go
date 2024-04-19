@@ -89,7 +89,7 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "data-volume",
+									Name:      "data",
 									MountPath: path,
 								},
 							},
@@ -97,7 +97,7 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "data-volume",
+							Name: "data",
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: pvcName,

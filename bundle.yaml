@@ -609,9 +609,6 @@ spec:
                 maxItems: 65535
                 minItems: 1
                 type: array
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -649,9 +646,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               scheduledTime:
                 description: Scheduled time to run the Experiment.
                 format: date-time
@@ -944,15 +938,9 @@ spec:
                 - azure
                 - gcp
                 type: string
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               enableCostCalculation:
                 description: Whether to enable cost calculation for the Pipeline.
                 type: boolean
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               healthCheckURLs:
                 description: List of URLs for health check. An HTTP GET request will
                   be made to each URL, and all of them should return 200 OK to pass
@@ -962,18 +950,12 @@ spec:
                   type: string
                 minItems: 1
                 type: array
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               inCluster:
                 description: Whether the Pipeline is deployed within the cluster or
                   not. When set to `false`, Services of type ExternalName will be
                   created to access the Pipeline. When set to `true`, the Pipeline
                   will be accessed by its Services.
                 type: boolean
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               metricsEndpoint:
                 description: Endpoint for metrics scraping.
                 properties:
@@ -1017,9 +999,6 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                 type: object
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               pipelineEndpoints:
                 description: List of endpoints for data ingestion.
                 items:
@@ -1053,18 +1032,12 @@ spec:
                   type: object
                 minItems: 1
                 type: array
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
               tags:
                 additionalProperties:
                   type: string
                 description: Map of tags to select cloud resources of the Pipeline.
                   Equivalent to the tags in the cloud service provider.
                 type: object
-                x-kubernetes-validations:
-                - message: value is immutable
-                  rule: self == oldSelf
             required:
             - pipelineEndpoints
             type: object
@@ -1440,6 +1413,13 @@ spec:
                           Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                         type: object
                     type: object
+                  storageSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Storage size. Should not be modified once set.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                 type: object
               studio:
                 description: PlantD-Studio configuration.
@@ -1506,9 +1486,13 @@ spec:
                 description: Thanos configuration.
                 properties:
                   compactor:
-                    description: Thanos-Compactor configuration. This field is ignored
-                      if `objectStoreConfig` is not set.
+                    description: Thanos-Compactor configuration. The `compactor.image`
+                      field is always ignored. This field is ignored if `objectStoreConfig`
+                      is not set.
                     properties:
+                      image:
+                        description: Container image to use.
+                        type: string
                       replicas:
                         description: Number of replicas.
                         format: int32
@@ -1567,7 +1551,7 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size.
+                        description: Storage size. Should not be modified once set.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
@@ -1597,9 +1581,12 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   querier:
-                    description: Thanos-Querier configuration. The `querier.storageSize`
-                      field is always ignored.
+                    description: Thanos-Querier configuration. The `querier.image`
+                      and `querier.storageSize` fields are always ignored.
                     properties:
+                      image:
+                        description: Container image to use.
+                        type: string
                       replicas:
                         description: Number of replicas.
                         format: int32
@@ -1658,14 +1645,18 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size.
+                        description: Storage size. Should not be modified once set.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
                   sidecar:
-                    description: Thanos-Sidecar configuration. The `sidecar.replicas`
-                      and `sidecar.storageSize` fields are always ignored.
+                    description: Thanos-Sidecar configuration. The `sidecar.replicas`,
+                      `sidecar.image` and `sidecar.storageSize` fields are always
+                      ignored.
                     properties:
+                      image:
+                        description: Container image to use.
+                        type: string
                       replicas:
                         description: Number of replicas.
                         format: int32
@@ -1724,14 +1715,18 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size.
+                        description: Storage size. Should not be modified once set.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object
                   store:
-                    description: Thanos-Store configuration. This field is ignored
-                      if `objectStoreConfig` is not set.
+                    description: Thanos-Store configuration. The `store.image` field
+                      is always ignored. This field is ignored if `objectStoreConfig`
+                      is not set.
                     properties:
+                      image:
+                        description: Container image to use.
+                        type: string
                       replicas:
                         description: Number of replicas.
                         format: int32
@@ -1790,7 +1785,7 @@ spec:
                         anyOf:
                         - type: integer
                         - type: string
-                        description: Storage size.
+                        description: Storage size. Should not be modified once set.
                         pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                         x-kubernetes-int-or-string: true
                     type: object

@@ -707,7 +707,7 @@ _Appears in:_
 | `studio` _[DeploymentConfig](#deploymentconfig)_ | PlantD-Studio configuration. |
 | `prometheus` _[PrometheusConfig](#prometheusconfig)_ | Prometheus configuration. |
 | `thanos` _[ThanosConfig](#thanosconfig)_ | Thanos configuration. |
-| `redis` _[DeploymentConfig](#deploymentconfig)_ | Redis configuration. |
+| `redis` _[StatefulSetConfig](#statefulsetconfig)_ | Redis configuration. |
 | `opencost` _[OpenCostConfig](#opencostconfig)_ | OpenCost configuration. |
 
 
@@ -928,6 +928,24 @@ _Appears in:_
 | `duration` _string_ | Duration of the stage, also the time to reach the target load. Equivalent to the "ramping-arrival-rate" executor's `stages[].duration` option in K6. See https://k6.io/docs/using-k6/scenarios/executors/ramping-arrival-rate/#options for more details. |
 
 
+#### StatefulSetConfig
+
+
+
+StatefulSetConfig defines the desired state of a component deployed as StatefulSet.
+
+_Appears in:_
+- [PlantDCoreSpec](#plantdcorespec)
+- [ThanosConfig](#thanosconfig)
+
+| Field | Description |
+| --- | --- |
+| `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use. |
+| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
+| `storageSize` _[Quantity](#quantity)_ | Storage size. Should not be modified once set. |
+
+
 #### ThanosConfig
 
 
@@ -942,26 +960,10 @@ _Appears in:_
 | `image` _string_ | Thanos image to use. Must be synced with the `version` field. |
 | `version` _string_ | Thanos version to use. Must be synced with the `image` field. |
 | `objectStoreConfig` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#secretkeyselector-v1-core)_ | Object store configuration for Thanos. Set this field will enable upload in Thanos-Sidecar, and deploy Thanos-Store and Thanos-Compactor. |
-| `sidecar` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Sidecar configuration. The `sidecar.replicas` and `sidecar.storageSize` fields are always ignored. |
-| `store` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Store configuration. This field is ignored if `objectStoreConfig` is not set. |
-| `compactor` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Compactor configuration. This field is ignored if `objectStoreConfig` is not set. |
-| `querier` _[ThanosModuleConfig](#thanosmoduleconfig)_ | Thanos-Querier configuration. The `querier.storageSize` field is always ignored. |
-
-
-#### ThanosModuleConfig
-
-
-
-ThanosModuleConfig defines the desired state of a module within Thanos component.
-
-_Appears in:_
-- [ThanosConfig](#thanosconfig)
-
-| Field | Description |
-| --- | --- |
-| `replicas` _integer_ | Number of replicas. |
-| `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
-| `storageSize` _[Quantity](#quantity)_ | Storage size. |
+| `sidecar` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Sidecar configuration. The `sidecar.replicas`, `sidecar.image` and `sidecar.storageSize` fields are always ignored. |
+| `store` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Store configuration. The `store.image` field is always ignored. This field is ignored if `objectStoreConfig` is not set. |
+| `compactor` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Compactor configuration. The `compactor.image` field is always ignored. This field is ignored if `objectStoreConfig` is not set. |
+| `querier` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Querier configuration. The `querier.image` and `querier.storageSize` fields are always ignored. |
 
 
 #### TrafficModel

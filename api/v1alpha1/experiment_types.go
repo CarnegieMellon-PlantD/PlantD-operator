@@ -61,12 +61,10 @@ type EndpointSpec struct {
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
 	// Reference to the Pipeline to use for the Experiment.
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	PipelineRef *corev1.ObjectReference `json:"pipelineRef"`
 	// List of tests upon endpoints.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=65535
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="value is immutable"
 	EndpointSpecs []EndpointSpec `json:"endpointSpecs"`
 	// Scheduled time to run the Experiment.
 	ScheduledTime *metav1.Time `json:"scheduledTime,omitempty"`

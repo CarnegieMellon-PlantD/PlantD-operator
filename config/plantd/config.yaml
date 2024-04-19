@@ -148,10 +148,12 @@ core:
     defaultMemoryRequest: 50Mi
     defaultCPULimit: 400m
     defaultMemoryLimit: 400Mi
+    defaultStorageSize: 10Gi
     containerPortName: resp
     containerPort: 6379
     servicePortName: resp
     servicePort: 6379
+    path: /data
   openCost:
     name: plantd-opencost
     labels:

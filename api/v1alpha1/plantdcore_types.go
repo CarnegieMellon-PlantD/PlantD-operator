@@ -27,6 +27,20 @@ type DeploymentConfig struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
+// StatefulSetConfig defines the desired state of a component deployed as StatefulSet.
+type StatefulSetConfig struct {
+	// Number of replicas.
+	// +kubebuilder:validation:Minimum=1
+	Replicas int32 `json:"replicas,omitempty"`
+	// Container image to use.
+	Image string `json:"image,omitempty"`
+	// Resources requirements.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Storage size.
+	// Should not be modified once set.
+	StorageSize *resource.Quantity `json:"storageSize,omitempty"`
+}
+
 // PrometheusConfig defines the desired state of a Prometheus component.
 type PrometheusConfig struct {
 	// Number of replicas.
@@ -36,17 +50,6 @@ type PrometheusConfig struct {
 	ScrapeInterval monitoringv1.Duration `json:"scrapeInterval,omitempty"`
 	// Resources requirements.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-}
-
-// ThanosModuleConfig defines the desired state of a module within Thanos component.
-type ThanosModuleConfig struct {
-	// Number of replicas.
-	// +kubebuilder:validation:Minimum=1
-	Replicas int32 `json:"replicas,omitempty"`
-	// Resources requirements.
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Storage size.
-	StorageSize resource.Quantity `json:"storageSize,omitempty"`
 }
 
 // ThanosConfig defines the desired state of a Thanos component.
@@ -59,17 +62,19 @@ type ThanosConfig struct {
 	// Set this field will enable upload in Thanos-Sidecar, and deploy Thanos-Store and Thanos-Compactor.
 	ObjectStoreConfig *corev1.SecretKeySelector `json:"objectStoreConfig,omitempty"`
 	// Thanos-Sidecar configuration.
-	// The `sidecar.replicas` and `sidecar.storageSize` fields are always ignored.
-	SidecarConfig ThanosModuleConfig `json:"sidecar,omitempty"`
+	// The `sidecar.replicas`, `sidecar.image` and `sidecar.storageSize` fields are always ignored.
+	SidecarConfig StatefulSetConfig `json:"sidecar,omitempty"`
 	// Thanos-Store configuration.
+	// The `store.image` field is always ignored.
 	// This field is ignored if `objectStoreConfig` is not set.
-	StoreConfig ThanosModuleConfig `json:"store,omitempty"`
+	StoreConfig StatefulSetConfig `json:"store,omitempty"`
 	// Thanos-Compactor configuration.
+	// The `compactor.image` field is always ignored.
 	// This field is ignored if `objectStoreConfig` is not set.
-	CompactorConfig ThanosModuleConfig `json:"compactor,omitempty"`
+	CompactorConfig StatefulSetConfig `json:"compactor,omitempty"`
 	// Thanos-Querier configuration.
-	// The `querier.storageSize` field is always ignored.
-	QuerierConfig ThanosModuleConfig `json:"querier,omitempty"`
+	// The `querier.image` and `querier.storageSize` fields are always ignored.
+	QuerierConfig StatefulSetConfig `json:"querier,omitempty"`
 }
 
 // OpenCostConfig defines the desired state of an OpenCost component.
@@ -108,7 +113,7 @@ type PlantDCoreSpec struct {
 	// Thanos configuration.
 	ThanosConfig ThanosConfig `json:"thanos,omitempty"`
 	// Redis configuration.
-	RedisConfig DeploymentConfig `json:"redis,omitempty"`
+	RedisConfig StatefulSetConfig `json:"redis,omitempty"`
 	// OpenCost configuration.
 	OpenCostConfig OpenCostConfig `json:"opencost,omitempty"`
 }
