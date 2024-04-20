@@ -142,18 +142,18 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CostExporter")
 		os.Exit(1)
 	}
+	if err = (&controller.DigitalTwinReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DigitalTwin")
+		os.Exit(1)
+	}
 	if err = (&controller.SimulationReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Simulation")
-		os.Exit(1)
-	}
-	if err = (&controller.ScenarioReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Scenario")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

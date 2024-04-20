@@ -90,7 +90,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: plantd.org
   group: windtunnel
   kind: TrafficModel
@@ -107,7 +106,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: plantd.org
   group: windtunnel
   kind: Scenario

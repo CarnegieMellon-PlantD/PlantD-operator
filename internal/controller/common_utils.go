@@ -60,7 +60,7 @@ func getEndpointSpecDataOption(endpointSpec *windtunnelv1alpha1.EndpointSpec) wi
 		return ""
 	}
 
-	if endpointSpec.DataSpec.DataSetRef != nil && endpointSpec.DataSpec.DataSetRef.Namespace != "" && endpointSpec.DataSpec.DataSetRef.Name != "" {
+	if endpointSpec.DataSpec.DataSetRef != nil && endpointSpec.DataSpec.DataSetRef.Name != "" {
 		return windtunnelv1alpha1.EndpointDataOptionDataSet
 	}
 

@@ -1,25 +1,27 @@
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NetCostSpec defines the desired state of NetCost
+// NetCostSpec defines the desired state of NetCost.
 type NetCostSpec struct {
-	// NetCostPerMB defines the cost per MB of data transfer.
-	NetCostPerMB resource.Quantity `json:"netCostPerMB,omitempty"`
-	// RawDataStoreCostPerMBMonth defines the cost per MB per month of raw data storage.
-	RawDataStoreCostPerMBMonth resource.Quantity `json:"rawDataStoreCostPerMBMonth,omitempty"`
-	// ProcessedDataStoreCostPerMBMonth defines the cost per MB per month of processed data storage.
-	ProcessedDataStoreCostPerMBMonth resource.Quantity `json:"processedDataStoreCostPerMBMonth,omitempty"`
-	// RawDataRetentionPolicyMonths defines the months raw data is retained.
-	RawDataRetentionPolicyMonths int `json:"rawDataRetentionPolicyMonths,omitempty"`
-	// ProcessedDataRetentionPolicyMonths defines the months processed data is retained.
-	ProcessedDataRetentionPolicyMonths int `json:"processedDataRetentionPolicyMonths,omitempty"`
+	// The cost per MB of data transfer.
+	// The value should be a float number in string format.
+	NetCostPerMB string `json:"netCostPerMB"`
+	// The cost per MB per month of raw data storage.
+	// The value should be a float number in string format.
+	RawDataStoreCostPerMBMonth string `json:"rawDataStoreCostPerMBMonth"`
+	// The cost per MB per month of processed data storage.
+	// The value should be a float number in string format.
+	ProcessedDataStoreCostPerMBMonth string `json:"processedDataStoreCostPerMBMonth"`
+	// The number of months the raw data is retained.
+	RawDataRetentionPolicyMonths int `json:"rawDataRetentionPolicyMonths"`
+	// The number of months the processed data is retained.
+	ProcessedDataRetentionPolicyMonths int `json:"processedDataRetentionPolicyMonths"`
 }
 
-// NetCostStatus defines the observed state of NetCost
+// NetCostStatus defines the observed state of NetCost.
 type NetCostStatus struct{}
 
 //+kubebuilder:object:root=true

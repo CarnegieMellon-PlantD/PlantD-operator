@@ -4,13 +4,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TrafficModelSpec defines the desired state of TrafficModel
+// TrafficModelSpec defines the desired state of TrafficModel.
 type TrafficModelSpec struct {
-	// Config defines the configuration of the TrafficModel.
-	Config string `json:"config,omitempty"`
+	// TrafficModel configuration in JSON.
+	Config string `json:"config"`
 }
 
-// TrafficModelStatus defines the observed state of TrafficModel
+// TrafficModelStatus defines the observed state of TrafficModel.
 type TrafficModelStatus struct{}
 
 //+kubebuilder:object:root=true

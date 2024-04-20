@@ -358,11 +358,29 @@ spec:
           metadata:
             type: object
           spec:
-            description: DigitalTwinSpec defines the desired state of DigitalTwin
+            description: DigitalTwinSpec defines the desired state of DigitalTwin.
             properties:
+              dataSet:
+                description: DataSet to break down into Schemas to train the DigitalTwin.
+                  Effective only when `digitalTwinType` is `schemaaware`.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              digitalTwinType:
+                description: Type of digital twin. Available values are `regular`
+                  and `schemaaware`.
+                enum:
+                - regular
+                - schemaaware
+                type: string
               experiments:
-                description: Experiments contains the list of Experiment object references
-                  for the DigitalTwin.
+                description: Existing Experiments to retrieve metrics data from to
+                  train the DigitalTwin. Effective only when `digitalTwinType` is
+                  `regular`.
                 items:
                   description: "ObjectReference contains enough information to let
                     you inspect or modify the referred object. --- New uses of this
@@ -426,11 +444,38 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               modelType:
-                description: ModelType defines the type of the DigitalTwin model.
+                description: Type of digital twin model. Available values are `simple`,
+                  `quickscaling`, and `autoscaling`.
+                enum:
+                - simple
+                - quickscaling
+                - autoscaling
                 type: string
+              pipeline:
+                description: Pipeline to use to train the DigitalTwin. Effective only
+                  when `digitalTwinType` is `schemaaware`.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              pipelineCapacity:
+                description: Maximum RPS in the populated LoadPatterns. Effective
+                  only when `digitalTwinType` is `schemaaware`.
+                format: int32
+                type: integer
+            required:
+            - digitalTwinType
+            - modelType
             type: object
           status:
-            description: DigitalTwinStatus defines the observed state of DigitalTwin
+            description: DigitalTwinStatus defines the observed state of DigitalTwin.
+            properties:
+              jobStatus:
+                description: Status of the Experiments created by DigitalTwin.
+                type: string
             type: object
         type: object
     served: true
@@ -506,42 +551,13 @@ spec:
                       description: Data to be sent to the endpoint.
                       properties:
                         dataSetRef:
-                          description: Reference to the DataSet to be sent. This field
-                            has precedence over the `plainText` field.
+                          description: Reference to the DataSet to be sent. The DataSet
+                            must be in the same namespace as the Experiment. This
+                            field has precedence over the `plainText` field.
                           properties:
-                            apiVersion:
-                              description: API version of the referent.
-                              type: string
-                            fieldPath:
-                              description: 'If referring to a piece of an object instead
-                                of an entire object, this string should contain a
-                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                                For example, if the object reference is to a container
-                                within a pod, this would take on a value like: "spec.containers{name}"
-                                (where "name" refers to the name of the container
-                                that triggered the event) or if no container name
-                                is specified "spec.containers[2]" (container with
-                                index 2 in this pod). This syntax is chosen only to
-                                have some well-defined way of referencing a part of
-                                an object. TODO: this design is not final and this
-                                field is subject to change in the future.'
-                              type: string
-                            kind:
-                              description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                              type: string
                             name:
-                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                              type: string
-                            namespace:
-                              description: 'Namespace of the referent. More info:
-                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                              type: string
-                            resourceVersion:
-                              description: 'Specific resourceVersion to which this
-                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                              type: string
-                            uid:
-                              description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
                               type: string
                           type: object
                           x-kubernetes-map-type: atomic
@@ -612,37 +628,9 @@ spec:
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
-                  apiVersion:
-                    description: API version of the referent.
-                    type: string
-                  fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
-                    type: string
-                  kind:
-                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                    type: string
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                    type: string
-                  namespace:
-                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                    type: string
-                  resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                    type: string
-                  uid:
-                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
@@ -845,42 +833,35 @@ spec:
           metadata:
             type: object
           spec:
-            description: NetCostSpec defines the desired state of NetCost
+            description: NetCostSpec defines the desired state of NetCost.
             properties:
               netCostPerMB:
-                anyOf:
-                - type: integer
-                - type: string
-                description: NetCostPerMB defines the cost per MB of data transfer.
-                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                x-kubernetes-int-or-string: true
+                description: The cost per MB of data transfer. The value should be
+                  a float number in string format.
+                type: string
               processedDataRetentionPolicyMonths:
-                description: ProcessedDataRetentionPolicyMonths defines the months
-                  processed data is retained.
+                description: The number of months the processed data is retained.
                 type: integer
               processedDataStoreCostPerMBMonth:
-                anyOf:
-                - type: integer
-                - type: string
-                description: ProcessedDataStoreCostPerMBMonth defines the cost per
-                  MB per month of processed data storage.
-                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                x-kubernetes-int-or-string: true
+                description: The cost per MB per month of processed data storage.
+                  The value should be a float number in string format.
+                type: string
               rawDataRetentionPolicyMonths:
-                description: RawDataRetentionPolicyMonths defines the months raw data
-                  is retained.
+                description: The number of months the raw data is retained.
                 type: integer
               rawDataStoreCostPerMBMonth:
-                anyOf:
-                - type: integer
-                - type: string
-                description: RawDataStoreCostPerMBMonth defines the cost per MB per
-                  month of raw data storage.
-                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                x-kubernetes-int-or-string: true
+                description: The cost per MB per month of raw data storage. The value
+                  should be a float number in string format.
+                type: string
+            required:
+            - netCostPerMB
+            - processedDataRetentionPolicyMonths
+            - processedDataStoreCostPerMBMonth
+            - rawDataRetentionPolicyMonths
+            - rawDataStoreCostPerMBMonth
             type: object
           status:
-            description: NetCostStatus defines the observed state of NetCost
+            description: NetCostStatus defines the observed state of NetCost.
             type: object
         type: object
     served: true
@@ -1960,100 +1941,76 @@ spec:
           spec:
             description: ScenarioSpec defines the desired state of Scenario
             properties:
-              dataSetConfig:
-                description: DataSetConfig defines the parameters to generate DataSet.
-                properties:
-                  compressPerSchema:
-                    type: boolean
-                  compressedFileFormat:
-                    type: string
-                  fileFormat:
-                    type: string
-                type: object
-              pipelineRef:
-                description: PipelineRef defines the reference to the Pipeline object.
-                properties:
-                  apiVersion:
-                    description: API version of the referent.
-                    type: string
-                  fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
-                    type: string
-                  kind:
-                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                    type: string
-                  name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                    type: string
-                  namespace:
-                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                    type: string
-                  resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                    type: string
-                  uid:
-                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                    type: string
-                type: object
-                x-kubernetes-map-type: atomic
               tasks:
-                description: Tasks defines the list of tasks to be executed in the
-                  Scenario.
+                description: List of tasks in the Scenario.
                 items:
-                  description: ScenarioTask defines the task to be executed in the
-                    Scenario
+                  description: ScenarioTask defines the task in the Scenario.
                   properties:
                     monthsRelevant:
-                      description: MonthsRelevant defines the months the task is relevant.
+                      description: List of months the task will apply to. For example,
+                        `[1, 12]` means the task will apply to January and December.
                       items:
                         type: integer
                       type: array
                     name:
-                      description: Name defines the name of the task.
+                      description: Name of the task. Should be a Schema name.
                       type: string
                     pushFrequencyPerMonth:
-                      additionalProperties:
-                        type: integer
-                      description: PushFrequencyPerMonth defines the range of how
-                        many times the data is pushed per month.
+                      description: Range of the frequency of data pushes per month.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                     sendingDevices:
-                      additionalProperties:
-                        type: integer
-                      description: SendingDevices defines the range of the devices
-                        to send the data.
+                      description: Range of the number range of the devices to send
+                        the data.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                     size:
                       anyOf:
                       - type: integer
                       - type: string
-                      description: Size defines the size of a single upload in bytes.
+                      description: The size of a single upload in bytes.
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
+                  required:
+                  - monthsRelevant
+                  - name
+                  - pushFrequencyPerMonth
+                  - sendingDevices
+                  - size
                   type: object
+                minItems: 1
                 type: array
             required:
-            - dataSetConfig
-            - pipelineRef
+            - tasks
             type: object
           status:
             description: ScenarioStatus defines the observed state of Scenario
-            properties:
-              isPopulated:
-                description: IsPopulated defines whether the Scenario has populated
-                  the resources.
-                type: boolean
             type: object
         type: object
     served: true
@@ -2207,8 +2164,84 @@ spec:
             description: SimulationSpec defines the desired state of Simulation
             properties:
               digitalTwinRef:
-                description: DigitalTwinRef defines the DigitalTwin object reference
-                  for the Simulation.
+                description: DigitalTwin object for the Simulation.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              netCostRef:
+                description: NetCost object for the Simulation. Optional.
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              scenarioRef:
+                description: Scenario object for the Simulation. The task names in
+                  the Scenario must be the name of a Schema in the DataSet used by
+                  the DigitalTwin. Mandatory if the `digitalTwinType` field of the
+                  DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -2245,8 +2278,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               trafficModelRef:
-                description: TrafficModelRef defines the TrafficModel object reference
-                  for the Simulation.
+                description: TrafficModel object for the Simulation.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -2288,19 +2320,6 @@ spec:
             type: object
           status:
             description: SimulationStatus defines the observed state of Simulation
-            properties:
-              digitalTwinState:
-                description: DigitalTwinState is the state of the DigitalTwin.
-                type: string
-              jobStatus:
-                description: JobStatus is the status of the digital twin job.
-                type: string
-              podName:
-                description: PodName is the pod name of the digital twin job.
-                type: string
-              trafficModalState:
-                description: TrafficModelState is the state of the TrafficModel.
-                type: string
             type: object
         type: object
     served: true
@@ -2344,8 +2363,10 @@ spec:
             description: Spec defines the specifications of the TrafficModel.
             properties:
               config:
-                description: Config defines the configuration of the TrafficModel.
+                description: TrafficModel configuration in JSON.
                 type: string
+            required:
+            - config
             type: object
           status:
             description: Status defines the status of the TrafficModel.
@@ -2640,6 +2661,20 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
+  - digitaltwins/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
   - experiments
   verbs:
   - create
@@ -2723,32 +2758,6 @@ rules:
   - windtunnel.plantd.org
   resources:
   - plantdcores/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - scenarios
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - scenarios/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - scenarios/status
   verbs:
   - get
   - patch

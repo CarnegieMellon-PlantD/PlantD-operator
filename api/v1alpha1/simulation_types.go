@@ -7,23 +7,22 @@ import (
 
 // SimulationSpec defines the desired state of Simulation
 type SimulationSpec struct {
-	// TrafficModelRef defines the TrafficModel object reference for the Simulation.
-	TrafficModelRef corev1.ObjectReference `json:"trafficModelRef"`
-	// DigitalTwinRef defines the DigitalTwin object reference for the Simulation.
-	DigitalTwinRef corev1.ObjectReference `json:"digitalTwinRef"`
+	// DigitalTwin object for the Simulation.
+	DigitalTwinRef *corev1.ObjectReference `json:"digitalTwinRef"`
+	// TrafficModel object for the Simulation.
+	TrafficModelRef *corev1.ObjectReference `json:"trafficModelRef"`
+	// NetCost object for the Simulation.
+	// Optional.
+	NetCostRef *corev1.ObjectReference `json:"netCostRef,omitempty"`
+	// Scenario object for the Simulation.
+	// The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin.
+	// Mandatory if the `digitalTwinType` field of the DigitalTwin is `schemaaware`.
+	// Always ignored otherwise.
+	ScenarioRef *corev1.ObjectReference `json:"scenarioRef,omitempty"`
 }
 
 // SimulationStatus defines the observed state of Simulation
-type SimulationStatus struct {
-	// DigitalTwinState is the state of the DigitalTwin.
-	DigitalTwinState string `json:"digitalTwinState,omitempty"`
-	// TrafficModelState is the state of the TrafficModel.
-	TrafficModelState string `json:"trafficModalState,omitempty"`
-	// PodName is the pod name of the digital twin job.
-	PodName string `json:"podName,omitempty"`
-	// JobStatus is the status of the digital twin job.
-	JobStatus string `json:"jobStatus,omitempty"`
-}
+type SimulationStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

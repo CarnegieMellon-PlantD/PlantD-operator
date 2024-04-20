@@ -34,100 +34,76 @@ spec:
           spec:
             description: ScenarioSpec defines the desired state of Scenario
             properties:
-              dataSetConfig:
-                description: DataSetConfig defines the parameters to generate DataSet.
-                properties:
-                  compressPerSchema:
-                    type: boolean
-                  compressedFileFormat:
-                    type: string
-                  fileFormat:
-                    type: string
-                type: object
-              pipelineRef:
-                description: PipelineRef defines the reference to the Pipeline object.
-                properties:
-                  apiVersion:
-                    description: API version of the referent.
-                    type: string
-                  fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
-                    type: string
-                  kind:
-                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                    type: string
-                  name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                    type: string
-                  namespace:
-                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                    type: string
-                  resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                    type: string
-                  uid:
-                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                    type: string
-                type: object
-                x-kubernetes-map-type: atomic
               tasks:
-                description: Tasks defines the list of tasks to be executed in the
-                  Scenario.
+                description: List of tasks in the Scenario.
                 items:
-                  description: ScenarioTask defines the task to be executed in the
-                    Scenario
+                  description: ScenarioTask defines the task in the Scenario.
                   properties:
                     monthsRelevant:
-                      description: MonthsRelevant defines the months the task is relevant.
+                      description: List of months the task will apply to. For example,
+                        `[1, 12]` means the task will apply to January and December.
                       items:
                         type: integer
                       type: array
                     name:
-                      description: Name defines the name of the task.
+                      description: Name of the task. Should be a Schema name.
                       type: string
                     pushFrequencyPerMonth:
-                      additionalProperties:
-                        type: integer
-                      description: PushFrequencyPerMonth defines the range of how
-                        many times the data is pushed per month.
+                      description: Range of the frequency of data pushes per month.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                     sendingDevices:
-                      additionalProperties:
-                        type: integer
-                      description: SendingDevices defines the range of the devices
-                        to send the data.
+                      description: Range of the number range of the devices to send
+                        the data.
+                      properties:
+                        max:
+                          description: Maximum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        min:
+                          description: Minimum value of the range.
+                          format: int32
+                          minimum: 0
+                          type: integer
+                      required:
+                      - max
+                      - min
                       type: object
                     size:
                       anyOf:
                       - type: integer
                       - type: string
-                      description: Size defines the size of a single upload in bytes.
+                      description: The size of a single upload in bytes.
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
+                  required:
+                  - monthsRelevant
+                  - name
+                  - pushFrequencyPerMonth
+                  - sendingDevices
+                  - size
                   type: object
+                minItems: 1
                 type: array
             required:
-            - dataSetConfig
-            - pipelineRef
+            - tasks
             type: object
           status:
             description: ScenarioStatus defines the observed state of Scenario
-            properties:
-              isPopulated:
-                description: IsPopulated defines whether the Scenario has populated
-                  the resources.
-                type: boolean
             type: object
         type: object
     served: true

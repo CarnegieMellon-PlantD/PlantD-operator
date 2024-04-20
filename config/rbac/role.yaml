@@ -199,6 +199,20 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
+  - digitaltwins/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - digitaltwins/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
   - experiments
   verbs:
   - create
@@ -282,32 +296,6 @@ rules:
   - windtunnel.plantd.org
   resources:
   - plantdcores/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - scenarios
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - scenarios/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - windtunnel.plantd.org
-  resources:
-  - scenarios/status
   verbs:
   - get
   - patch

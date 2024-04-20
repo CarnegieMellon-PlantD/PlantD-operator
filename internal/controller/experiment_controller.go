@@ -106,7 +106,7 @@ func (r *ExperimentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// Try to release the Pipeline
 			pipeline := &windtunnelv1alpha1.Pipeline{}
 			pipelineName := types.NamespacedName{
-				Namespace: experiment.Spec.PipelineRef.Namespace,
+				Namespace: experiment.Namespace,
 				Name:      experiment.Spec.PipelineRef.Name,
 			}
 			if err := r.Get(ctx, pipelineName, pipeline); err != nil {
@@ -233,7 +233,7 @@ func (r *ExperimentReconciler) getRelatedResources(ctx context.Context, experime
 	// Fetch the Pipeline used by the Experiment
 	pipeline := &windtunnelv1alpha1.Pipeline{}
 	pipelineName := types.NamespacedName{
-		Namespace: experiment.Spec.PipelineRef.Namespace,
+		Namespace: experiment.Namespace,
 		Name:      experiment.Spec.PipelineRef.Name,
 	}
 	if err := r.Get(ctx, pipelineName, pipeline); err != nil {
@@ -279,7 +279,7 @@ func (r *ExperimentReconciler) getRelatedResources(ctx context.Context, experime
 		if dataOption == windtunnelv1alpha1.EndpointDataOptionDataSet {
 			dataSet := &windtunnelv1alpha1.DataSet{}
 			dataSetName := types.NamespacedName{
-				Namespace: endpointSpec.DataSpec.DataSetRef.Namespace,
+				Namespace: experiment.Namespace,
 				Name:      endpointSpec.DataSpec.DataSetRef.Name,
 			}
 			if err := r.Get(ctx, dataSetName, dataSet); err != nil {

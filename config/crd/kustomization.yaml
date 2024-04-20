@@ -26,9 +26,9 @@ patches:
 #- path: patches/webhook_in_pipelines.yaml
 #- path: patches/webhook_in_experiments.yaml
 #- path: patches/webhook_in_costexporters.yaml
-#- patches/webhook_in_trafficmodels.yaml
-#- patches/webhook_in_digitaltwins.yaml
-#- patches/webhook_in_simulations.yaml
+#- path: patches/webhook_in_digitaltwins.yaml
+#- path: patches/webhook_in_simulations.yaml
+#- path: patches/webhook_in_trafficmodels.yaml
 #- path: patches/webhook_in_netcosts.yaml
 #- path: patches/webhook_in_scenarios.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
@@ -42,9 +42,9 @@ patches:
 #- path: patches/cainjection_in_pipelines.yaml
 #- path: patches/cainjection_in_experiments.yaml
 #- path: patches/cainjection_in_costexporters.yaml
-#- patches/cainjection_in_trafficmodels.yaml
-#- patches/cainjection_in_digitaltwins.yaml
-#- patches/cainjection_in_simulations.yaml
+#- path: patches/cainjection_in_digitaltwins.yaml
+#- path: patches/cainjection_in_simulations.yaml
+#- path: patches/cainjection_in_trafficmodels.yaml
 #- path: patches/cainjection_in_netcosts.yaml
 #- path: patches/cainjection_in_scenarios.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch

@@ -148,22 +148,6 @@ _Appears in:_
 | `spec` _[DataSetSpec](#datasetspec)_ |  |
 
 
-#### DataSetConfig
-
-
-
-DataSetConfig defines the parameters to generate DataSet
-
-_Appears in:_
-- [ScenarioSpec](#scenariospec)
-
-| Field | Description |
-| --- | --- |
-| `compressPerSchema` _boolean_ |  |
-| `compressedFileFormat` _string_ |  |
-| `fileFormat` _string_ |  |
-
-
 #### DataSetErrorType
 
 _Underlying type:_ _string_
@@ -237,7 +221,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `plainText` _string_ | PlainText data to be sent. `dataSetRef` field has precedence over this field. |
-| `dataSetRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the DataSet to be sent. This field has precedence over the `plainText` field. |
+| `dataSetRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the DataSet to be sent. The DataSet must be in the same namespace as the Experiment. This field has precedence over the `plainText` field. |
 
 
 #### DeploymentConfig
@@ -273,6 +257,17 @@ _Appears in:_
 | `spec` _[DigitalTwinSpec](#digitaltwinspec)_ |  |
 
 
+#### DigitalTwinJobStatus
+
+_Underlying type:_ _string_
+
+DigitalTwinJobStatus defines the status of the Experiments created by DigitalTwin.
+
+_Appears in:_
+- [DigitalTwinStatus](#digitaltwinstatus)
+
+
+
 #### DigitalTwinList
 
 
@@ -293,15 +288,19 @@ DigitalTwinList contains a list of DigitalTwin
 
 
 
-DigitalTwinSpec defines the desired state of DigitalTwin
+DigitalTwinSpec defines the desired state of DigitalTwin.
 
 _Appears in:_
 - [DigitalTwin](#digitaltwin)
 
 | Field | Description |
 | --- | --- |
-| `modelType` _string_ | ModelType defines the type of the DigitalTwin model. |
-| `experiments` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core) array_ | Experiments contains the list of Experiment object references for the DigitalTwin. |
+| `modelType` _string_ | Type of digital twin model. Available values are `simple`, `quickscaling`, and `autoscaling`. |
+| `digitalTwinType` _string_ | Type of digital twin. Available values are `regular` and `schemaaware`. |
+| `experiments` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core) array_ | Existing Experiments to retrieve metrics data from to train the DigitalTwin. Effective only when `digitalTwinType` is `regular`. |
+| `dataSet` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | DataSet to break down into Schemas to train the DigitalTwin. Effective only when `digitalTwinType` is `schemaaware`. |
+| `pipeline` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Pipeline to use to train the DigitalTwin. Effective only when `digitalTwinType` is `schemaaware`. |
+| `pipelineCapacity` _integer_ | Maximum RPS in the populated LoadPatterns. Effective only when `digitalTwinType` is `schemaaware`. |
 
 
 
@@ -382,7 +381,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
+| `pipelineRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
 | `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
 | `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. |
@@ -499,6 +498,7 @@ _Appears in:_
 NaturalIntRange defines a range using two non-negative integers as boundaries.
 
 _Appears in:_
+- [ScenarioTask](#scenariotask)
 - [SchemaSelector](#schemaselector)
 
 | Field | Description |
@@ -544,18 +544,18 @@ NetCostList contains a list of NetCost
 
 
 
-NetCostSpec defines the desired state of NetCost
+NetCostSpec defines the desired state of NetCost.
 
 _Appears in:_
 - [NetCost](#netcost)
 
 | Field | Description |
 | --- | --- |
-| `netCostPerMB` _[Quantity](#quantity)_ | NetCostPerMB defines the cost per MB of data transfer. |
-| `rawDataStoreCostPerMBMonth` _[Quantity](#quantity)_ | RawDataStoreCostPerMBMonth defines the cost per MB per month of raw data storage. |
-| `processedDataStoreCostPerMBMonth` _[Quantity](#quantity)_ | ProcessedDataStoreCostPerMBMonth defines the cost per MB per month of processed data storage. |
-| `rawDataRetentionPolicyMonths` _integer_ | RawDataRetentionPolicyMonths defines the months raw data is retained. |
-| `processedDataRetentionPolicyMonths` _integer_ | ProcessedDataRetentionPolicyMonths defines the months processed data is retained. |
+| `netCostPerMB` _string_ | The cost per MB of data transfer. The value should be a float number in string format. |
+| `rawDataStoreCostPerMBMonth` _string_ | The cost per MB per month of raw data storage. The value should be a float number in string format. |
+| `processedDataStoreCostPerMBMonth` _string_ | The cost per MB per month of processed data storage. The value should be a float number in string format. |
+| `rawDataRetentionPolicyMonths` _integer_ | The number of months the raw data is retained. |
+| `processedDataRetentionPolicyMonths` _integer_ | The number of months the processed data is retained. |
 
 
 
@@ -773,9 +773,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `dataSetConfig` _[DataSetConfig](#datasetconfig)_ | DataSetConfig defines the parameters to generate DataSet. |
-| `pipelineRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | PipelineRef defines the reference to the Pipeline object. |
-| `tasks` _[ScenarioTask](#scenariotask) array_ | Tasks defines the list of tasks to be executed in the Scenario. |
+| `tasks` _[ScenarioTask](#scenariotask) array_ | List of tasks in the Scenario. |
 
 
 
@@ -784,18 +782,18 @@ _Appears in:_
 
 
 
-ScenarioTask defines the task to be executed in the Scenario
+ScenarioTask defines the task in the Scenario.
 
 _Appears in:_
 - [ScenarioSpec](#scenariospec)
 
 | Field | Description |
 | --- | --- |
-| `name` _string_ | Name defines the name of the task. |
-| `size` _[Quantity](#quantity)_ | Size defines the size of a single upload in bytes. |
-| `sendingDevices` _object (keys:string, values:integer)_ | SendingDevices defines the range of the devices to send the data. |
-| `pushFrequencyPerMonth` _object (keys:string, values:integer)_ | PushFrequencyPerMonth defines the range of how many times the data is pushed per month. |
-| `monthsRelevant` _integer array_ | MonthsRelevant defines the months the task is relevant. |
+| `name` _string_ | Name of the task. Should be a Schema name. |
+| `size` _[Quantity](#quantity)_ | The size of a single upload in bytes. |
+| `sendingDevices` _[NaturalIntRange](#naturalintrange)_ | Range of the number range of the devices to send the data. |
+| `pushFrequencyPerMonth` _[NaturalIntRange](#naturalintrange)_ | Range of the frequency of data pushes per month. |
+| `monthsRelevant` _integer array_ | List of months the task will apply to. For example, `[1, 12]` means the task will apply to January and December. |
 
 
 #### Schema
@@ -907,8 +905,10 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `trafficModelRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | TrafficModelRef defines the TrafficModel object reference for the Simulation. |
-| `digitalTwinRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | DigitalTwinRef defines the DigitalTwin object reference for the Simulation. |
+| `digitalTwinRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | DigitalTwin object for the Simulation. |
+| `trafficModelRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | TrafficModel object for the Simulation. |
+| `netCostRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | NetCost object for the Simulation. Optional. |
+| `scenarioRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Scenario object for the Simulation. The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin. Mandatory if the `digitalTwinType` field of the DigitalTwin is `schemaaware`. Always ignored otherwise. |
 
 
 
@@ -1003,14 +1003,14 @@ TrafficModelList contains a list of TrafficModel
 
 
 
-TrafficModelSpec defines the desired state of TrafficModel
+TrafficModelSpec defines the desired state of TrafficModel.
 
 _Appears in:_
 - [TrafficModel](#trafficmodel)
 
 | Field | Description |
 | --- | --- |
-| `config` _string_ | Config defines the configuration of the TrafficModel. |
+| `config` _string_ | TrafficModel configuration in JSON. |
 
 
 

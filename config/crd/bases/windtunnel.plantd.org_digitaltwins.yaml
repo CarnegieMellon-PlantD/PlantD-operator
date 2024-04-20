@@ -32,11 +32,29 @@ spec:
           metadata:
             type: object
           spec:
-            description: DigitalTwinSpec defines the desired state of DigitalTwin
+            description: DigitalTwinSpec defines the desired state of DigitalTwin.
             properties:
+              dataSet:
+                description: DataSet to break down into Schemas to train the DigitalTwin.
+                  Effective only when `digitalTwinType` is `schemaaware`.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              digitalTwinType:
+                description: Type of digital twin. Available values are `regular`
+                  and `schemaaware`.
+                enum:
+                - regular
+                - schemaaware
+                type: string
               experiments:
-                description: Experiments contains the list of Experiment object references
-                  for the DigitalTwin.
+                description: Existing Experiments to retrieve metrics data from to
+                  train the DigitalTwin. Effective only when `digitalTwinType` is
+                  `regular`.
                 items:
                   description: "ObjectReference contains enough information to let
                     you inspect or modify the referred object. --- New uses of this
@@ -100,11 +118,38 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               modelType:
-                description: ModelType defines the type of the DigitalTwin model.
+                description: Type of digital twin model. Available values are `simple`,
+                  `quickscaling`, and `autoscaling`.
+                enum:
+                - simple
+                - quickscaling
+                - autoscaling
                 type: string
+              pipeline:
+                description: Pipeline to use to train the DigitalTwin. Effective only
+                  when `digitalTwinType` is `schemaaware`.
+                properties:
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              pipelineCapacity:
+                description: Maximum RPS in the populated LoadPatterns. Effective
+                  only when `digitalTwinType` is `schemaaware`.
+                format: int32
+                type: integer
+            required:
+            - digitalTwinType
+            - modelType
             type: object
           status:
-            description: DigitalTwinStatus defines the observed state of DigitalTwin
+            description: DigitalTwinStatus defines the observed state of DigitalTwin.
+            properties:
+              jobStatus:
+                description: Status of the Experiments created by DigitalTwin.
+                type: string
             type: object
         type: object
     served: true

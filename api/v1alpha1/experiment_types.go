@@ -37,10 +37,13 @@ const (
 
 // DataSpec defines the data to be sent to an endpoint.
 type DataSpec struct {
-	// PlainText data to be sent. `dataSetRef` field has precedence over this field.
+	// PlainText data to be sent.
+	// `dataSetRef` field has precedence over this field.
 	PlainText string `json:"plainText,omitempty"`
-	// Reference to the DataSet to be sent. This field has precedence over the `plainText` field.
-	DataSetRef *corev1.ObjectReference `json:"dataSetRef,omitempty"`
+	// Reference to the DataSet to be sent.
+	// The DataSet must be in the same namespace as the Experiment.
+	// This field has precedence over the `plainText` field.
+	DataSetRef *corev1.LocalObjectReference `json:"dataSetRef,omitempty"`
 }
 
 // EndpointSpec defines the test upon an endpoint.
@@ -61,7 +64,7 @@ type EndpointSpec struct {
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
 	// Reference to the Pipeline to use for the Experiment.
-	PipelineRef *corev1.ObjectReference `json:"pipelineRef"`
+	PipelineRef *corev1.LocalObjectReference `json:"pipelineRef"`
 	// List of tests upon endpoints.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=65535

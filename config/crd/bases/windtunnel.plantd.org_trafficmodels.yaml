@@ -35,8 +35,10 @@ spec:
             description: Spec defines the specifications of the TrafficModel.
             properties:
               config:
-                description: Config defines the configuration of the TrafficModel.
+                description: TrafficModel configuration in JSON.
                 type: string
+            required:
+            - config
             type: object
           status:
             description: Status defines the status of the TrafficModel.
