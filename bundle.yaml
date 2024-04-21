@@ -266,6 +266,7 @@ spec:
                   - name
                   - numRecords
                   type: object
+                maxItems: 65535
                 minItems: 1
                 type: array
               storageSize:
@@ -340,7 +341,11 @@ spec:
     singular: digitaltwin
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.jobStatus
+      name: JobStatus
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: DigitalTwin is the Schema for the digitaltwins API
@@ -473,11 +478,17 @@ spec:
           status:
             description: DigitalTwinStatus defines the observed state of DigitalTwin.
             properties:
+              error:
+                description: Error message.
+                type: string
               jobStatus:
                 description: Status of the Experiments created by DigitalTwin.
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 22 characters
+          rule: size(self.metadata.name) <= 22
     served: true
     storage: true
     subresources:

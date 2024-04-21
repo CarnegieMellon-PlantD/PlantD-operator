@@ -37,3 +37,22 @@ func GetTestRunName(experimentName string, endpointIdx int) string {
 func GetTestRunCopierJobName(experimentName string, endpointIdx int) string {
 	return fmt.Sprintf("%s-loadgen-%x-copier", experimentName, (endpointIdx+1)%0x10000)
 }
+
+// GetBiasDataSetName returns the name of the bias DataSet for the DigitalTwin.
+// Note that to shorten the name, only the last 4 hex digits of the Schema index are used.
+// It is safe because we limit the number of Schemas in the DataSet to be no more than 65535.
+func GetBiasDataSetName(digitalTwinName string, schemaIdx int) string {
+	return fmt.Sprintf("%s-bias-%x", digitalTwinName, (schemaIdx+1)%0x10000)
+}
+
+// GetBiasLoadPatternName returns the name of the bias LoadPattern for the DigitalTwin.
+func GetBiasLoadPatternName(digitalTwinName string) string {
+	return fmt.Sprintf("%s-bias", digitalTwinName)
+}
+
+// GetBiasExperimentName returns the name of the bias Experiment for the DigitalTwin.
+// Note that to shorten the name, only the last 4 hex digits of the Schema index are used.
+// It is safe because we limit the number of Schemas in the DataSet to be no more than 65535.
+func GetBiasExperimentName(digitalTwinName string, schemaIdx int) string {
+	return fmt.Sprintf("%s-bias-%x", digitalTwinName, (schemaIdx+1)%0x10000)
+}

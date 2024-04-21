@@ -42,12 +42,20 @@ type DigitalTwinSpec struct {
 type DigitalTwinStatus struct {
 	// Status of the Experiments created by DigitalTwin.
 	JobStatus DigitalTwinJobStatus `json:"jobStatus,omitempty"`
+	// Error message.
+	Error string `json:"error,omitempty"`
 }
+
+// The name of the Experiment for the DigitalTwin will be
+// "<digitaltwin-name>-pure-<up to 4 digits of schema index>".
+// So, we have 22 characters for the name to meet the 32-character limit.
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
 
 // DigitalTwin is the Schema for the digitaltwins API
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 22",message="must contain at most 22 characters"
 type DigitalTwin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

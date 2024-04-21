@@ -102,6 +102,10 @@ type ExperimentStatus struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
+// The longest name of the Pod in the Experiment will be
+// "<experiment-name>-loadgen-<up to 4 digits of endpoint index>-initializer-<random 5 characters>".
+// So, we have 32 characters for the name to meet the 63-character limit.
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"

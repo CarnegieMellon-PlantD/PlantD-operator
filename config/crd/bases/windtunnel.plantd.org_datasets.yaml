@@ -137,6 +137,7 @@ spec:
                   - name
                   - numRecords
                   type: object
+                maxItems: 65535
                 minItems: 1
                 type: array
               storageSize:
