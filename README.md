@@ -42,7 +42,6 @@ make generate
 ```
 
 This command will generate the auto-generated code such as `zz_generated.deepcopy.go`.
-
 **NOTE**: Remember to run this command after modifying the CRD.
 
 #### Generate CRD manifests
@@ -52,7 +51,6 @@ make manifests
 ```
 
 This command will generate the CRD manifests under `config`.
-
 **NOTE**: Remember to run this command after modifying the CRD.
 
 #### Generate `bundle.yaml`
@@ -62,7 +60,6 @@ make bundle
 ```
 
 This command will generate the `bundle.yaml`.
-
 **NOTE**: Remember to run this command after modifying the CRD.
 
 #### Generate CRD API reference
@@ -72,7 +69,6 @@ make docs
 ```
 
 This command will generate the CRD API reference at [`docs/api/crd-api-reference.md`](docs/api/crd-api-reference.md).
-
 **NOTE**: Remember to run this command after modifying the CRD.
 
 #### Install/Uninstall the CRD
@@ -95,11 +91,8 @@ make deploy
 make deploy IMG=<custom-image>
 
 # Undeploy
-kubectl delete plantdcore default -n plantd-operator-system
 make undeploy
 ```
-
-**NOTE**: Remember to delete the `PlantDCore` resource before undeploying the operator. The undeploy command may delete PlantD controllers and then remove the `PlantDCore` resource. However, the `PlantDCore` resource has a finalizer, and it cannot be deleted if the controllers are not running. So, you need to delete the `PlantDCore` resource first.
 
 ### Release
 
@@ -115,7 +108,7 @@ You can also manually trigger the workflow on any branches to release a Docker i
 
 ## Contributing
 
-We welcome contributions from the open-source community, from bug fixes to new features and improvements. See [CONTRIBUTING.md](CONTRIBUTING.md) for more information on how to contribute.
+We welcome contributions from the open-source community, from bug fixes to new features and improvements.
 
 ## License
 
