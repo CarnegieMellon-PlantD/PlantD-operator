@@ -85,8 +85,8 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		allExperimentTags := make([]*cost.ExperimentTags, 0)
 		earliestTime := time.Now()
 		for _, experiment := range allExperiments.Items {
-			// Filter Experiments with CSP
-			if experiment.Status.CloudProvider != costExporter.Spec.CloudServiceProvider {
+			// Filter Experiments with enable cost calc flag and CSP
+			if !experiment.Status.EnableCostCalculation || experiment.Status.CloudProvider != costExporter.Spec.CloudServiceProvider {
 				continue
 			}
 
