@@ -31,7 +31,15 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
   verbs:
   - create
   - delete
@@ -39,14 +47,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods/log
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - ""
@@ -251,6 +251,18 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
+  - netcosts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
   - pipelines
   verbs:
   - create
@@ -300,6 +312,18 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - scenarios
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - windtunnel.plantd.org
   resources:
