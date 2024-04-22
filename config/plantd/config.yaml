@@ -27,6 +27,9 @@ loadGenerator:
   copier:
     image: busybox:1.36.1
   testRun:
+    defaultRunnerImage: ""
+    defaultStarterImage: ""
+    defaultInitializerImage: ""
     remoteWriteArgs: --out experimental-prometheus-rw
     remoteWriteEnvVar:
       name: K6_PROMETHEUS_RW_SERVER_URL

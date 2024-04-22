@@ -18,16 +18,19 @@ import (
 )
 
 var (
-	filenameScript       = config.GetString("loadGenerator.filename.script")
-	filenameEndpoint     = config.GetString("loadGenerator.filename.endpoint")
-	filenamePlainText    = config.GetString("loadGenerator.filename.plainText")
-	filenameDataSet      = config.GetString("loadGenerator.filename.dataSet")
-	filenameLoadPattern  = config.GetString("loadGenerator.filename.loadPattern")
-	copierImage          = config.GetString("loadGenerator.copier.image")
-	testRunRWArgs        = config.GetString("loadGenerator.testRun.remoteWriteArgs")
-	testRunRWEnvVarName  = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.name")
-	testRunRWEnvVarValue = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.value")
-	defaultStorageSize   = config.GetString("dataGenerator.defaultStorageSize")
+	filenameScript          = config.GetString("loadGenerator.filename.script")
+	filenameEndpoint        = config.GetString("loadGenerator.filename.endpoint")
+	filenamePlainText       = config.GetString("loadGenerator.filename.plainText")
+	filenameDataSet         = config.GetString("loadGenerator.filename.dataSet")
+	filenameLoadPattern     = config.GetString("loadGenerator.filename.loadPattern")
+	copierImage             = config.GetString("loadGenerator.copier.image")
+	defaultRunnerImage      = config.GetString("loadGenerator.testRun.defaultRunnerImage")
+	defaultStarterImage     = config.GetString("loadGenerator.testRun.defaultStarterImage")
+	defaultInitializerImage = config.GetString("loadGenerator.testRun.defaultInitializerImage")
+	testRunRWArgs           = config.GetString("loadGenerator.testRun.remoteWriteArgs")
+	testRunRWEnvVarName     = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.name")
+	testRunRWEnvVarValue    = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.value")
+	defaultStorageSize      = config.GetString("dataGenerator.defaultStorageSize")
 )
 
 // CreateConfigMapWithPlainText creates a ConfigMap for EndpointSpec with plain text data.
@@ -191,6 +194,21 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int,
 
 // CreateTestRun creates a TestRun for the EndpointSpec.
 func CreateTestRun(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, endpointSpec *windtunnelv1alpha1.EndpointSpec) *k6v1alpha1.TestRun {
+	runnerImage := experiment.Spec.K6RunnerImage
+	if runnerImage == "" {
+		runnerImage = defaultRunnerImage
+	}
+
+	starterImage := experiment.Spec.K6StarterImage
+	if starterImage == "" {
+		starterImage = defaultStarterImage
+	}
+
+	initializerImage := experiment.Spec.K6InitializerImage
+	if initializerImage == "" {
+		initializerImage = defaultInitializerImage
+	}
+
 	return &k6v1alpha1.TestRun{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: experiment.Namespace,
