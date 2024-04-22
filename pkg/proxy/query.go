@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 
 	redistimeseries "github.com/RedisTimeSeries/redistimeseries-go"
 	"github.com/prometheus/client_golang/api"
@@ -17,14 +18,15 @@ import (
 )
 
 var (
-	promUrl   string
-	redisAddr string
+	promUrl = fmt.Sprintf("http://%s:%d",
+		utils.GetServiceARecord(config.GetString("core.thanos.querier.name"), config.GetString("core.namespace")),
+		config.GetInt32("core.thanos.querier.serviceHttpPort"),
+	)
+	redisAddr = fmt.Sprintf("%s:%d",
+		utils.GetServiceARecord(config.GetString("core.redis.name"), config.GetString("core.namespace")),
+		config.GetInt32("core.redis.servicePort"),
+	)
 )
-
-func init() {
-	promUrl = config.GetString("database.prometheus.thanosUrl")
-	redisAddr = fmt.Sprintf("%s:%d", config.GetString("database.redis.host"), config.GetInt("database.redis.port"))
-}
 
 type QueryAgent struct {
 	PromAPI       prometheusv1.API

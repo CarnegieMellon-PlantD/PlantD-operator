@@ -19,21 +19,37 @@ import (
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/datagen"
 )
 
-// Constants defining the possible Kind names that can be used in the schema.GroupVersionKind struct.
+// Constants defining the possible kinds that can be used in the schema.GroupVersionKind struct.
 const (
 	SchemaKind       string = "Schema"
 	DatasetKind      string = "DataSet"
 	LoadPatternKind  string = "LoadPattern"
 	PipelineKind     string = "Pipeline"
 	ExperimentKind   string = "Experiment"
-	PlantDCoreKind   string = "PlantDCore"
 	CostExporterKind string = "CostExporter"
-	TrafficModelKind string = "TrafficModel"
 	DigitalTwinKind  string = "DigitalTwin"
 	SimulationKind   string = "Simulation"
+	TrafficModelKind string = "TrafficModel"
 	NetCostKind      string = "NetCost"
 	ScenarioKind     string = "Scenario"
+	PlantDCoreKind   string = "PlantDCore"
 )
+
+// AllKinds is the list of all possible kinds.
+var AllKinds = []string{
+	SchemaKind,
+	DatasetKind,
+	LoadPatternKind,
+	PipelineKind,
+	ExperimentKind,
+	CostExporterKind,
+	DigitalTwinKind,
+	SimulationKind,
+	TrafficModelKind,
+	NetCostKind,
+	ScenarioKind,
+	PlantDCoreKind,
+}
 
 // ForObject returns a client.Object instance based on the provided kind.
 func ForObject(kind string) (client.Object, error) {
@@ -48,20 +64,20 @@ func ForObject(kind string) (client.Object, error) {
 		return &windtunnelv1alpha1.Pipeline{}, nil
 	case ExperimentKind:
 		return &windtunnelv1alpha1.Experiment{}, nil
-	case PlantDCoreKind:
-		return &windtunnelv1alpha1.PlantDCore{}, nil
 	case CostExporterKind:
 		return &windtunnelv1alpha1.CostExporter{}, nil
-	case TrafficModelKind:
-		return &windtunnelv1alpha1.TrafficModel{}, nil
 	case DigitalTwinKind:
 		return &windtunnelv1alpha1.DigitalTwin{}, nil
 	case SimulationKind:
 		return &windtunnelv1alpha1.Simulation{}, nil
+	case TrafficModelKind:
+		return &windtunnelv1alpha1.TrafficModel{}, nil
 	case NetCostKind:
 		return &windtunnelv1alpha1.NetCost{}, nil
 	case ScenarioKind:
 		return &windtunnelv1alpha1.Scenario{}, nil
+	case PlantDCoreKind:
+		return &windtunnelv1alpha1.PlantDCore{}, nil
 	}
 	return nil, fmt.Errorf("failed to find resource of kind \"%s\"", kind)
 }
@@ -141,8 +157,7 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace, name stri
 		if err != nil {
 			return err
 		}
-		AddFileToZip(zw, info.Name(), content)
-		return nil
+		return AddFileToZip(zw, info.Name(), content)
 	}); err != nil {
 		return nil, fmt.Errorf("while compressing files: %w", err)
 	}
@@ -156,12 +171,12 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace, name stri
 }
 
 func ListKinds() []string {
-	return windtunnelv1alpha1.AllKinds
+	return AllKinds
 }
 
 func ListResources(ctx context.Context, c client.Client) ([]*ResourceLocator, error) {
 	result := make([]*ResourceLocator, 0)
-	for _, kind := range windtunnelv1alpha1.AllKinds {
+	for _, kind := range AllKinds {
 		objList := &unstructured.UnstructuredList{}
 		objList.SetGroupVersionKind(schema.GroupVersionKind{
 			Group:   windtunnelv1alpha1.GroupVersion.Group,

@@ -41,6 +41,7 @@ rbac:
     openCost: plantd-operator-opencost # See ../rbac/opencost_service_account.yaml
 core:
   namespace: plantd-operator-system
+  name: default
   proxy:
     name: plantd-proxy
     labels:
@@ -186,13 +187,3 @@ costService:
   defaultImage: ghcr.io/carnegiemellon-plantd/costexporter:latest
 digitalTwin:
   defaultImage: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
-
-database:
-  prometheus:
-    # Ensure Prometheus service name, namespace, and port are correct
-    url: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090
-    thanosUrl: http://thanos-querier.plantd-operator-system.svc.cluster.local:9090
-  redis:
-    # Ensure Redis service name, namespace, and port are correct
-    host: redis-service.plantd-operator-system.svc.cluster.local
-    port: 6379
