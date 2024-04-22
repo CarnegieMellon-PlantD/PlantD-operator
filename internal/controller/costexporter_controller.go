@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -22,6 +23,7 @@ import (
 const (
 	costExporterPollingInterval = 5 * time.Second
 	costExporterInterval        = 8 * time.Hour
+	costExporterRetryInterval   = 5 * time.Minute
 )
 
 // CostExporterReconciler reconciles a CostExporter object
@@ -57,9 +59,17 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if !costExporter.Status.IsRunning {
 		// Check if the Job should be run now
 		curTime := time.Now()
-		if costExporter.Status.LastCompletionTime != nil && (curTime.Sub(costExporter.Status.LastCompletionTime.Time) < costExporterInterval) {
-			logger.Info("CostExporter is not due for a Job yet")
-			return ctrl.Result{RequeueAfter: costExporterInterval - curTime.Sub(costExporter.Status.LastCompletionTime.Time)}, nil
+		if costExporter.Status.LastCompletionTime != nil && costExporter.Status.LastFailureTime != nil {
+			sinceLastSuccess := curTime.Sub(costExporter.Status.LastCompletionTime.Time)
+			sinceLastFailure := curTime.Sub(costExporter.Status.LastFailureTime.Time)
+			if sinceLastSuccess < costExporterInterval || sinceLastFailure < costExporterRetryInterval {
+				waitTime := costExporterInterval - sinceLastSuccess
+				if costExporterRetryInterval-sinceLastFailure > waitTime {
+					waitTime = costExporterRetryInterval - sinceLastFailure
+				}
+				logger.Info(fmt.Sprintf("Wait for \"%s\" before running the Job", waitTime))
+				return ctrl.Result{RequeueAfter: waitTime}, nil
+			}
 		}
 
 		allExperiments := &windtunnelv1alpha1.ExperimentList{}
@@ -117,7 +127,12 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			Name:      utils.GetCostExporterJobName(costExporter.Name),
 		}
 		if err := r.Get(ctx, oldJobName, oldJob); err == nil {
-			if err := r.Delete(ctx, oldJob); err != nil {
+			// By default, the Pod of the Job will be reserved after the Job is deleted,
+			// and Kubernetes will raise a warning.
+			// Set the propagation policy to "Background" to avoid the warning and delete the Pod.
+			if err := r.Delete(ctx, oldJob, &client.DeleteOptions{
+				PropagationPolicy: ptr.To(metav1.DeletePropagationBackground),
+			}); err != nil {
 				logger.Error(err, "Cannot delete old cost exporter Job")
 				return ctrl.Result{}, err
 			}

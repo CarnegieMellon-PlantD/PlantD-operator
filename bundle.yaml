@@ -90,7 +90,11 @@ spec:
                 description: Whether the Job is running. For internal use only.
                 type: boolean
               lastCompletionTime:
-                description: Time when the last Job was completed.
+                description: Time when the last successful completion of the Job.
+                format: date-time
+                type: string
+              lastFailureTime:
+                description: Time when the last failed completion of the Job.
                 format: date-time
                 type: string
             type: object

@@ -52,7 +52,7 @@ func CreateCostExporterJob(costExporter *windtunnelv1alpha1.CostExporter, experi
 	job := &kbatch.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: costExporter.Namespace,
-			Name:      costExporter.Name,
+			Name:      utils.GetCostExporterJobName(costExporter.Name),
 		},
 		Spec: kbatch.JobSpec{
 			BackoffLimit: ptr.To(int32(0)),

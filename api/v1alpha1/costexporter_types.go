@@ -22,8 +22,10 @@ type CostExporterSpec struct {
 
 // CostExporterStatus defines the observed state of CostExporter.
 type CostExporterStatus struct {
-	// Time when the last Job was completed.
+	// Time when the last successful completion of the Job.
 	LastCompletionTime *metav1.Time `json:"lastCompletionTime,omitempty"`
+	// Time when the last failed completion of the Job.
+	LastFailureTime *metav1.Time `json:"lastFailureTime,omitempty"`
 	// Whether the Job is running. For internal use only.
 	IsRunning bool `json:"isRunning,omitempty"`
 }
