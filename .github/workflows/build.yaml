@@ -24,8 +24,6 @@ jobs:
             file: build/DataGenerator.dockerfile
           - image: costexporter
             file: build/CostExporter.dockerfile
-          - image: digitaltwin
-            file: build/DigitalTwin.dockerfile
     runs-on: ubuntu-latest
     permissions:
       contents: read
