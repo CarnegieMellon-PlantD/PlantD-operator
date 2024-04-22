@@ -117,16 +117,16 @@ CostExporterList contains a list of CostExporter
 
 
 
-CostExporterSpec defines the desired state of CostExporter
+CostExporterSpec defines the desired state of CostExporter.
 
 _Appears in:_
 - [CostExporter](#costexporter)
 
 | Field | Description |
 | --- | --- |
-| `s3Bucket` _string_ | S3Bucket defines the AWS S3 bucket name where stores the cost logs. |
-| `cloudServiceProvider` _string_ | CloudServiceProvider defines the target cloud service provide for calculating cost. |
-| `secretRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | SecretRef defines the reference to the Kubernetes Secret where stores the credentials of cloud service provider |
+| `image` _string_ | Container image to use for cost exporter. |
+| `cloudServiceProvider` _string_ | Cloud service provider to calculate costs for. Available value is `aws`. |
+| `config` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#secretkeyselector-v1-core)_ | Configuration for the cloud service provider. For AWS, the configuration should be a JSON string with the following fields: - `AWS_ACCESS_KEY` - `AWS_SECRET_KEY` - `S3_BUCKET_NAME` |
 
 
 
@@ -197,7 +197,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `image` _string_ | Image of the data generator job. |
+| `image` _string_ | Container image to use for the data generator. |
 | `parallelism` _integer_ | Number of parallel jobs when generating the dataset. Default to 1. |
 | `storageSize` _[Quantity](#quantity)_ | Size of the PVC for the data generator job. Default to 2Gi. |
 | `fileFormat` _string_ | Format of the output file containing generated data. Available values are `csv` and `binary`. |
@@ -381,10 +381,10 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `k6RunnerImage` _string_ | Image to use for the K6 runner Pod. |
-| `k6StarterImage` _string_ | Image to use for the K6 starter Pod. |
-| `k6InitializerImage` _string_ | Image to use for the K6 initializer Pod. |
-| `endDetectionImage` _string_ | Image to use for the end detection. |
+| `k6RunnerImage` _string_ | Container image to use for the K6 runner. |
+| `k6StarterImage` _string_ | Container image to use for the K6 starter. |
+| `k6InitializerImage` _string_ | Container image to use for the K6 initializer. |
+| `endDetectionImage` _string_ | Container image to use for the end detection. |
 | `pipelineRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
 | `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
@@ -730,8 +730,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `replicas` _integer_ | Number of replicas. |
-| `image` _string_ | Container image to use. Should be synced with the `version` field. |
-| `version` _string_ | Prometheus version. Should be synced with the `image` field. |
+| `image` _string_ | Container image to use for the Prometheus. Must be synced with the `version` field. |
+| `version` _string_ | Prometheus version. Must be synced with the `image` field. |
 | `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | Interval at which Prometheus scrapes metrics. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
 
@@ -923,7 +923,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `image` _string_ | Image to use for the Simulation. |
+| `image` _string_ | Container image to use for the simulation. |
 | `digitalTwinRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | DigitalTwin object for the Simulation. |
 | `trafficModelRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | TrafficModel object for the Simulation. |
 | `netCostRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | NetCost object for the Simulation. Optional if the `digitalTwinType` field of the DigitalTwin is `schemaaware`. Always ignored otherwise. |
@@ -976,8 +976,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `image` _string_ | Thanos image to use. Must be synced with the `version` field. |
-| `version` _string_ | Thanos version to use. Must be synced with the `image` field. |
+| `image` _string_ | Container image to use for the Thanos. Must be synced with the `version` field. |
+| `version` _string_ | Thanos version. Must be synced with the `image` field. |
 | `objectStoreConfig` _[SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#secretkeyselector-v1-core)_ | Object store configuration for Thanos. Set this field will enable upload in Thanos-Sidecar, and deploy Thanos-Store and Thanos-Compactor. |
 | `sidecar` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Sidecar configuration. The `sidecar.replicas`, `sidecar.image` and `sidecar.storageSize` fields are always ignored. |
 | `store` _[StatefulSetConfig](#statefulsetconfig)_ | Thanos-Store configuration. The `store.image` field is always ignored. This field is ignored if `objectStoreConfig` is not set. |

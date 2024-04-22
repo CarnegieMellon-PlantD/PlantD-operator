@@ -60,7 +60,7 @@ spec:
                   is ignored when `endDetection` is set to `true`.
                 type: string
               endDetectionImage:
-                description: Image to use for the end detection.
+                description: Container image to use for the end detection.
                 type: string
               endpointSpecs:
                 description: List of tests upon endpoints.
@@ -146,13 +146,13 @@ spec:
                 minItems: 1
                 type: array
               k6InitializerImage:
-                description: Image to use for the K6 initializer Pod.
+                description: Container image to use for the K6 initializer.
                 type: string
               k6RunnerImage:
-                description: Image to use for the K6 runner Pod.
+                description: Container image to use for the K6 runner.
                 type: string
               k6StarterImage:
-                description: Image to use for the K6 starter Pod.
+                description: Container image to use for the K6 starter.
                 type: string
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.

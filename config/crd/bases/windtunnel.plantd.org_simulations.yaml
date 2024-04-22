@@ -76,7 +76,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               image:
-                description: Image to use for the Simulation.
+                description: Container image to use for the simulation.
                 type: string
               netCostRef:
                 description: NetCost object for the Simulation. Optional if the `digitalTwinType`
