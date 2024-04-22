@@ -14,6 +14,8 @@ import (
 var (
 	prometheusServiceMonitorLabels  = config.GetStringMapString("monitor.serviceMonitor.labels")
 	prometheusName                  = config.GetString("core.prometheus.name")
+	prometheusDefaultImage          = config.GetString("core.prometheus.defaultImage")
+	prometheusDefaultVersion        = config.GetString("core.prometheus.defaultVersion")
 	prometheusDefaultScrapeInterval = config.GetString("core.prometheus.defaultScrapeInterval")
 	prometheusDefaultReplicas       = config.GetInt32("core.prometheus.defaultReplicas")
 	prometheusDefaultCPURequest     = config.GetString("core.prometheus.defaultCPURequest")
@@ -29,6 +31,16 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 	replicas := plantDCore.Spec.PrometheusConfig.Replicas
 	if replicas == 0 {
 		replicas = prometheusDefaultReplicas
+	}
+
+	image := plantDCore.Spec.PrometheusConfig.Image
+	if image == "" {
+		image = prometheusDefaultImage
+	}
+
+	version := plantDCore.Spec.PrometheusConfig.Version
+	if version == "" {
+		version = prometheusDefaultVersion
 	}
 
 	scrapeInterval := plantDCore.Spec.PrometheusConfig.ScrapeInterval
@@ -70,6 +82,8 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 		Spec: monitoringv1.PrometheusSpec{
 			CommonPrometheusFields: monitoringv1.CommonPrometheusFields{
 				ServiceAccountName: serviceAccountPrometheus,
+				Image:              &image,
+				Version:            version,
 				// Use the labels to select ServiceMonitors
 				ServiceMonitorSelector: &metav1.LabelSelector{
 					MatchLabels: prometheusServiceMonitorLabels,
@@ -90,7 +104,7 @@ func GetPrometheusObject(plantDCore *windtunnelv1alpha1.PlantDCore) *monitoringv
 			},
 			// Always deploy Thanos-Sidecar, as Thanos-Querier uses it to query data from Prometheus
 			Thanos: &monitoringv1.ThanosSpec{
-				BaseImage: &thanosSidecarImage,
+				Image:     &thanosSidecarImage,
 				Version:   &thanosSidecarVersion,
 				Resources: thanosSidecarResources,
 			},

@@ -45,6 +45,10 @@ type PrometheusConfig struct {
 	// Number of replicas.
 	// +kubebuilder:validation:Minimum=1
 	Replicas int32 `json:"replicas,omitempty"`
+	// Container image to use for the Prometheus. Must be synced with the `version` field.
+	Image string `json:"image,omitempty"`
+	// Prometheus version. Must be synced with the `image` field.
+	Version string `json:"version,omitempty"`
 	// Interval at which Prometheus scrapes metrics.
 	ScrapeInterval monitoringv1.Duration `json:"scrapeInterval,omitempty"`
 	// Resources requirements.
@@ -53,9 +57,9 @@ type PrometheusConfig struct {
 
 // ThanosConfig defines the desired state of a Thanos component.
 type ThanosConfig struct {
-	// Thanos image to use. Must be synced with the `version` field.
+	// Container image to use for the Thanos. Must be synced with the `version` field.
 	Image string `json:"image,omitempty"`
-	// Thanos version to use. Must be synced with the `image` field.
+	// Thanos version. Must be synced with the `image` field.
 	Version string `json:"version,omitempty"`
 	// Object store configuration for Thanos.
 	// Set this field will enable upload in Thanos-Sidecar, and deploy Thanos-Store and Thanos-Compactor.

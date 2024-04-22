@@ -20,13 +20,17 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/config"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/digitaltwin"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/loadgen"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 const (
-	experimentFinalizerName   = "experiment.windtunnel.plantd.org/finalizer"
-	experimentPollingInterval = 5 * time.Second
+	experimentFinalizerName         = "experiment.windtunnel.plantd.org/finalizer"
+	experimentPollingInterval       = 5 * time.Second
+	experimentEndDetectorDebounce   = 30 // Seconds
+	experimentEndDetectorWindow     = 90 // Seconds
+	experimentEndDetectorAdjustment = 60 // Seconds
 )
 
 var (
@@ -65,13 +69,15 @@ func NewExperimentReconcilerContext() *ExperimentReconcilerContext {
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=experiments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=experiments/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=experiments/finalizers,verbs=update
+//
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=loadpatterns,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=pipelines,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=k6.io,resources=testruns,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+//
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k6.io,resources=testruns,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -617,9 +623,30 @@ func (r *ExperimentReconciler) reconcileInitializing(ctx context.Context, experi
 		}
 	}
 
+	// Set the start time first because end detector Job relies on it
+	experiment.Status.StartTime = ptr.To(metav1.Now())
+
+	// Create end detector Job if needed
+	if experiment.Spec.UseEndDetection {
+		endDetectorJob, err := digitaltwin.CreateEndDetectorJob(experiment, experimentEndDetectorDebounce, experimentEndDetectorWindow, experimentEndDetectorAdjustment)
+		if err != nil {
+			logger.Error(err, "Cannot create manifest for end detector Job")
+			return true, ctrl.Result{}, err
+		}
+		if err := ctrl.SetControllerReference(experiment, endDetectorJob, r.Scheme); err != nil {
+			logger.Error(err, "Cannot set controller reference for end detector Job")
+			return true, ctrl.Result{}, err
+		}
+		if err := r.Create(ctx, endDetectorJob); client.IgnoreAlreadyExists(err) != nil {
+			logger.Error(err, "Cannot create end detector Job")
+			return true, ctrl.Result{}, err
+		} else {
+			logger.Info("Created end detector Job")
+		}
+	}
+
 	// Proceed to the next state
 	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentRunning
-	experiment.Status.StartTime = ptr.To(metav1.Now())
 	return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 }
 
@@ -654,27 +681,6 @@ func (r *ExperimentReconciler) reconcileRunning(ctx context.Context, experiment 
 	}
 	if doneCounter < len(experiment.Spec.EndpointSpecs) {
 		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
-	}
-
-	// Proceed to the next state
-	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentDraining
-	experiment.Status.DrainingStartTime = ptr.To(metav1.Now())
-	return false, ctrl.Result{}, nil
-}
-
-// reconcileDraining reconciles the Experiment when it is draining.
-// It returns a flag of whether the current reconciliation loop should stop,
-// the reconciliation result, and an error, if any.
-func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment *windtunnelv1alpha1.Experiment, rc *ExperimentReconcilerContext) (bool, ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	// Check if the draining time has been fulfilled
-	curTime := time.Now()
-	if experiment.Spec.DrainingTime != nil && curTime.Before(experiment.Status.DrainingStartTime.Time.Add(experiment.Spec.DrainingTime.Duration)) {
-		// Time has not been fulfilled, calculate the waiting time
-		waitTime := experiment.Status.DrainingStartTime.Time.Add(experiment.Spec.DrainingTime.Duration).Sub(curTime)
-		logger.Info(fmt.Sprintf("Pipeline is draining, waiting for \"%s\"", waitTime))
-		return true, ctrl.Result{RequeueAfter: waitTime}, nil
 	}
 
 	// Remove the resources created for the Experiment
@@ -790,6 +796,57 @@ func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment
 				logger.Info(fmt.Sprintf("Deleted PVC \"%s\" for endpoint \"%s\"", pvcName, endpointSpec.EndpointName))
 			}
 		}
+	}
+
+	// Proceed to the next state
+	experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentDraining
+	experiment.Status.DrainingStartTime = ptr.To(metav1.Now())
+	return false, ctrl.Result{}, nil
+}
+
+// reconcileDraining reconciles the Experiment when it is draining.
+// It returns a flag of whether the current reconciliation loop should stop,
+// the reconciliation result, and an error, if any.
+func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment *windtunnelv1alpha1.Experiment, rc *ExperimentReconcilerContext) (bool, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	curTime := time.Now()
+
+	// Check if the end detector Job is finished
+	if experiment.Spec.UseEndDetection {
+		endDetectorJob := &kbatch.Job{}
+		endDetectorJobName := types.NamespacedName{
+			Namespace: experiment.Namespace,
+			Name:      utils.GetEndDetectorJobName(experiment.Name),
+		}
+		if err := r.Get(ctx, endDetectorJobName, endDetectorJob); err != nil {
+			logger.Error(err, fmt.Sprintf("Lost end detector Job \"%s\"", endDetectorJobName))
+			experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+			experiment.Status.Error = fmt.Sprintf("Lost end detector Job \"%s\": %s", endDetectorJobName, err)
+		}
+		jobFinished, jobConditionType := isJobFinished(endDetectorJob)
+		if jobFinished {
+			logger.Info(fmt.Sprintf("End detector Job \"%s\" finished", endDetectorJobName))
+			switch jobConditionType {
+			case kbatch.JobComplete:
+				experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentCompleted
+				calculatedCompletionTime := curTime.Add(-experimentEndDetectorAdjustment * time.Second)
+				experiment.Status.CompletionTime = &metav1.Time{Time: calculatedCompletionTime}
+			case kbatch.JobFailed:
+				logger.Error(nil, fmt.Sprintf("End detector Job \"%s\" failed", endDetectorJobName))
+				experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
+				experiment.Status.Error = fmt.Sprintf("End detector Job \"%s\" failed", endDetectorJobName)
+			}
+		}
+		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
+	}
+
+	// Check if the draining time has been fulfilled
+	if !experiment.Spec.UseEndDetection && experiment.Spec.DrainingTime != nil && curTime.Before(experiment.Status.DrainingStartTime.Time.Add(experiment.Spec.DrainingTime.Duration)) {
+		// Time has not been fulfilled, calculate the waiting time
+		waitTime := experiment.Status.DrainingStartTime.Time.Add(experiment.Spec.DrainingTime.Duration).Sub(curTime)
+		logger.Info(fmt.Sprintf("Pipeline is draining, waiting for \"%s\"", waitTime))
+		return true, ctrl.Result{RequeueAfter: waitTime}, nil
 	}
 
 	// Release the Pipeline

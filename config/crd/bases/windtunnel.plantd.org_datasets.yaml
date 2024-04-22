@@ -68,7 +68,7 @@ spec:
                   Available values are `csv` and `binary`.
                 type: string
               image:
-                description: Image of the data generator job.
+                description: Container image to use for the data generator.
                 type: string
               numFiles:
                 description: Number of files to be generated. If `compressedFileFormat`
@@ -137,6 +137,7 @@ spec:
                   - name
                   - numRecords
                   type: object
+                maxItems: 65535
                 minItems: 1
                 type: array
               storageSize:

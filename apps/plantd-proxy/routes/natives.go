@@ -69,3 +69,43 @@ func deleteNamespaceHandler(client client.Client) http.HandlerFunc {
 		}
 	}
 }
+
+// listServicesHandler returns an HTTP handler function that handles GET requests to fetch a list of Services.
+// The handler function calls the proxy.ListServices function to retrieve the Services using the provided client.
+// If successful, it encodes the Service list as JSON and writes it to the response.
+// If an error occurs, it writes an error response with an HTTP 500 status code and error message.
+func listServicesHandler(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		svcList, err := proxy.ListServices(ctx, client)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(svcList)
+		}
+	}
+}
+
+// listSecretsHandler returns an HTTP handler function that handles GET requests to fetch a list of Secrets.
+// The handler function calls the proxy.ListSecrets function to retrieve the Secrets using the provided client.
+// If successful, it encodes the Secret list as JSON and writes it to the response.
+// If an error occurs, it writes an error response with an HTTP 500 status code and error message.
+func listSecretsHandler(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		secretList, err := proxy.ListSecrets(ctx, client)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(secretList)
+		}
+	}
+}

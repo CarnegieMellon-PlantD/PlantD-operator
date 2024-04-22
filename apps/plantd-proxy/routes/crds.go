@@ -73,7 +73,7 @@ func createObjectHandler(client client.Client, kind string) http.HandlerFunc {
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
 
-		// Note: though in proxy/object.go, we use unstructured objects to have more flexibility,
+		// Note: though in proxy/crds.go, we use unstructured objects to have more flexibility,
 		// we still need to use typed objects here, because the TypeMeta and ObjectMeta can be determined by the URL
 		// and the request body may only contain the spec field. Without other fields, it will cause an error when
 		// unmarshalling to an unstructured object and can only be unmarshalled to a typed object.
@@ -124,7 +124,7 @@ func updateObjectHandler(client client.Client, kind string) http.HandlerFunc {
 		namespace := chi.URLParam(r, "namespace")
 		name := chi.URLParam(r, "name")
 
-		// Note: though in proxy/object.go, we use unstructured objects to have more flexibility,
+		// Note: though in proxy/crds.go, we use unstructured objects to have more flexibility,
 		// we still need to use typed objects here, because the TypeMeta and ObjectMeta can be determined by the URL
 		// and the request body may only contain the spec field. Without other fields, it will cause an error when
 		// unmarshalling to an unstructured object and can only be unmarshalled to a typed object.

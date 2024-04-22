@@ -31,6 +31,9 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Post("/namespaces/{namespace}", createNamespaceHandler(client))
 		r.Delete("/namespaces/{namespace}", deleteNamespaceHandler(client))
 
+		r.Get("/services", listServicesHandler(client))
+		r.Get("/secrets", listSecretsHandler(client))
+
 		r.Get("/schemas", getObjectListHandler(client, proxy.SchemaKind))
 		r.Get("/schemas/{namespace}/{name}", getObjectHandler(client, proxy.SchemaKind))
 		r.Post("/schemas/{namespace}/{name}", createObjectHandler(client, proxy.SchemaKind))
@@ -67,12 +70,6 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Put("/costexporters/{namespace}/{name}", updateObjectHandler(client, proxy.CostExporterKind))
 		r.Delete("/costexporters/{namespace}/{name}", deleteObjectHandler(client, proxy.CostExporterKind))
 
-		r.Get("/trafficmodels", getObjectListHandler(client, proxy.TrafficModelKind))
-		r.Get("/trafficmodels/{namespace}/{name}", getObjectHandler(client, proxy.TrafficModelKind))
-		r.Post("/trafficmodels/{namespace}/{name}", createObjectHandler(client, proxy.TrafficModelKind))
-		r.Put("/trafficmodels/{namespace}/{name}", updateObjectHandler(client, proxy.TrafficModelKind))
-		r.Delete("/trafficmodels/{namespace}/{name}", deleteObjectHandler(client, proxy.TrafficModelKind))
-
 		r.Get("/digitaltwins", getObjectListHandler(client, proxy.DigitalTwinKind))
 		r.Get("/digitaltwins/{namespace}/{name}", getObjectHandler(client, proxy.DigitalTwinKind))
 		r.Post("/digitaltwins/{namespace}/{name}", createObjectHandler(client, proxy.DigitalTwinKind))
@@ -84,6 +81,12 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Post("/simulations/{namespace}/{name}", createObjectHandler(client, proxy.SimulationKind))
 		r.Put("/simulations/{namespace}/{name}", updateObjectHandler(client, proxy.SimulationKind))
 		r.Delete("/simulations/{namespace}/{name}", deleteObjectHandler(client, proxy.SimulationKind))
+
+		r.Get("/trafficmodels", getObjectListHandler(client, proxy.TrafficModelKind))
+		r.Get("/trafficmodels/{namespace}/{name}", getObjectHandler(client, proxy.TrafficModelKind))
+		r.Post("/trafficmodels/{namespace}/{name}", createObjectHandler(client, proxy.TrafficModelKind))
+		r.Put("/trafficmodels/{namespace}/{name}", updateObjectHandler(client, proxy.TrafficModelKind))
+		r.Delete("/trafficmodels/{namespace}/{name}", deleteObjectHandler(client, proxy.TrafficModelKind))
 
 		r.Get("/netcosts", getObjectListHandler(client, proxy.NetCostKind))
 		r.Get("/netcosts/{namespace}/{name}", getObjectHandler(client, proxy.NetCostKind))
@@ -97,16 +100,19 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 		r.Put("/scenarios/{namespace}/{name}", updateObjectHandler(client, proxy.ScenarioKind))
 		r.Delete("/scenarios/{namespace}/{name}", deleteObjectHandler(client, proxy.ScenarioKind))
 
+		r.Get("/plantdcores", getObjectListHandler(client, proxy.PlantDCoreKind))
 		r.Get("/plantdcores/{namespace}/{name}", getObjectHandler(client, proxy.PlantDCoreKind))
 		r.Put("/plantdcores/{namespace}/{name}", updateObjectHandler(client, proxy.PlantDCoreKind))
 
 		r.Get("/datasets/sample/{namespace}/{name}", getSampleDataSetHandler(client))
 		r.Get("/health/http", checkHTTPHealthHandler())
+
 		r.Get("/kinds", listKindsHandler())
 		r.Get("/resources", listResourcesHandler(client))
 		r.Post("/resources/import", importResourcesHandler(client))
 		// We are violating RESTful API design principles and using POST instead of GET here,
-		// because we want to accept a request body.
+		// because the export API is typically used by a separate tab in the browser,
+		// and does not support method override. To receive a request body, we must use POST.
 		r.Post("/resources/export", exportResourcesHandler(client))
 	})
 

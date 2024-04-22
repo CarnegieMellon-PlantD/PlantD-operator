@@ -24,11 +24,14 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ma
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
-# Required for the manager to use relative paths
+
+# Required for the application to use relative paths
 WORKDIR /
+
 COPY --from=builder /workspace/manager /
 COPY config/plantd/config.yaml /etc/plantd/
 COPY apps/loadgen /apps/loadgen
+
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]

@@ -2,20 +2,26 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
 const (
-	digitalTwinPollingInterval     = 10 * time.Second
-	digitalTwinLoadPatternDuration = 600 // Seconds
+	digitalTwinPollingInterval    = 5 * time.Second
+	digitalTwinExperimentDuration = 600 // Seconds
 )
 
 // DigitalTwinReconciler reconciles a DigitalTwin object
@@ -27,6 +33,10 @@ type DigitalTwinReconciler struct {
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=digitaltwins,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=digitaltwins/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=digitaltwins/finalizers,verbs=update
+//
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=datasets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=loadpatterns,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=windtunnel.plantd.org,resources=experiments,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -46,132 +56,230 @@ func (r *DigitalTwinReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// Initialize the DigitalTwin
 	if digitalTwin.Status.JobStatus == "" {
-		if err := r.Status().Update(ctx, digitalTwin); err != nil {
-			logger.Error(err, "Cannot update the status")
-			return ctrl.Result{}, err
+		result, err := r.reconcileCreated(ctx, digitalTwin)
+		if err == nil {
+			if err := r.Status().Update(ctx, digitalTwin); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
 		}
+		return result, err
 	}
 
-	/**
-	for _, task := range digitalTwin.Spec.Tasks {
-		dataSetName := fmt.Sprintf("%s-dataset-pure-%s", digitalTwin.Name, task.Name)
-		loadPatternName := fmt.Sprintf("%s-loadpattern-%s", digitalTwin.Name, task.Name)
-		experimentName := fmt.Sprintf("%s-experiment-pure-%s", digitalTwin.Name, task.Name)
-
-		// Create a DataSet
-		dataSet := &windtunnelv1alpha1.DataSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: digitalTwin.Namespace,
-				Name:      dataSetName,
-			},
-			Spec: windtunnelv1alpha1.DataSetSpec{
-				CompressPerSchema:    digitalTwin.Spec.DataSetConfig.CompressPerSchema,
-				CompressedFileFormat: digitalTwin.Spec.DataSetConfig.CompressedFileFormat,
-				FileFormat:           digitalTwin.Spec.DataSetConfig.FileFormat,
-				Parallelism:          1,
-				NumberOfFiles:        int32(DATASET_SIZE),
-				Schemas: []windtunnelv1alpha1.SchemaSelector{
-					{
-						Name: task.Name,
-						NumRecords: windtunnelv1alpha1.NaturalIntRange{
-							Min: 1,
-							Max: 1,
-						},
-						NumFilesPerCompressedFile: windtunnelv1alpha1.NaturalIntRange{
-							Min: 1,
-							Max: 1,
-						},
-					},
-				},
-			},
+	if digitalTwin.Status.JobStatus == windtunnelv1alpha1.DigitalTwinRunning {
+		result, err := r.reconcileRunning(ctx, digitalTwin)
+		if err == nil {
+			if err := r.Status().Update(ctx, digitalTwin); err != nil {
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{}, err
+			}
 		}
-		if err := r.Create(ctx, dataSet); client.IgnoreAlreadyExists(err) != nil {
-			logger.Error(err, "Failed to create DataSet")
-			return ctrl.Result{}, err
-		}
-		logger.Info("Created DataSet", "name", dataSetName, "namespace", digitalTwin.Namespace)
-
-		// Create LoadPattern
-		loadPattern := &windtunnelv1alpha1.LoadPattern{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: digitalTwin.Namespace,
-				Name:      loadPatternName,
-			},
-			Spec: windtunnelv1alpha1.LoadPatternSpec{
-				PreAllocatedVUs: 30,
-				MaxVUs:          100,
-				TimeUnit:        "1s",
-				StartRate:       0,
-				Stages: []windtunnelv1alpha1.Stage{
-					{
-						Duration: fmt.Sprintf("%ds", EXPERIMENT_DURATION),
-						Target:   int64(maxRate),
-					},
-				},
-			},
-		}
-		if err := r.Create(ctx, loadPattern); client.IgnoreAlreadyExists(err) != nil {
-			logger.Error(err, "Failed to create LoadPattern")
-			return ctrl.Result{}, err
-		}
-		logger.Info("Created LoadPattern", "name", loadPatternName, "namespace", digitalTwin.Namespace)
-
-		// Create Experiment
-		experiment := &windtunnelv1alpha1.Experiment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: digitalTwin.Namespace,
-				Name:      experimentName,
-			},
-			Spec: windtunnelv1alpha1.ExperimentSpec{
-				PipelineRef: &digitalTwin.Spec.PipelineRef,
-				EndpointSpecs: []windtunnelv1alpha1.EndpointSpec{
-					{
-						EndpointName: "upload",
-						DataSpec: &windtunnelv1alpha1.DataSpec{
-							DataSetRef: &corev1.ObjectReference{
-								Namespace: digitalTwin.Namespace,
-								Name:      dataSetName,
-							},
-						},
-						LoadPatternRef: &corev1.ObjectReference{
-							Namespace: digitalTwin.Namespace,
-							Name:      loadPatternName,
-						},
-					},
-				},
-			},
-		}
-		if err := r.Create(ctx, experiment); client.IgnoreAlreadyExists(err) != nil {
-			logger.Error(err, "Failed to create Experiment")
-			return ctrl.Result{}, err
-		}
-		logger.Info("Created Experiment", "name", experimentName, "namespace", digitalTwin.Namespace)
+		return result, err
 	}
-
-	// Update the DigitalTwin status
-	digitalTwin.Status.IsPopulated = true
-	if err := r.Status().Update(ctx, digitalTwin); err != nil {
-		logger.Error(err, "Failed to update DigitalTwin status")
-		return ctrl.Result{}, err
-	}
-	*/
 
 	return ctrl.Result{}, nil
 }
 
 // reconcileCreated reconciles the DigitalTwin when it is created.
 func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwin *windtunnelv1alpha1.DigitalTwin) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	switch digitalTwin.Spec.DigitalTwinType {
 	case "regular":
 		digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinCompleted
+		return ctrl.Result{}, nil
 
-	case "schemaware":
+	case "schemaaware":
 		// Get the DataSet
+		dataSet := &windtunnelv1alpha1.DataSet{}
+		dataSetName := types.NamespacedName{
+			Namespace: digitalTwin.Namespace,
+			Name:      digitalTwin.Spec.DataSet.Name,
+		}
+		if err := r.Get(ctx, dataSetName, dataSet); err != nil {
+			logger.Error(err, fmt.Sprintf("Cannot get DataSet \"%s\"", dataSetName))
+			digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+			digitalTwin.Status.Error = fmt.Sprintf("Cannot find DataSet \"%s\": %s", dataSetName, err)
+			return ctrl.Result{}, nil
+		}
+
+		// Calculate the size of the DataSets
+		dataSetSize := int32(math.Ceil(float64(digitalTwinExperimentDuration) * float64(digitalTwin.Spec.PipelineCapacity) / 2))
+
+		// Create DataSets
+		for schemaIdx, schemaSelector := range dataSet.Spec.Schemas {
+			biasDataSetName := utils.GetBiasDataSetName(digitalTwin.Name, schemaIdx)
+			biasDataSet := dataSet.DeepCopy()
+
+			// Avoid error "resourceVersion should not be set on objects to be created"
+			biasDataSet.ResourceVersion = ""
+			biasDataSet.Name = biasDataSetName
+			biasDataSet.Spec.NumberOfFiles = dataSetSize
+			for schemaSelectorIdx, schemaSelector := range biasDataSet.Spec.Schemas {
+				if schemaSelectorIdx == schemaIdx {
+					schemaSelector.NumRecords.Min = 100
+					schemaSelector.NumRecords.Max = 100
+				} else {
+					schemaSelector.NumRecords.Min = 1
+					schemaSelector.NumRecords.Max = 1
+				}
+				schemaSelector.NumFilesPerCompressedFile.Min = 1
+				schemaSelector.NumFilesPerCompressedFile.Max = 1
+			}
+
+			if err := ctrl.SetControllerReference(digitalTwin, biasDataSet, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for bias DataSet for Schema \"%s\"", schemaSelector.Name))
+				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for bias DataSet for Schema \"%s\": %s", schemaSelector.Name, err)
+				return ctrl.Result{}, nil
+			}
+			if err := r.Create(ctx, biasDataSet); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create bias DataSet for Schema \"%s\"", schemaSelector.Name))
+				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot create bias DataSet for Schema \"%s\": %s", schemaSelector.Name, err)
+				return ctrl.Result{}, nil
+			} else if err == nil {
+				logger.Info(fmt.Sprintf("Created bias DataSet for Schema \"%s\"", schemaSelector.Name))
+			}
+		}
+
+		// Create LoadPattern
+		loadPattern := &windtunnelv1alpha1.LoadPattern{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: digitalTwin.Namespace,
+				Name:      utils.GetBiasLoadPatternName(digitalTwin.Name),
+			},
+			Spec: windtunnelv1alpha1.LoadPatternSpec{
+				Stages: []windtunnelv1alpha1.Stage{
+					{
+						Duration: fmt.Sprintf("%ds", digitalTwinExperimentDuration),
+						Target:   int64(digitalTwin.Spec.PipelineCapacity),
+					},
+				},
+				PreAllocatedVUs: 30,
+				StartRate:       0,
+				TimeUnit:        "1s",
+				MaxVUs:          100,
+			},
+		}
+		if err := ctrl.SetControllerReference(digitalTwin, loadPattern, r.Scheme); err != nil {
+			logger.Error(err, "Cannot set controller reference for LoadPattern")
+			digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+			digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for LoadPattern: %s", err)
+			return ctrl.Result{}, nil
+		}
+		if err := r.Create(ctx, loadPattern); client.IgnoreAlreadyExists(err) != nil {
+			logger.Error(err, "Cannot create LoadPattern")
+			digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+			digitalTwin.Status.Error = fmt.Sprintf("Cannot create LoadPattern: %s", err)
+			return ctrl.Result{}, nil
+		}
+
+		// Create Experiments
+		for schemaIdx, schemaSelector := range dataSet.Spec.Schemas {
+			biasExperiment := &windtunnelv1alpha1.Experiment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: digitalTwin.Namespace,
+					Name:      utils.GetBiasExperimentName(digitalTwin.Name, schemaIdx),
+				},
+				Spec: windtunnelv1alpha1.ExperimentSpec{
+					PipelineRef: digitalTwin.Spec.Pipeline,
+					EndpointSpecs: []windtunnelv1alpha1.EndpointSpec{
+						{
+							EndpointName: "upload",
+							DataSpec: &windtunnelv1alpha1.DataSpec{
+								DataSetRef: &corev1.LocalObjectReference{
+									Name: utils.GetBiasDataSetName(digitalTwin.Name, schemaIdx),
+								},
+							},
+							LoadPatternRef: &corev1.ObjectReference{
+								Namespace: digitalTwin.Namespace,
+								Name:      utils.GetBiasLoadPatternName(digitalTwin.Name),
+							},
+						},
+					},
+					UseEndDetection: true,
+				},
+			}
+			if err := ctrl.SetControllerReference(digitalTwin, biasExperiment, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for bias Experiment for Schema \"%s\"", schemaSelector.Name))
+				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for bias Experiment for Schema \"%s\": %s", schemaSelector.Name, err)
+				return ctrl.Result{}, nil
+			}
+			if err := r.Create(ctx, biasExperiment); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create bias Experiment for Schema \"%s\"", schemaSelector.Name))
+				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot create bias Experiment for Schema \"%s\": %s", schemaSelector.Name, err)
+				return ctrl.Result{}, nil
+			} else if err == nil {
+				logger.Info(fmt.Sprintf("Created bias Experiment for Schema \"%s\"", schemaSelector.Name))
+			}
+		}
 
 		digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinRunning
+		return ctrl.Result{RequeueAfter: digitalTwinPollingInterval}, nil
 	}
+
+	return ctrl.Result{}, nil
+}
+
+// reconcileRunning reconciles the DigitalTwin when it is running.
+func (r *DigitalTwinReconciler) reconcileRunning(ctx context.Context, digitalTwin *windtunnelv1alpha1.DigitalTwin) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	switch digitalTwin.Spec.DigitalTwinType {
+	case "regular":
+		digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinCompleted
+		return ctrl.Result{}, nil
+
+	case "schemaaware":
+		// Get the DataSet
+		dataSet := &windtunnelv1alpha1.DataSet{}
+		dataSetName := types.NamespacedName{
+			Namespace: digitalTwin.Namespace,
+			Name:      digitalTwin.Spec.DataSet.Name,
+		}
+		if err := r.Get(ctx, dataSetName, dataSet); err != nil {
+			logger.Error(err, fmt.Sprintf("Cannot get DataSet \"%s\"", dataSetName))
+			digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+			digitalTwin.Status.Error = fmt.Sprintf("Cannot find DataSet \"%s\": %s", dataSetName, err)
+			return ctrl.Result{}, nil
+		}
+
+		// Check if any Experiment is completed or failed
+		for schemaIdx, _ := range dataSet.Spec.Schemas {
+			biasExperimentName := types.NamespacedName{
+				Namespace: digitalTwin.Namespace,
+				Name:      utils.GetBiasExperimentName(digitalTwin.Name, schemaIdx),
+			}
+			biasExperiment := &windtunnelv1alpha1.Experiment{}
+			if err := r.Get(ctx, biasExperimentName, biasExperiment); err != nil {
+				logger.Error(err, fmt.Sprintf("Lost bias Experiment \"%s\"", biasExperimentName))
+				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+				digitalTwin.Status.Error = fmt.Sprintf("Lost bias Experiment \"%s\": %s", biasExperimentName, err)
+				return ctrl.Result{}, nil
+			}
+
+			if biasExperiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted {
+				continue
+			} else if biasExperiment.Status.JobStatus == windtunnelv1alpha1.ExperimentFailed {
+				logger.Info(fmt.Sprintf("Bias Experiment \"%s\" failed", biasExperimentName))
+				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
+				digitalTwin.Status.Error = fmt.Sprintf("Experiment \"%s\" failed", biasExperimentName)
+				return ctrl.Result{}, nil
+			} else {
+				return ctrl.Result{RequeueAfter: digitalTwinPollingInterval}, nil
+			}
+		}
+
+		// All Experiments are completed
+		logger.Info("All bias Experiments are completed")
+		digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinCompleted
+		return ctrl.Result{}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 

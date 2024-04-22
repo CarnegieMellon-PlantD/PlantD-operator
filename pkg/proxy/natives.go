@@ -68,3 +68,25 @@ func DeleteNamespace(ctx context.Context, client client.Client, namespaceName st
 		return nil
 	}
 }
+
+// ListServices retrieves a list of all Services.
+func ListServices(ctx context.Context, client client.Client) (*corev1.ServiceList, error) {
+	svcList := &corev1.ServiceList{}
+
+	if err := client.List(ctx, svcList); err != nil {
+		return nil, err
+	}
+
+	return svcList, nil
+}
+
+// ListSecrets retrieves a list of all Secrets.
+func ListSecrets(ctx context.Context, client client.Client) (*corev1.SecretList, error) {
+	secretList := &corev1.SecretList{}
+
+	if err := client.List(ctx, secretList); err != nil {
+		return nil, err
+	}
+
+	return secretList, nil
+}

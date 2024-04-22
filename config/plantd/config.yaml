@@ -3,7 +3,6 @@ version: 1.0.0
 dataGenerator:
   defaultImage: ghcr.io/carnegiemellon-plantd/datagenerator:latest
   defaultParallelism: 1
-  backoffLimit: 0
   defaultStorageSize: 5Gi
   path: /test # Default path where K6 looks for files
 monitor:
@@ -27,8 +26,10 @@ loadGenerator:
     loadPattern: loadpattern.json
   copier:
     image: busybox:1.36.1
-    backoffLimit: 0
   testRun:
+    defaultRunnerImage: ""
+    defaultStarterImage: ""
+    defaultInitializerImage: ""
     remoteWriteArgs: --out experimental-prometheus-rw
     remoteWriteEnvVar:
       name: K6_PROMETHEUS_RW_SERVER_URL
@@ -39,13 +40,15 @@ rbac:
     prometheus: plantd-operator-prometheus # See ../rbac/prometheus_service_account.yaml
     openCost: plantd-operator-opencost # See ../rbac/opencost_service_account.yaml
 core:
+  namespace: plantd-operator-system
+  name: default
   proxy:
     name: plantd-proxy
     labels:
       plantd-app: proxy
     defaultReplicas: 1
     defaultImage: ghcr.io/carnegiemellon-plantd/plantd-proxy:latest
-    defaultCPURequest: 50m
+    defaultCPURequest: 10m
     defaultMemoryRequest: 50Mi
     defaultCPULimit: 200m
     defaultMemoryLimit: 200Mi
@@ -59,7 +62,7 @@ core:
       plantd-app: studio
     defaultReplicas: 1
     defaultImage: ghcr.io/carnegiemellon-plantd/plantd-studio:latest
-    defaultCPURequest: 50m
+    defaultCPURequest: 10m
     defaultMemoryRequest: 50Mi
     defaultCPULimit: 200m
     defaultMemoryLimit: 200Mi
@@ -69,10 +72,12 @@ core:
     servicePort: 80
   prometheus:
     name: plantd-prometheus
+    defaultImage: prom/prometheus:v2.51.2
+    defaultVersion: v2.51.2
     defaultScrapeInterval: 15s
     defaultReplicas: 1
-    defaultCPURequest: 100m
-    defaultMemoryRequest: 100Mi
+    defaultCPURequest: 10m
+    defaultMemoryRequest: 50Mi
     defaultCPULimit: 400m
     defaultMemoryLimit: 400Mi
     servicePortName: prom-http
@@ -81,7 +86,7 @@ core:
     defaultImage: quay.io/thanos/thanos:v0.34.1
     defaultVersion: v0.34.1
     sidecar:
-      defaultCPURequest: 50m
+      defaultCPURequest: 10m
       defaultMemoryRequest: 50Mi
       defaultCPULimit: 200m
       defaultMemoryLimit: 200Mi
@@ -92,7 +97,7 @@ core:
       labels:
         plantd-app: thanos-store
       defaultReplicas: 1
-      defaultCPURequest: 50m
+      defaultCPURequest: 10m
       defaultMemoryRequest: 50Mi
       defaultCPULimit: 200m
       defaultMemoryLimit: 200Mi
@@ -111,7 +116,7 @@ core:
       labels:
         plantd-app: thanos-compactor
       defaultReplicas: 1
-      defaultCPURequest: 50m
+      defaultCPURequest: 10m
       defaultMemoryRequest: 50Mi
       defaultCPULimit: 200m
       defaultMemoryLimit: 200Mi
@@ -126,7 +131,7 @@ core:
       labels:
         plantd-app: thanos-querier
       defaultReplicas: 1
-      defaultCPURequest: 50m
+      defaultCPURequest: 10m
       defaultMemoryRequest: 50Mi
       defaultCPULimit: 200m
       defaultMemoryLimit: 200Mi
@@ -144,7 +149,7 @@ core:
       plantd-app: redis
     defaultReplicas: 1
     defaultImage: redis/redis-stack-server:7.2.0-v10
-    defaultCPURequest: 50m
+    defaultCPURequest: 10m
     defaultMemoryRequest: 50Mi
     defaultCPULimit: 400m
     defaultMemoryLimit: 400Mi
@@ -153,7 +158,7 @@ core:
     containerPort: 6379
     servicePortName: resp
     servicePort: 6379
-    path: /data
+    path: /data # Default path where redis-stack-server stores data
   openCost:
     name: plantd-opencost
     labels:
@@ -162,8 +167,8 @@ core:
     defaultImage: quay.io/kubecost1/kubecost-cost-model:latest
     defaultCPURequest: 10m
     defaultMemoryRequest: 50Mi
-    defaultCPULimit: 500m
-    defaultMemoryLimit: 500Mi
+    defaultCPULimit: 400m
+    defaultMemoryLimit: 400Mi
     containerPortName: opencost
     containerPort: 9003
     servicePortName: opencost
@@ -172,25 +177,13 @@ core:
       defaultImage: quay.io/kubecost1/opencost-ui:1.105.2
       defaultCPURequest: 10m
       defaultMemoryRequest: 50Mi
-      defaultCPULimit: 500m
-      defaultMemoryLimit: 500Mi
+      defaultCPULimit: 400m
+      defaultMemoryLimit: 400Mi
       containerPortName: opencost-ui
       containerPort: 9090
       servicePortName: opencost-ui
       servicePort: 9090
-
 costService:
-  image: ghcr.io/carnegiemellon-plantd/costexporter:latest
-  opencost:
-    url: http://opencost.plantd-operator-system.svc.cluster.local:9003
+  defaultImage: ghcr.io/carnegiemellon-plantd/costexporter:latest
 digitalTwin:
-  image: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
-database:
-  prometheus:
-    # Ensure Prometheus service name, namespace, and port are correct
-    url: http://prometheus-service.plantd-operator-system.svc.cluster.local:9090
-    thanosUrl: http://thanos-querier.plantd-operator-system.svc.cluster.local:9090
-  redis:
-    # Ensure Redis service name, namespace, and port are correct
-    host: redis-service.plantd-operator-system.svc.cluster.local
-    port: 6379
+  defaultImage: ghcr.io/carnegiemellon-plantd/digitaltwin:latest

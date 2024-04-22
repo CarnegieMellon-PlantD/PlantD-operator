@@ -17,7 +17,6 @@ import (
 var (
 	defaultImage       = config.GetString("dataGenerator.defaultImage")
 	defaultParallelism = config.GetInt32("dataGenerator.defaultParallelism")
-	backoffLimit       = config.GetInt32("dataGenerator.backoffLimit")
 	defaultStorageSize = config.GetString("dataGenerator.defaultStorageSize")
 	path               = config.GetString("dataGenerator.path")
 )
@@ -57,7 +56,7 @@ func CreateJob(jobName string, pvcName string, dataSet *windtunnelv1alpha1.DataS
 			CompletionMode: ptr.To(kbatch.IndexedCompletion),
 			Completions:    &parallelism,
 			Parallelism:    &parallelism,
-			BackoffLimit:   &backoffLimit,
+			BackoffLimit:   ptr.To(int32(0)),
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,

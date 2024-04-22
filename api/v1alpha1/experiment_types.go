@@ -63,6 +63,14 @@ type EndpointSpec struct {
 
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
+	// Container image to use for the K6 runner.
+	K6RunnerImage string `json:"k6RunnerImage,omitempty"`
+	// Container image to use for the K6 starter.
+	K6StarterImage string `json:"k6StarterImage,omitempty"`
+	// Container image to use for the K6 initializer.
+	K6InitializerImage string `json:"k6InitializerImage,omitempty"`
+	// Container image to use for the end detection.
+	EndDetectionImage string `json:"endDetectionImage,omitempty"`
 	// Reference to the Pipeline to use for the Experiment.
 	PipelineRef *corev1.LocalObjectReference `json:"pipelineRef"`
 	// List of tests upon endpoints.
@@ -74,7 +82,12 @@ type ExperimentSpec struct {
 	// Time to wait after the load generator job is completed before finishing the Experiment.
 	// It allows the pipeline-under-test to finish its processing.
 	// Default to no draining time.
+	// This field is ignored when `endDetection` is set to `true`.
 	DrainingTime *metav1.Duration `json:"drainingTime,omitempty"`
+	// Whether to use end detection to decide when to finish the Experiment
+	// after the load generator job completes.
+	// When set to `true`, the `drainingTime` field is ignored.
+	UseEndDetection bool `json:"useEndDetection,omitempty"`
 }
 
 // ExperimentStatus defines the observed state of Experiment.
@@ -101,6 +114,10 @@ type ExperimentStatus struct {
 	// Copied from the Pipeline used by the Experiment. For internal use only.
 	Tags map[string]string `json:"tags,omitempty"`
 }
+
+// The longest name of the Pod in the Experiment will be
+// "<experiment-name>-loadgen-<up to 4 digits of endpoint index>-initializer-<random 5 characters>".
+// So, we have 32 characters for the name to meet the 63-character limit.
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

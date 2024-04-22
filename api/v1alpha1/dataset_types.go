@@ -36,7 +36,7 @@ type SchemaSelector struct {
 
 // DataSetSpec defines the desired state of DataSet.
 type DataSetSpec struct {
-	// Image of the data generator job.
+	// Container image to use for the data generator.
 	Image string `json:"image,omitempty"`
 	// Number of parallel jobs when generating the dataset.
 	// Default to 1.
@@ -70,6 +70,7 @@ type DataSetSpec struct {
 	NumberOfFiles int32 `json:"numFiles"`
 	// List of Schemas in the DataSet.
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=65535
 	Schemas []SchemaSelector `json:"schemas"`
 }
 
@@ -90,6 +91,11 @@ type DataSetStatus struct {
 	// Last generation of the DataSet object. For internal use only.
 	LastGeneration int64 `json:"lastGeneration,omitempty"`
 }
+
+// The name of the Pod in the DataSet will be
+// "<dataset-name>-datagen-<up to 4 digits of generation>-<index of parallel job>-<random 5 chars>".
+// Assume the index of parallel job takes up to 4 digits,
+// we have 39 characters for the name to meet the 63-character limit.
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

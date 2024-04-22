@@ -82,6 +82,10 @@ type PipelineStatus struct {
 	Availability PipelineAvailability `json:"availability,omitempty"`
 }
 
+// The name of the Service and ServiceMonitor for the Pipeline will be
+// "<pipeline-name>-metrics".
+// So, we have 55 characters for the name to meet the 63-character limit.
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Availability",type="string",JSONPath=".status.availability"

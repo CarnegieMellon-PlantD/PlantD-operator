@@ -11,212 +11,240 @@ from boto3 import client
 import json
 import time
 
-pd.set_option('display.max_columns', None)
+pd.set_option("display.max_columns", None)
 
 
 class AWSCostExporter(CostExporter):
-  def __init__(self, aws_access_key='', aws_secret_key='', *args, **kwargs):
-    super(AWSCostExporter, self).__init__(*args, **kwargs)
-    self.csp_credentials = os.environ.get('CSP_CREDENTIALS', '')
-    # Parse the JSON
-    data = json.loads(self.csp_credentials)
+    def __init__(self, *args, **kwargs):
+        super(AWSCostExporter, self).__init__(*args, **kwargs)
 
-    # Extract AWS_ACCESS_KEY and AWS_SECRET_KEY
-    self.aws_access_key = data.get("AWS_ACCESS_KEY")
-    self.aws_secret_key = data.get("AWS_SECRET_KEY")
-    experiment_tags = os.environ.get('EXPERIMENT_TAGS', [])
-    self.cost_tags = json.loads(experiment_tags)
-    self.s3_bucket_name = os.environ.get('S3_BUCKET_NAME', '')
-    self.earliestTimestamp = os.environ.get('EARLIEST_EXPERIMENT', '')
+        self.csp_config = os.environ.get("CSP_CONFIG", "")
+        # Parse the JSON
+        data = json.loads(self.csp_config)
 
-  def _create_s3_connection(self):
-    try:
-      conn = client(
-          's3',
-          aws_access_key_id=self.aws_access_key,
-          aws_secret_access_key=self.aws_secret_key
-      )
+        # Extract AWS_ACCESS_KEY, AWS_SECRET_KEY, and S3_BUCKET_NAME
+        self.aws_access_key = data.get("AWS_ACCESS_KEY", "")
+        self.aws_secret_key = data.get("AWS_SECRET_KEY", "")
+        self.s3_bucket_name = data.get("S3_BUCKET_NAME", "")
 
-      return conn
-    except botocore.exceptions.PartialCredentialsError as e:
-      print("Error: Check your AWS credentials. Ensure both AWS_ACCESS_KEY and AWS_SECRET_KEY are set.", e)
-      quit()
-    except botocore.exceptions.NoCredentialsError as e:
-      print("Error: AWS credentials not found. Ensure both AWS_ACCESS_KEY and AWS_SECRET_KEY are set.", e)
-      quit()
-    except botocore.exceptions.EndpointConnectionError as e:
-      print("Error: Unable to connect to the S3 endpoint.", e)
-      quit()
-    except Exception as e:
-      print("Error: Unexpected error occurred while creating S3 connection.", e)
-      quit()
+        experiments_tags = os.environ.get("EXPERIMENT_TAGS", [])
+        self.cost_tags = json.loads(experiments_tags)
+        self.earliest_timestamp = os.environ.get("EARLIEST_EXPERIMENT", "")
 
-  def _get_cost_files(self, conn):
-    """
-    Retrieve the last two cost files from AWS S3.
+    def _create_s3_connection(self):
+        try:
+            conn = client(
+                "s3",
+                aws_access_key_id=self.aws_access_key,
+                aws_secret_access_key=self.aws_secret_key,
+            )
 
-    This function retrieves a list of all cost logs from the specified S3 bucket, filters them
-    based on a regular expression, sorts them by their key, and returns the last two.
+            return conn
+        except botocore.exceptions.PartialCredentialsError as e:
+            print(
+                "Error: Check your AWS credentials. Ensure both AWS_ACCESS_KEY and AWS_SECRET_KEY are set.",
+                e,
+            )
+            quit()
+        except botocore.exceptions.NoCredentialsError as e:
+            print(
+                "Error: AWS credentials not found. Ensure both AWS_ACCESS_KEY and AWS_SECRET_KEY are set.",
+                e,
+            )
+            quit()
+        except botocore.exceptions.EndpointConnectionError as e:
+            print("Error: Unable to connect to the S3 endpoint.", e)
+            quit()
+        except Exception as e:
+            print("Error: Unexpected error occurred while creating S3 connection.", e)
+            quit()
 
-    :param conn: The S3 client.
-    :return: The last two cost log files.
-    """
-    try:
-      # Calculate one hour before the earliestTimestamp
-      self.earliestTimestamp = datetime.datetime.strptime(self.earliestTimestamp, '%Y-%m-%d %H:%M:%S')
-      one_hour_before_earliest = self.earliestTimestamp - datetime.timedelta(hours=1)
+    def _get_cost_files(self, conn):
+        """
+        Retrieve the last two cost files from AWS S3.
 
-      # Convert the timestamp to a string in the format 'YYYY-MM-DD HH:mm:ss'
-      one_hour_before_str = one_hour_before_earliest.strftime('%Y-%m-%d %H:%M:%S')
+        This function retrieves a list of all cost logs from the specified S3 bucket, filters them
+        based on a regular expression, sorts them by their key, and returns the last two.
 
-      # Regex matching the name of a costlog on AWS
-      cost_log_regex = re.compile(
-        r"""costlog/cost-and-usage-report/\d{8}-\d{8}/cost-and-usage-report-\d+\.csv\.gz""")
+        :param conn: The S3 client.
+        :return: The last two cost log files.
+        """
+        try:
+            # Calculate one hour before the earliestTimestamp
+            self.earliest_timestamp = datetime.datetime.strptime(
+                self.earliest_timestamp, "%Y-%m-%d %H:%M:%S"
+            )
+            one_hour_before_earliest = self.earliest_timestamp - datetime.timedelta(
+                hours=1
+            )
 
-      # Retrieve list of all cost logs, filter by regex and time
-      cost_files = [
-          cost_file for cost_file in conn.list_objects(
-              Bucket=self.s3_bucket_name,
-              Prefix='costlog/cost-and-usage-report/20'
-          )['Contents'] if cost_log_regex.match(cost_file['Key'])
-          and cost_file['LastModified'].strftime('%Y-%m-%d %H:%M:%S') >= one_hour_before_str
-      ]
+            # Convert the timestamp to a string in the format 'YYYY-MM-DD HH:mm:ss'
+            one_hour_before_str = one_hour_before_earliest.strftime("%Y-%m-%d %H:%M:%S")
 
-      return cost_files
+            # Regex matching the name of a costlog on AWS
+            cost_log_regex = re.compile(
+                r"""costlog/cost-and-usage-report/\d{8}-\d{8}/cost-and-usage-report-\d+\.csv\.gz"""
+            )
 
-    except botocore.exceptions.ClientError as e:
-      print("Error: An error occurred while retrieving cost files from S3.", e)
-      quit()
-    except Exception as e:
-      print("Error: Unexpected error occurred while retrieving cost files from S3.", e)
-      quit()
+            # Retrieve list of all cost logs, filter by regex and time
+            cost_files = [
+                cost_file
+                for cost_file in conn.list_objects(
+                    Bucket=self.s3_bucket_name,
+                    Prefix="costlog/cost-and-usage-report/20",
+                )["Contents"]
+                if cost_log_regex.match(cost_file["Key"])
+                and cost_file["LastModified"].strftime("%Y-%m-%d %H:%M:%S")
+                >= one_hour_before_str
+            ]
 
-  def _load_dataframe(self, conn, file_key):
-    """
-    Load a cost file into a pandas DataFrame.
+            return cost_files
 
-    This function downloads a cost log from the specified S3 bucket using the given file key and
-    loads it into a pandas DataFrame. If any error occurs during this process, an appropriate
-    error message is printed and the program exits.
+        except botocore.exceptions.ClientError as e:
+            print("Error: An error occurred while retrieving cost files from S3.", e)
+            quit()
+        except Exception as e:
+            print(
+                "Error: Unexpected error occurred while retrieving cost files from S3.",
+                e,
+            )
+            quit()
 
-    :param conn: The S3 client.
-    :param file_key: The file key of the cost log.
-    :return: A pandas DataFrame of the cost log.
-    """
-    try:
-      # Download cost log and load into pandas dataframe
-      b1 = conn.get_object(Bucket=self.s3_bucket_name, Key=file_key)
-      raw = b1["Body"].read()
-      with open(file_key.split("/")[-1], "wb") as f:
-        f.write(raw)
+    def _load_dataframe(self, conn, file_key):
+        """
+        Load a cost file into a pandas DataFrame.
 
-      df = pd.read_csv(io.BytesIO(raw), compression='gzip', low_memory=False)
-      return df
-    except botocore.exceptions.ClientError as e:
-      print("Error: An error occurred while loading cost files from S3.", e)
-      quit()
-    except Exception as e:
-      print("Error: Unexpected error occurred while loading cost files from S3.", e)
-      quit()
+        This function downloads a cost log from the specified S3 bucket using the given file key and
+        loads it into a pandas DataFrame. If any error occurs during this process, an appropriate
+        error message is printed and the program exits.
 
-  def put_logs_on_redis(self, cost_df, categories, exp_name):
+        :param conn: The S3 client.
+        :param file_key: The file key of the cost log.
+        :return: A pandas DataFrame of the cost log.
+        """
+        try:
+            # Download cost log and load into pandas dataframe
+            b1 = conn.get_object(Bucket=self.s3_bucket_name, Key=file_key)
+            raw = b1["Body"].read()
+            with open(file_key.split("/")[-1], "wb") as f:
+                f.write(raw)
 
-    # Separate the tag columns from other categories
-    tag_columns = categories[:-2]
-    other_columns = [categories[-1]]
+            df = pd.read_csv(io.BytesIO(raw), compression="gzip", low_memory=False)
+            return df
+        except botocore.exceptions.ClientError as e:
+            print("Error: An error occurred while loading cost files from S3.", e)
+            quit()
+        except Exception as e:
+            print(
+                "Error: Unexpected error occurred while loading cost files from S3.", e
+            )
+            quit()
 
-    # Iterate through the tag columns and values
-    if all(tag in cost_df.columns for tag in tag_columns):
-      for tag_column in tag_columns:
-        for tag_value in cost_df[tag_column].dropna().unique():
-          # Filter the DataFrame by the current tag column and value
-          df_group = cost_df[cost_df[tag_column] == tag_value]
-          # Group the filtered DataFrame by the other categories and iterate through the subgroups
-          for gname, groupdf in df_group.groupby(other_columns, dropna=False):
-            for hour, hgroupdf in groupdf.groupby(["starttime"]):
-              values = {
-                  "key": exp_name,
-                  "tag": tag_value,
-                  "resource": gname[-1],
-                  "timestamp": int(hour[0].timestamp()) * 1000,
-                  "cost": hgroupdf["lineItem/UnblendedCost"].sum().item(),
-              }
-              # print(values)
-              self._write_to_db(values)
-    time.sleep(20)
-  def _filter_dataframe(self, df):
-    """
-    Filter a DataFrame of cost logs based on specified tags.
+    def put_logs_on_redis(self, cost_df, categories, exp_name):
 
-    This function filters a DataFrame of cost logs based on the tag keys and values set during
-    initialization. The DataFrame is filtered such that it only contains rows where the tag key
-    matches the tag value. Additional columns are also added for the start and end times, and
-    any rows where the unblended cost is not greater than 0.0 are removed.
+        # Separate the tag columns from other categories
+        tag_columns = categories[:-2]
+        other_columns = [categories[-1]]
 
-    :param df: Original cost logs
-    :return df_filtered: df_filtered: Cost logs filtered by tags.
-    :return categories: list of column names to be used when storing the logs.
-    """
-    # Initialize empty lists to store the extracted values
-    # Initialize lists to store extracted values
-    experiment_names = []
-    tag_key_list_strings = []
-    tag_value_list_strings = []
+        # Iterate through the tag columns and values
+        if all(tag in cost_df.columns for tag in tag_columns):
+            for tag_column in tag_columns:
+                for tag_value in cost_df[tag_column].dropna().unique():
+                    # Filter the DataFrame by the current tag column and value
+                    df_group = cost_df[cost_df[tag_column] == tag_value]
+                    # Group the filtered DataFrame by the other categories and iterate through the subgroups
+                    for gname, groupdf in df_group.groupby(other_columns, dropna=False):
+                        for hour, hgroupdf in groupdf.groupby(["starttime"]):
+                            values = {
+                                "key": exp_name,
+                                "tag": tag_value,
+                                "resource": gname[-1],
+                                "timestamp": int(hour[0].timestamp()) * 1000,
+                                "cost": hgroupdf["lineItem/UnblendedCost"].sum().item(),
+                            }
+                            # print(values)
+                            self._write_to_db(values)
+        time.sleep(20)
 
-    for experiment_data in self.cost_tags:
-      # Extract the experiment name
-      experiment_name = experiment_data['name']
+    def _filter_dataframe(self, df):
+        """
+        Filter a DataFrame of cost logs based on specified tags.
 
-      # Extract tag_key_list and tag_value_list
-      tag_key_list = []
-      tag_value_list = []
+        This function filters a DataFrame of cost logs based on the tag keys and values set during
+        initialization. The DataFrame is filtered such that it only contains rows where the tag key
+        matches the tag value. Additional columns are also added for the start and end times, and
+        any rows where the unblended cost is not greater than 0.0 are removed.
 
-      for tag_item in experiment_data['tags']:
-        tag_key = tag_item['key']
-        tag_value = tag_item['value']
-        tag_key_list.append(tag_key)
-        tag_value_list.append(tag_value)
+        :param df: Original cost logs
+        :return df_filtered: df_filtered: Cost logs filtered by tags.
+        :return categories: list of column names to be used when storing the logs.
+        """
+        # Initialize empty lists to store the extracted values
+        # Initialize lists to store extracted values
+        experiment_names = []
+        tag_key_list_strings = []
+        tag_value_list_strings = []
 
-      # Convert the tag_key_list and tag_value_list to strings
-      tag_key_list_string = ', '.join(tag_key_list)
-      tag_value_list_string = ', '.join(tag_value_list)
+        for experiment_data in self.cost_tags:
+            # Extract the experiment name
+            experiment_name = experiment_data["name"]
 
-      # Append the extracted values to the respective lists
-      experiment_names.append(experiment_name)
-      tag_key_list_strings.append(tag_key_list_string)
-      tag_value_list_strings.append(tag_value_list_string)
+            # Extract tag_key_list and tag_value_list
+            tag_key_list = []
+            tag_value_list = []
 
-    # Process each experiment one by one
-    for i in range(len(experiment_names)):
-      key_list = tag_key_list_strings[i].split(",")
-      value_list = tag_value_list_strings[i].split(",")
+            for tag_item in experiment_data["tags"]:
+                tag_key = tag_item["key"]
+                tag_value = tag_item["value"]
+                tag_key_list.append(tag_key)
+                tag_value_list.append(tag_value)
 
-      condition = pd.Series([False] * len(df))
+            # Convert the tag_key_list and tag_value_list to strings
+            tag_key_list_string = ", ".join(tag_key_list)
+            tag_value_list_string = ", ".join(tag_value_list)
 
-      for k, v in zip(key_list, value_list):
-        column = f'resourceTags/user:{k}'
-        if column not in df.columns:
-          continue
+            # Append the extracted values to the respective lists
+            experiment_names.append(experiment_name)
+            tag_key_list_strings.append(tag_key_list_string)
+            tag_value_list_strings.append(tag_value_list_string)
 
-        # Keep the column which is matched to the tag value
-        condition |= (df[column] == v)
+        # Process each experiment one by one
+        for i in range(len(experiment_names)):
+            key_list = tag_key_list_strings[i].split(",")
+            value_list = tag_value_list_strings[i].split(",")
 
-      df_filtered = df[condition]
+            condition = pd.Series([False] * len(df))
 
-      df_filtered.loc[:, "endtime"] = pd.to_datetime(df_filtered["lineItem/UsageEndDate"])
-      df_filtered.loc[:, "starttime"] = pd.to_datetime(df_filtered["lineItem/UsageStartDate"])
+            for k, v in zip(key_list, value_list):
+                column = f"resourceTags/user:{k}"
+                if column not in df.columns:
+                    continue
 
-      categories = ["resourceTags/user:" + key for key in key_list] + \
-          ["lineItem/ProductCode", "lineItem/UsageType"]
-      df_filtered = df_filtered[df_filtered["lineItem/UnblendedCost"] > 0.0]
-      self.put_logs_on_redis(df_filtered, categories, experiment_names[i])
-    return
+                # Keep the column which is matched to the tag value
+                condition |= df[column] == v
 
-  def get_cost_logs(self):
-    s3_conn = self._create_s3_connection()
+            df_filtered = df[condition]
 
-    cost_files = self._get_cost_files(s3_conn)
-    for file in cost_files:
-      df = self._load_dataframe(s3_conn, file["Key"])
-      self._filter_dataframe(df)
-    return
+            df_filtered.loc[:, "endtime"] = pd.to_datetime(
+                df_filtered["lineItem/UsageEndDate"]
+            )
+            df_filtered.loc[:, "starttime"] = pd.to_datetime(
+                df_filtered["lineItem/UsageStartDate"]
+            )
+
+            categories = ["resourceTags/user:" + key for key in key_list] + [
+                "lineItem/ProductCode",
+                "lineItem/UsageType",
+            ]
+            df_filtered = df_filtered[df_filtered["lineItem/UnblendedCost"] > 0.0]
+            self.put_logs_on_redis(df_filtered, categories, experiment_names[i])
+        return
+
+    def get_cost_logs(self):
+        s3_conn = self._create_s3_connection()
+
+        cost_files = self._get_cost_files(s3_conn)
+        for file in cost_files:
+            df = self._load_dataframe(s3_conn, file["Key"])
+            self._filter_dataframe(df)
+        return

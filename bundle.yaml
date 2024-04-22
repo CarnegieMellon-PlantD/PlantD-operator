@@ -27,14 +27,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.jobCompletionTime
-      name: JobCompletionTime
+    - jsonPath: .status.lastSuccess
+      name: LastSuccess
       type: string
-    - jsonPath: .status.jobStatus
-      name: JobStatus
-      type: string
-    - jsonPath: .status.podName
-      name: PodName
+    - jsonPath: .status.lastFailure
+      name: LastFailure
       type: string
     name: v1alpha1
     schema:
@@ -54,75 +51,60 @@ spec:
           metadata:
             type: object
           spec:
-            description: CostExporterSpec defines the desired state of CostExporter
+            description: CostExporterSpec defines the desired state of CostExporter.
             properties:
               cloudServiceProvider:
-                description: CloudServiceProvider defines the target cloud service
-                  provide for calculating cost.
+                description: Cloud service provider to calculate costs for. Available
+                  value is `aws`.
+                enum:
+                - aws
                 type: string
-              s3Bucket:
-                description: S3Bucket defines the AWS S3 bucket name where stores
-                  the cost logs.
-                type: string
-              secretRef:
-                description: SecretRef defines the reference to the Kubernetes Secret
-                  where stores the credentials of cloud service provider
+              config:
+                description: 'Configuration for the cloud service provider. For AWS,
+                  the configuration should be a JSON string with the following fields:
+                  - `AWS_ACCESS_KEY` - `AWS_SECRET_KEY` - `S3_BUCKET_NAME`'
                 properties:
-                  apiVersion:
-                    description: API version of the referent.
-                    type: string
-                  fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
-                    type: string
-                  kind:
-                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
                     type: string
                   name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
-                  namespace:
-                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                    type: string
-                  resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                    type: string
-                  uid:
-                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
                 type: object
                 x-kubernetes-map-type: atomic
+              image:
+                description: Container image to use for cost exporter.
+                type: string
+            required:
+            - cloudServiceProvider
+            - config
             type: object
           status:
-            description: CostExporterStatus defines the observed state of CostExporter
+            description: CostExporterStatus defines the observed state of CostExporter.
             properties:
-              jobCompletionTime:
-                description: JobCompletionTime defines the completion time of the
-                  cost calculation job.
+              isRunning:
+                description: Whether the Job is running. For internal use only.
+                type: boolean
+              lastFailure:
+                description: Time of the last failed Job run.
                 format: date-time
                 type: string
-              jobStatus:
-                description: JobStatus defines the status of the cost calculation
-                  job.
-                type: string
-              podName:
-                description: PodName defines the name of the cost calculation pod.
-                type: string
-              tags:
-                description: Tags defines the json string of using tags.
+              lastSuccess:
+                description: Time of the last successful Job run.
+                format: date-time
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 44 characters
+          rule: size(self.metadata.name) <= 44
     served: true
     storage: true
     subresources:
@@ -197,7 +179,7 @@ spec:
                   Available values are `csv` and `binary`.
                 type: string
               image:
-                description: Image of the data generator job.
+                description: Container image to use for the data generator.
                 type: string
               numFiles:
                 description: Number of files to be generated. If `compressedFileFormat`
@@ -266,6 +248,7 @@ spec:
                   - name
                   - numRecords
                   type: object
+                maxItems: 65535
                 minItems: 1
                 type: array
               storageSize:
@@ -340,7 +323,11 @@ spec:
     singular: digitaltwin
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.jobStatus
+      name: JobStatus
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: DigitalTwin is the Schema for the digitaltwins API
@@ -442,6 +429,7 @@ spec:
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
+                minItems: 1
                 type: array
               modelType:
                 description: Type of digital twin model. Available values are `simple`,
@@ -473,11 +461,17 @@ spec:
           status:
             description: DigitalTwinStatus defines the observed state of DigitalTwin.
             properties:
+              error:
+                description: Error message.
+                type: string
               jobStatus:
                 description: Status of the Experiments created by DigitalTwin.
                 type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 22 characters
+          rule: size(self.metadata.name) <= 22
     served: true
     storage: true
     subresources:
@@ -540,7 +534,11 @@ spec:
               drainingTime:
                 description: Time to wait after the load generator job is completed
                   before finishing the Experiment. It allows the pipeline-under-test
-                  to finish its processing. Default to no draining time.
+                  to finish its processing. Default to no draining time. This field
+                  is ignored when `endDetection` is set to `true`.
+                type: string
+              endDetectionImage:
+                description: Container image to use for the end detection.
                 type: string
               endpointSpecs:
                 description: List of tests upon endpoints.
@@ -625,6 +623,15 @@ spec:
                 maxItems: 65535
                 minItems: 1
                 type: array
+              k6InitializerImage:
+                description: Container image to use for the K6 initializer.
+                type: string
+              k6RunnerImage:
+                description: Container image to use for the K6 runner.
+                type: string
+              k6StarterImage:
+                description: Container image to use for the K6 starter.
+                type: string
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -638,6 +645,11 @@ spec:
                 description: Scheduled time to run the Experiment.
                 format: date-time
                 type: string
+              useEndDetection:
+                description: Whether to use end detection to decide when to finish
+                  the Experiment after the load generator job completes. When set
+                  to `true`, the `drainingTime` field is ignored.
+                type: boolean
             required:
             - endpointSpecs
             - pipelineRef
@@ -1214,6 +1226,10 @@ spec:
               prometheus:
                 description: Prometheus configuration.
                 properties:
+                  image:
+                    description: Container image to use for the Prometheus. Must be
+                      synced with the `version` field.
+                    type: string
                   replicas:
                     description: Number of replicas.
                     format: int32
@@ -1271,6 +1287,10 @@ spec:
                   scrapeInterval:
                     description: Interval at which Prometheus scrapes metrics.
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  version:
+                    description: Prometheus version. Must be synced with the `image`
+                      field.
                     type: string
                 type: object
               proxy:
@@ -1537,8 +1557,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   image:
-                    description: Thanos image to use. Must be synced with the `version`
-                      field.
+                    description: Container image to use for the Thanos. Must be synced
+                      with the `version` field.
                     type: string
                   objectStoreConfig:
                     description: Object store configuration for Thanos. Set this field
@@ -1771,8 +1791,7 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   version:
-                    description: Thanos version to use. Must be synced with the `image`
-                      field.
+                    description: Thanos version. Must be synced with the `image` field.
                     type: string
                 type: object
             type: object
@@ -2131,15 +2150,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.digitaltwinState
-      name: DigitalTwinState
-      type: string
-    - jsonPath: .status.trafficmodalState
-      name: TrafficModelState
-      type: string
-    - jsonPath: .status.podName
-      name: PodName
-      type: string
     - jsonPath: .status.jobStatus
       name: JobStatus
       type: string
@@ -2200,8 +2210,12 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              image:
+                description: Container image to use for the simulation.
+                type: string
               netCostRef:
-                description: NetCost object for the Simulation. Optional.
+                description: NetCost object for the Simulation. Optional if the `digitalTwinType`
+                  field of the DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -2240,7 +2254,7 @@ spec:
               scenarioRef:
                 description: Scenario object for the Simulation. The task names in
                   the Scenario must be the name of a Schema in the DataSet used by
-                  the DigitalTwin. Mandatory if the `digitalTwinType` field of the
+                  the DigitalTwin. Required if the `digitalTwinType` field of the
                   DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
@@ -2320,8 +2334,18 @@ spec:
             type: object
           status:
             description: SimulationStatus defines the observed state of Simulation
+            properties:
+              error:
+                description: Error message.
+                type: string
+              jobStatus:
+                description: Status of the digital twin job.
+                type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 53 characters
+          rule: size(self.metadata.name) <= 53
     served: true
     storage: true
     subresources:
@@ -2493,7 +2517,15 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
   verbs:
   - create
   - delete
@@ -2501,14 +2533,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods/log
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - ""
@@ -2713,6 +2737,18 @@ rules:
 - apiGroups:
   - windtunnel.plantd.org
   resources:
+  - netcosts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
   - pipelines
   verbs:
   - create
@@ -2762,6 +2798,18 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - windtunnel.plantd.org
+  resources:
+  - scenarios
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - windtunnel.plantd.org
   resources:
