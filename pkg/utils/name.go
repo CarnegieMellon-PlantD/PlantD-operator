@@ -38,6 +38,11 @@ func GetTestRunCopierJobName(experimentName string, endpointIdx int) string {
 	return fmt.Sprintf("%s-loadgen-%x-copier", experimentName, (endpointIdx+1)%0x10000)
 }
 
+// GetCostExporterJobName returns the name of the Job for the CostExporter.
+func GetCostExporterJobName(costExporterName string) string {
+	return fmt.Sprintf("%s-costexporter", costExporterName)
+}
+
 // GetBiasDataSetName returns the name of the bias DataSet for the DigitalTwin.
 // Note that to shorten the name, only the last 4 hex digits of the Schema index are used.
 // It is safe because we limit the number of Schemas in the DataSet to be no more than 65535.

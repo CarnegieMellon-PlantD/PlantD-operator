@@ -182,13 +182,11 @@ core:
       containerPort: 9090
       servicePortName: opencost-ui
       servicePort: 9090
+costService:
+  defaultImage: ghcr.io/carnegiemellon-plantd/costexporter:latest
 digitalTwin:
   defaultImage: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
 
-costService:
-  image: ghcr.io/carnegiemellon-plantd/costexporter:latest
-  opencost:
-    url: http://opencost.plantd-operator-system.svc.cluster.local:9003
 database:
   prometheus:
     # Ensure Prometheus service name, namespace, and port are correct

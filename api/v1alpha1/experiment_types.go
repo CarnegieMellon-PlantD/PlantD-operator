@@ -63,13 +63,13 @@ type EndpointSpec struct {
 
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
-	// Image to use for the K6 runner Pod.
+	// Container image to use for the K6 runner.
 	K6RunnerImage string `json:"k6RunnerImage,omitempty"`
-	// Image to use for the K6 starter Pod.
+	// Container image to use for the K6 starter.
 	K6StarterImage string `json:"k6StarterImage,omitempty"`
-	// Image to use for the K6 initializer Pod.
+	// Container image to use for the K6 initializer.
 	K6InitializerImage string `json:"k6InitializerImage,omitempty"`
-	// Image to use for the end detection.
+	// Container image to use for the end detection.
 	EndDetectionImage string `json:"endDetectionImage,omitempty"`
 	// Reference to the Pipeline to use for the Experiment.
 	PipelineRef *corev1.LocalObjectReference `json:"pipelineRef"`

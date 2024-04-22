@@ -1,29 +1,12 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controller
 
 import (
 	"context"
-	"encoding/json"
-	"strconv"
+	"fmt"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kbatch "k8s.io/api/batch/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,17 +16,13 @@ import (
 
 	windtunnelv1alpha1 "github.com/CarnegieMellon-PlantD/PlantD-operator/api/v1alpha1"
 	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/cost"
+	"github.com/CarnegieMellon-PlantD/PlantD-operator/pkg/utils"
 )
 
-type Tag struct {
-	Key   string `json:"key,omitempty"`
-	Value string `json:"value,omitempty"`
-}
-
-type ExperimentTags struct {
-	Name string `json:"name,omitempty"`
-	Tags []Tag  `json:"tags,omitempty"`
-}
+const (
+	costExporterPollingInterval = 5 * time.Second
+	costExporterInterval        = 8 * time.Hour
+)
 
 // CostExporterReconciler reconciles a CostExporter object
 type CostExporterReconciler struct {
@@ -59,156 +38,145 @@ type CostExporterReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+//
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// Fetch the CostExporter resource
+	// Fetch the requested CostExporter
 	costExporter := &windtunnelv1alpha1.CostExporter{}
 	if err := r.Get(ctx, req.NamespacedName, costExporter); err != nil {
-		if errors.IsNotFound(err) {
-			// Custom resource not found, perform cleanup tasks here.
-			// Created objects are automatically garbage collected.
-			log.Info("CostExporter resource not found. Ignoring since object must be deleted.")
+		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+		logger.Error(err, "Unable to fetch CostExporter")
 		return ctrl.Result{}, err
 	}
 
-	experiments := &windtunnelv1alpha1.ExperimentList{}
+	if !costExporter.Status.IsRunning {
+		// Check if the Job should be run now
+		curTime := time.Now()
+		if costExporter.Status.LastCompletionTime != nil && (curTime.Sub(costExporter.Status.LastCompletionTime.Time) < costExporterInterval) {
+			logger.Info("CostExporter is not due for a Job yet")
+			return ctrl.Result{RequeueAfter: costExporterInterval - curTime.Sub(costExporter.Status.LastCompletionTime.Time)}, nil
+		}
 
-	err := r.List(ctx, experiments)
-	if err != nil {
-		log.Error(err, "Unable to list experiments with cloud vendor "+costExporter.Spec.CloudServiceProvider)
-		return ctrl.Result{}, err
-	}
+		allExperiments := &windtunnelv1alpha1.ExperimentList{}
+		if err := r.List(ctx, allExperiments); err != nil {
+			logger.Error(err, "Cannot list Experiments")
+			return ctrl.Result{}, err
+		}
 
-	earliestTime := time.Now()
-	// Filter experiments with cloudVendor "aws"
-	experimentsList := &windtunnelv1alpha1.ExperimentList{}
-	for _, experiment := range experiments.Items {
-		if experiment.Status.CloudProvider == costExporter.Spec.CloudServiceProvider {
+		var allExperimentTags []*cost.ExperimentTags
+		earliestTime := time.Now()
+		for _, experiment := range allExperiments.Items {
+			// Filter Experiments with CSP
+			if experiment.Status.CloudProvider != costExporter.Spec.CloudServiceProvider {
+				continue
+			}
+
+			// Calculate the earliest time of the Experiments
 			var experimentTime time.Time
 			if !experiment.CreationTimestamp.IsZero() {
 				experimentTime = experiment.CreationTimestamp.Time
 			}
-			if !experiment.Spec.ScheduledTime.IsZero() && experiment.Spec.ScheduledTime.Time.Before(experimentTime) {
+			if !experiment.Spec.ScheduledTime.IsZero() && experiment.Spec.ScheduledTime.Time.Before(experiment.CreationTimestamp.Time) {
 				experimentTime = experiment.Spec.ScheduledTime.Time
 			}
 
-			// Check if this experiment's time is earlier than the current earliest time
+			// Check if this Experiment's time is earlier than the current earliest time
 			if experimentTime.Before(earliestTime) {
 				earliestTime = experimentTime
 			}
-			experimentsList.Items = append(experimentsList.Items, experiment)
+
+			// Extract the Name from the Experiment's metadata
+			name := experiment.Namespace + "/" + experiment.Name
+			// Extract the Tags from the Experiment's status field
+			tagMap := experiment.Status.Tags
+
+			// Create a list of Tag pairs for the current experiment's tags
+			var tagList []*cost.Tag
+			for key, value := range tagMap {
+				tagList = append(tagList, &cost.Tag{Key: key, Value: value})
+			}
+			// Create an ExperimentTags object for the current experiment
+			experimentTags := &cost.ExperimentTags{
+				Name: name,
+				Tags: tagList,
+			}
+
+			// Append the object to the list of all Experiments' tags
+			allExperimentTags = append(allExperimentTags, experimentTags)
 		}
-	}
 
-	resultList := []ExperimentTags{}
-	for _, experiment := range experimentsList.Items {
-		// Extract the Name from the experiment's metadata
-		experimentName := experiment.Namespace + "/" + experiment.ObjectMeta.Name
-		// Extract the Tags from the experiment's status field
-		tags := experiment.Status.Tags
-
-		// Create a list of Tag pairs for the current experiment's tags
-		var tagsList []Tag
-		for key, value := range tags {
-			tagsList = append(tagsList, Tag{Key: key, Value: value})
+		// Delete the previous Job if it exists
+		oldJob := &kbatch.Job{}
+		oldJobName := types.NamespacedName{
+			Namespace: costExporter.Namespace,
+			Name:      utils.GetCostExporterJobName(costExporter.Name),
 		}
-		// Create an ExperimentTags object for the current experiment
-		experimentTags := ExperimentTags{
-			Name: experimentName,
-			Tags: tagsList,
+		if err := r.Get(ctx, oldJobName, oldJob); err == nil {
+			if err := r.Delete(ctx, oldJob); err != nil {
+				logger.Error(err, "Cannot delete old cost exporter Job")
+				return ctrl.Result{}, err
+			}
 		}
-		// Append the ExperimentTags object to the resultList
-		resultList = append(resultList, experimentTags)
-	}
 
-	resultListJSON, err := json.Marshal(resultList)
-	if err != nil {
-		log.Error(err, "Unable to marshal resultList to JSON")
-		return ctrl.Result{}, err
-	}
-
-	// Convert the JSON byte slice to a string
-	resultListStr := string(resultListJSON)
-	costExporter.Status.Tags = resultListStr
-
-	// update to include tags for the new pipelines; only if new pod is being created
-	if err := r.Status().Update(ctx, costExporter); err != nil {
-		log.Error(err, "Cannot update the status of Cost Service after creation.")
-	}
-	currTime := time.Now()
-	if costExporter.Status.JobCompletionTime != nil && (currTime.Sub(costExporter.Status.JobCompletionTime.Time) < (8 * time.Hour)) {
-		return ctrl.Result{RequeueAfter: (8 * time.Hour) - currTime.Sub(costExporter.Status.JobCompletionTime.Time)}, nil
-	}
-
-	if costExporter.Status.PodName == "" {
-
-		pod, _ := cost.CreateJobByCostService(costExporter, costExporter.Name+"-"+strconv.FormatInt(time.Now().Unix(), 10), earliestTime)
-
-		// Extract the Pod's name from the created Pod object
-		costExporter.Status.PodName = pod.Name
-		if err := ctrl.SetControllerReference(costExporter, pod, r.Scheme); err != nil {
+		// Create the Job
+		job, err := cost.CreateCostExporterJob(costExporter, allExperimentTags, earliestTime)
+		if err != nil {
+			logger.Error(err, "Cannot create manifest for cost exporter Job")
 			return ctrl.Result{}, err
 		}
-
-		if err := r.Create(ctx, pod); err != nil {
-			log.Error(err, "Cannot create cost job.")
+		if err := ctrl.SetControllerReference(costExporter, job, r.Scheme); err != nil {
+			logger.Error(err, "Cannot set controller reference for cost exporter Job")
+			return ctrl.Result{}, err
+		}
+		if err := r.Create(ctx, job); client.IgnoreNotFound(err) != nil {
+			logger.Error(err, "Cannot create cost exporter Job")
+			return ctrl.Result{}, err
+		} else if err == nil {
+			logger.Info("Created cost exporter Job")
 		}
 
+		costExporter.Status.IsRunning = true
 		if err := r.Status().Update(ctx, costExporter); err != nil {
-			log.Error(err, "Cannot update the status of Cost Service after creation.")
+			logger.Error(err, "Cannot update the status")
+			return ctrl.Result{RequeueAfter: costExporterPollingInterval}, err
 		}
 	} else {
-		log.Info("checking if pod exists")
-		// Pod name exists, fetch the Pod and check its status
-		pod := &corev1.Pod{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: costExporter.Namespace, Name: costExporter.Status.PodName}, pod); err != nil {
-			log.Error(err, "Failed to get the Pod")
+		// Check the Job status
+		job := &kbatch.Job{}
+		jobName := types.NamespacedName{
+			Namespace: costExporter.Namespace,
+			Name:      utils.GetCostExporterJobName(costExporter.Name),
+		}
+		if err := r.Get(ctx, jobName, job); err != nil {
+			logger.Error(err, fmt.Sprintf("Lost Job \"%s\"", jobName))
 			return ctrl.Result{}, err
 		}
 
-		// Check the Pod's status
-		switch pod.Status.Phase {
-		case corev1.PodSucceeded:
-			log.Info("Pod has succeeded")
-			costExporter.Status.JobCompletionTime = &metav1.Time{Time: time.Now()}
-			costExporter.Status.JobStatus = "SUCCESS" // TODO: replace it
+		jobFinished, jobConditionType := isJobFinished(job)
+		if jobFinished {
+			switch jobConditionType {
+			case kbatch.JobComplete:
+				logger.Info("Cost exporter Job completed")
+				costExporter.Status.LastCompletionTime = &metav1.Time{Time: time.Now()}
 
-			if err := r.Delete(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
-				Namespace: costExporter.Namespace,
-				Name:      costExporter.Status.PodName,
-			}}); err != nil {
-				log.Error(err, "Failed to delete the cost service - "+costExporter.Status.PodName)
+			case kbatch.JobFailed:
+				logger.Info("Cost exporter Job failed")
 			}
 
-			// CostExporter.Status.PodName = ""
+			costExporter.Status.IsRunning = false
 			if err := r.Status().Update(ctx, costExporter); err != nil {
-				log.Error(err, "Cannot update the status of Cost Service after pod success.")
+				logger.Error(err, "Cannot update the status")
+				return ctrl.Result{RequeueAfter: costExporterPollingInterval}, err
 			}
-
-			// The Pod has succeeded
-			// You can handle this case here
-		case corev1.PodFailed:
-			costExporter.Status.JobStatus = "FAILED" // TODO: replace it
-			log.Info("Pod has failed")
-			// The Pod has failed
-			// You can handle this case here
-		default:
-			costExporter.Status.JobStatus = "RUNNING" // TODO: replace it
-			// The Pod is still running or in an unknown state
-			// You can handle this case here
 		}
 	}
-	log.Info("Pod is still running")
-	if err := r.Status().Update(ctx, costExporter); err != nil { // pod status update
-		log.Error(err, "Cannot update the status of Cost Service after creation.")
-	}
-	// Requeue to re-run the reconiler. If it reaches here, it means the pod is still running
-	return ctrl.Result{Requeue: true, RequeueAfter: time.Second}, nil
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

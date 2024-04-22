@@ -36,7 +36,7 @@ type SchemaSelector struct {
 
 // DataSetSpec defines the desired state of DataSet.
 type DataSetSpec struct {
-	// Image of the data generator job.
+	// Container image to use for the data generator.
 	Image string `json:"image,omitempty"`
 	// Number of parallel jobs when generating the dataset.
 	// Default to 1.

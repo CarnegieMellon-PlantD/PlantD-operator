@@ -16,7 +16,7 @@ const (
 
 // SimulationSpec defines the desired state of Simulation
 type SimulationSpec struct {
-	// Image to use for the Simulation.
+	// Container image to use for the simulation.
 	Image string `json:"image,omitempty"`
 	// DigitalTwin object for the Simulation.
 	DigitalTwinRef *corev1.ObjectReference `json:"digitalTwinRef"`

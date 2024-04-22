@@ -5,35 +5,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CostExporterSpec defines the desired state of CostExporter
+// CostExporterSpec defines the desired state of CostExporter.
 type CostExporterSpec struct {
-	// S3Bucket defines the AWS S3 bucket name where stores the cost logs.
-	S3Bucket string `json:"s3Bucket,omitempty"`
-	// CloudServiceProvider defines the target cloud service provide for calculating cost.
-	CloudServiceProvider string `json:"cloudServiceProvider,omitempty"`
-	// SecretRef defines the reference to the Kubernetes Secret where stores the credentials of cloud service provider
-	SecretRef corev1.ObjectReference `json:"secretRef,omitempty"`
+	// Container image to use for cost exporter.
+	Image string `json:"image,omitempty"`
+	// Cloud service provider to calculate costs for. Available value is `aws`.
+	// +kubebuilder:validation:Enum=aws
+	CloudServiceProvider string `json:"cloudServiceProvider"`
+	// Configuration for the cloud service provider.
+	// For AWS, the configuration should be a JSON string with the following fields:
+	// - `AWS_ACCESS_KEY`
+	// - `AWS_SECRET_KEY`
+	// - `S3_BUCKET_NAME`
+	Config *corev1.SecretKeySelector `json:"config"`
 }
 
-// CostExporterStatus defines the observed state of CostExporter
+// CostExporterStatus defines the observed state of CostExporter.
 type CostExporterStatus struct {
-	// JobCompletionTime defines the completion time of the cost calculation job.
-	JobCompletionTime *metav1.Time `json:"jobCompletionTime,omitempty"`
-	// PodName defines the name of the cost calculation pod.
-	PodName string `json:"podName,omitempty"`
-	// JobStatus defines the status of the cost calculation job.
-	JobStatus string `json:"jobStatus,omitempty"`
-	// Tags defines the json string of using tags.
-	Tags string `json:"tags,omitempty"`
+	// Time when the last Job was completed.
+	LastCompletionTime *metav1.Time `json:"lastCompletionTime,omitempty"`
+	// Whether the Job is running. For internal use only.
+	IsRunning bool `json:"isRunning,omitempty"`
 }
+
+// The name of the Pod in the CostExporter will be
+// "<costexporter-name>-costexporter-<random 5 chars>".
+// So, we have 44 characters for the name to meet the 63-character limit.
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="JobCompletionTime",type="string",JSONPath=".status.jobCompletionTime"
-//+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
-//+kubebuilder:printcolumn:name="PodName",type="string",JSONPath=".status.podName"
+//+kubebuilder:printcolumn:name="LastCompletionTime",type="string",JSONPath=".status.lastCompletionTime"
 
 // CostExporter is the Schema for the costexporters API
+// +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 44",message="must contain at most 44 characters"
 type CostExporter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
