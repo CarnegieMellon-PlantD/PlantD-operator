@@ -447,6 +447,7 @@ spec:
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
+                minItems: 1
                 type: array
               modelType:
                 description: Type of digital twin model. Available values are `simple`,
@@ -551,7 +552,11 @@ spec:
               drainingTime:
                 description: Time to wait after the load generator job is completed
                   before finishing the Experiment. It allows the pipeline-under-test
-                  to finish its processing. Default to no draining time.
+                  to finish its processing. Default to no draining time. This field
+                  is ignored when `endDetection` is set to `true`.
+                type: string
+              endDetectionImage:
+                description: Image to use for the end detection.
                 type: string
               endpointSpecs:
                 description: List of tests upon endpoints.
@@ -636,6 +641,15 @@ spec:
                 maxItems: 65535
                 minItems: 1
                 type: array
+              k6InitializerImage:
+                description: Image to use for the K6 initializer Pod.
+                type: string
+              k6RunnerImage:
+                description: Image to use for the K6 runner Pod.
+                type: string
+              k6StarterImage:
+                description: Image to use for the K6 starter Pod.
+                type: string
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -649,6 +663,11 @@ spec:
                 description: Scheduled time to run the Experiment.
                 format: date-time
                 type: string
+              useEndDetection:
+                description: Whether to use end detection to decide when to finish
+                  the Experiment after the load generator job completes. When set
+                  to `true`, the `drainingTime` field is ignored.
+                type: boolean
             required:
             - endpointSpecs
             - pipelineRef
@@ -1225,6 +1244,10 @@ spec:
               prometheus:
                 description: Prometheus configuration.
                 properties:
+                  image:
+                    description: Container image to use. Should be synced with the
+                      `version` field.
+                    type: string
                   replicas:
                     description: Number of replicas.
                     format: int32
@@ -1282,6 +1305,10 @@ spec:
                   scrapeInterval:
                     description: Interval at which Prometheus scrapes metrics.
                     pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                    type: string
+                  version:
+                    description: Prometheus version. Should be synced with the `image`
+                      field.
                     type: string
                 type: object
               proxy:
@@ -2142,15 +2169,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.digitaltwinState
-      name: DigitalTwinState
-      type: string
-    - jsonPath: .status.trafficmodalState
-      name: TrafficModelState
-      type: string
-    - jsonPath: .status.podName
-      name: PodName
-      type: string
     - jsonPath: .status.jobStatus
       name: JobStatus
       type: string
@@ -2211,8 +2229,12 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              image:
+                description: Image to use for the Simulation.
+                type: string
               netCostRef:
-                description: NetCost object for the Simulation. Optional.
+                description: NetCost object for the Simulation. Optional if the `digitalTwinType`
+                  field of the DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -2251,7 +2273,7 @@ spec:
               scenarioRef:
                 description: Scenario object for the Simulation. The task names in
                   the Scenario must be the name of a Schema in the DataSet used by
-                  the DigitalTwin. Mandatory if the `digitalTwinType` field of the
+                  the DigitalTwin. Required if the `digitalTwinType` field of the
                   DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
@@ -2331,8 +2353,18 @@ spec:
             type: object
           status:
             description: SimulationStatus defines the observed state of Simulation
+            properties:
+              error:
+                description: Error message.
+                type: string
+              jobStatus:
+                description: Status of the digital twin job.
+                type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 53 characters
+          rule: size(self.metadata.name) <= 53
     served: true
     storage: true
     subresources:

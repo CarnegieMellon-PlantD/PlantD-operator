@@ -3,7 +3,6 @@ version: 1.0.0
 dataGenerator:
   defaultImage: ghcr.io/carnegiemellon-plantd/datagenerator:latest
   defaultParallelism: 1
-  backoffLimit: 0
   defaultStorageSize: 5Gi
   path: /test # Default path where K6 looks for files
 monitor:
@@ -27,7 +26,6 @@ loadGenerator:
     loadPattern: loadpattern.json
   copier:
     image: busybox:1.36.1
-    backoffLimit: 0
   testRun:
     remoteWriteArgs: --out experimental-prometheus-rw
     remoteWriteEnvVar:
@@ -39,6 +37,7 @@ rbac:
     prometheus: plantd-operator-prometheus # See ../rbac/prometheus_service_account.yaml
     openCost: plantd-operator-opencost # See ../rbac/opencost_service_account.yaml
 core:
+  namespace: plantd-operator-system
   proxy:
     name: plantd-proxy
     labels:
@@ -69,6 +68,8 @@ core:
     servicePort: 80
   prometheus:
     name: plantd-prometheus
+    defaultImage: prom/prometheus:v2.51.2
+    defaultVersion: v2.51.2
     defaultScrapeInterval: 15s
     defaultReplicas: 1
     defaultCPURequest: 100m
@@ -178,13 +179,13 @@ core:
       containerPort: 9090
       servicePortName: opencost-ui
       servicePort: 9090
+digitalTwin:
+  defaultImage: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
 
 costService:
   image: ghcr.io/carnegiemellon-plantd/costexporter:latest
   opencost:
     url: http://opencost.plantd-operator-system.svc.cluster.local:9003
-digitalTwin:
-  image: ghcr.io/carnegiemellon-plantd/digitaltwin:latest
 database:
   prometheus:
     # Ensure Prometheus service name, namespace, and port are correct

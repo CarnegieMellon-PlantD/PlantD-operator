@@ -120,6 +120,7 @@ spec:
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
+                minItems: 1
                 type: array
               modelType:
                 description: Type of digital twin model. Available values are `simple`,

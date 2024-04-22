@@ -26,6 +26,7 @@ type DigitalTwinSpec struct {
 	DigitalTwinType string `json:"digitalTwinType"`
 	// Existing Experiments to retrieve metrics data from to train the DigitalTwin.
 	// Effective only when `digitalTwinType` is `regular`.
+	// +kubebuilder:validation:MinItems=1
 	Experiments []*corev1.ObjectReference `json:"experiments,omitempty"`
 	// DataSet to break down into Schemas to train the DigitalTwin.
 	// Effective only when `digitalTwinType` is `schemaaware`.

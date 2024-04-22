@@ -15,15 +15,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.digitaltwinState
-      name: DigitalTwinState
-      type: string
-    - jsonPath: .status.trafficmodalState
-      name: TrafficModelState
-      type: string
-    - jsonPath: .status.podName
-      name: PodName
-      type: string
     - jsonPath: .status.jobStatus
       name: JobStatus
       type: string
@@ -84,8 +75,12 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              image:
+                description: Image to use for the Simulation.
+                type: string
               netCostRef:
-                description: NetCost object for the Simulation. Optional.
+                description: NetCost object for the Simulation. Optional if the `digitalTwinType`
+                  field of the DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -124,7 +119,7 @@ spec:
               scenarioRef:
                 description: Scenario object for the Simulation. The task names in
                   the Scenario must be the name of a Schema in the DataSet used by
-                  the DigitalTwin. Mandatory if the `digitalTwinType` field of the
+                  the DigitalTwin. Required if the `digitalTwinType` field of the
                   DigitalTwin is `schemaaware`. Always ignored otherwise.
                 properties:
                   apiVersion:
@@ -204,8 +199,18 @@ spec:
             type: object
           status:
             description: SimulationStatus defines the observed state of Simulation
+            properties:
+              error:
+                description: Error message.
+                type: string
+              jobStatus:
+                description: Status of the digital twin job.
+                type: string
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: must contain at most 53 characters
+          rule: size(self.metadata.name) <= 53
     served: true
     storage: true
     subresources:

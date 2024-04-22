@@ -56,7 +56,11 @@ spec:
               drainingTime:
                 description: Time to wait after the load generator job is completed
                   before finishing the Experiment. It allows the pipeline-under-test
-                  to finish its processing. Default to no draining time.
+                  to finish its processing. Default to no draining time. This field
+                  is ignored when `endDetection` is set to `true`.
+                type: string
+              endDetectionImage:
+                description: Image to use for the end detection.
                 type: string
               endpointSpecs:
                 description: List of tests upon endpoints.
@@ -141,6 +145,15 @@ spec:
                 maxItems: 65535
                 minItems: 1
                 type: array
+              k6InitializerImage:
+                description: Image to use for the K6 initializer Pod.
+                type: string
+              k6RunnerImage:
+                description: Image to use for the K6 runner Pod.
+                type: string
+              k6StarterImage:
+                description: Image to use for the K6 starter Pod.
+                type: string
               pipelineRef:
                 description: Reference to the Pipeline to use for the Experiment.
                 properties:
@@ -154,6 +167,11 @@ spec:
                 description: Scheduled time to run the Experiment.
                 format: date-time
                 type: string
+              useEndDetection:
+                description: Whether to use end detection to decide when to finish
+                  the Experiment after the load generator job completes. When set
+                  to `true`, the `drainingTime` field is ignored.
+                type: boolean
             required:
             - endpointSpecs
             - pipelineRef

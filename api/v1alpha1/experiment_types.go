@@ -63,6 +63,14 @@ type EndpointSpec struct {
 
 // ExperimentSpec defines the desired state of Experiment.
 type ExperimentSpec struct {
+	// Image to use for the K6 runner Pod.
+	K6RunnerImage string `json:"k6RunnerImage,omitempty"`
+	// Image to use for the K6 starter Pod.
+	K6StarterImage string `json:"k6StarterImage,omitempty"`
+	// Image to use for the K6 initializer Pod.
+	K6InitializerImage string `json:"k6InitializerImage,omitempty"`
+	// Image to use for the end detection.
+	EndDetectionImage string `json:"endDetectionImage,omitempty"`
 	// Reference to the Pipeline to use for the Experiment.
 	PipelineRef *corev1.LocalObjectReference `json:"pipelineRef"`
 	// List of tests upon endpoints.
@@ -74,7 +82,12 @@ type ExperimentSpec struct {
 	// Time to wait after the load generator job is completed before finishing the Experiment.
 	// It allows the pipeline-under-test to finish its processing.
 	// Default to no draining time.
+	// This field is ignored when `endDetection` is set to `true`.
 	DrainingTime *metav1.Duration `json:"drainingTime,omitempty"`
+	// Whether to use end detection to decide when to finish the Experiment
+	// after the load generator job completes.
+	// When set to `true`, the `drainingTime` field is ignored.
+	UseEndDetection bool `json:"useEndDetection,omitempty"`
 }
 
 // ExperimentStatus defines the observed state of Experiment.

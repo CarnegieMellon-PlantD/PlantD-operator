@@ -381,10 +381,15 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `k6RunnerImage` _string_ | Image to use for the K6 runner Pod. |
+| `k6StarterImage` _string_ | Image to use for the K6 starter Pod. |
+| `k6InitializerImage` _string_ | Image to use for the K6 initializer Pod. |
+| `endDetectionImage` _string_ | Image to use for the end detection. |
 | `pipelineRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#localobjectreference-v1-core)_ | Reference to the Pipeline to use for the Experiment. |
 | `endpointSpecs` _[EndpointSpec](#endpointspec) array_ | List of tests upon endpoints. |
 | `scheduledTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#time-v1-meta)_ | Scheduled time to run the Experiment. |
-| `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. |
+| `drainingTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#duration-v1-meta)_ | Time to wait after the load generator job is completed before finishing the Experiment. It allows the pipeline-under-test to finish its processing. Default to no draining time. This field is ignored when `endDetection` is set to `true`. |
+| `useEndDetection` _boolean_ | Whether to use end detection to decide when to finish the Experiment after the load generator job completes. When set to `true`, the `drainingTime` field is ignored. |
 
 
 
@@ -725,6 +730,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `replicas` _integer_ | Number of replicas. |
+| `image` _string_ | Container image to use. Should be synced with the `version` field. |
+| `version` _string_ | Prometheus version. Should be synced with the `image` field. |
 | `scrapeInterval` _[Duration](https://pkg.go.dev/github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1#Duration)_ | Interval at which Prometheus scrapes metrics. |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#resourcerequirements-v1-core)_ | Resources requirements. |
 
@@ -878,6 +885,17 @@ _Appears in:_
 | `spec` _[SimulationSpec](#simulationspec)_ |  |
 
 
+#### SimulationJobStatus
+
+_Underlying type:_ _string_
+
+SimulationJobStatus defines the status of the digital twin job.
+
+_Appears in:_
+- [SimulationStatus](#simulationstatus)
+
+
+
 #### SimulationList
 
 
@@ -905,10 +923,11 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `image` _string_ | Image to use for the Simulation. |
 | `digitalTwinRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | DigitalTwin object for the Simulation. |
 | `trafficModelRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | TrafficModel object for the Simulation. |
-| `netCostRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | NetCost object for the Simulation. Optional. |
-| `scenarioRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Scenario object for the Simulation. The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin. Mandatory if the `digitalTwinType` field of the DigitalTwin is `schemaaware`. Always ignored otherwise. |
+| `netCostRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | NetCost object for the Simulation. Optional if the `digitalTwinType` field of the DigitalTwin is `schemaaware`. Always ignored otherwise. |
+| `scenarioRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Scenario object for the Simulation. The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin. Required if the `digitalTwinType` field of the DigitalTwin is `schemaaware`. Always ignored otherwise. |
 
 
 

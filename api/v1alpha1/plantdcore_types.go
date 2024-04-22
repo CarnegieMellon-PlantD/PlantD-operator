@@ -45,6 +45,10 @@ type PrometheusConfig struct {
 	// Number of replicas.
 	// +kubebuilder:validation:Minimum=1
 	Replicas int32 `json:"replicas,omitempty"`
+	// Container image to use. Should be synced with the `version` field.
+	Image string `json:"image,omitempty"`
+	// Prometheus version. Should be synced with the `image` field.
+	Version string `json:"version,omitempty"`
 	// Interval at which Prometheus scrapes metrics.
 	ScrapeInterval monitoringv1.Duration `json:"scrapeInterval,omitempty"`
 	// Resources requirements.

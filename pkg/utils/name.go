@@ -56,3 +56,13 @@ func GetBiasLoadPatternName(digitalTwinName string) string {
 func GetBiasExperimentName(digitalTwinName string, schemaIdx int) string {
 	return fmt.Sprintf("%s-bias-%x", digitalTwinName, (schemaIdx+1)%0x10000)
 }
+
+// GetSimulationJobName returns the name of the Job for the Simulation.
+func GetSimulationJobName(simulationName string) string {
+	return fmt.Sprintf("%s-sim", simulationName)
+}
+
+// GetEndDetectorJobName returns the name of the Job for the end detection.
+func GetEndDetectorJobName(experimentName string) string {
+	return fmt.Sprintf("%s-enddetect", experimentName)
+}

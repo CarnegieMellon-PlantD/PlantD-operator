@@ -24,7 +24,6 @@ var (
 	filenameDataSet      = config.GetString("loadGenerator.filename.dataSet")
 	filenameLoadPattern  = config.GetString("loadGenerator.filename.loadPattern")
 	copierImage          = config.GetString("loadGenerator.copier.image")
-	copierBackoffLimit   = config.GetInt32("loadGenerator.copier.backoffLimit")
 	testRunRWArgs        = config.GetString("loadGenerator.testRun.remoteWriteArgs")
 	testRunRWEnvVarName  = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.name")
 	testRunRWEnvVarValue = config.GetString("loadGenerator.testRun.remoteWriteEnvVar.value")
@@ -128,7 +127,7 @@ func CreateCopierJob(experiment *windtunnelv1alpha1.Experiment, endpointIdx int,
 			Name:      utils.GetTestRunCopierJobName(experiment.Name, endpointIdx),
 		},
 		Spec: kbatch.JobSpec{
-			BackoffLimit: ptr.To(copierBackoffLimit),
+			BackoffLimit: ptr.To(int32(0)),
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
@@ -203,12 +202,19 @@ func CreateTestRun(experiment *windtunnelv1alpha1.Experiment, endpointIdx int, e
 				testRunRWArgs, experiment.Namespace, experiment.Name, endpointSpec.EndpointName,
 			),
 			Runner: k6v1alpha1.Pod{
+				Image: experiment.Spec.K6RunnerImage,
 				Env: []corev1.EnvVar{
 					{
 						Name:  testRunRWEnvVarName,
 						Value: testRunRWEnvVarValue,
 					},
 				},
+			},
+			Starter: k6v1alpha1.Pod{
+				Image: experiment.Spec.K6StarterImage,
+			},
+			Initializer: &k6v1alpha1.Pod{
+				Image: experiment.Spec.K6InitializerImage,
 			},
 		},
 	}

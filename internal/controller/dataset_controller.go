@@ -238,7 +238,6 @@ func (r *DataSetReconciler) reconcileRunning(ctx context.Context, dataSet *windt
 				}
 			}
 		}
-
 	}
 
 	if err := r.Status().Update(ctx, dataSet); err != nil {

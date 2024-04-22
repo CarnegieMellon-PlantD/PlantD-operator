@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	digitalTwinPollingInterval    = 10 * time.Second
+	digitalTwinPollingInterval    = 5 * time.Second
 	digitalTwinExperimentDuration = 600 // Seconds
 )
 
@@ -105,14 +105,14 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 
 		// Create DataSets
 		for schemaIdx, schemaSelector := range dataSet.Spec.Schemas {
-			pureDataSetName := utils.GetBiasDataSetName(digitalTwin.Name, schemaIdx)
-			pureDataSet := dataSet.DeepCopy()
+			biasDataSetName := utils.GetBiasDataSetName(digitalTwin.Name, schemaIdx)
+			biasDataSet := dataSet.DeepCopy()
 
 			// Avoid error "resourceVersion should not be set on objects to be created"
-			pureDataSet.ResourceVersion = ""
-			pureDataSet.Name = pureDataSetName
-			pureDataSet.Spec.NumberOfFiles = dataSetSize
-			for schemaSelectorIdx, schemaSelector := range pureDataSet.Spec.Schemas {
+			biasDataSet.ResourceVersion = ""
+			biasDataSet.Name = biasDataSetName
+			biasDataSet.Spec.NumberOfFiles = dataSetSize
+			for schemaSelectorIdx, schemaSelector := range biasDataSet.Spec.Schemas {
 				if schemaSelectorIdx == schemaIdx {
 					schemaSelector.NumRecords.Min = 100
 					schemaSelector.NumRecords.Max = 100
@@ -124,19 +124,19 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 				schemaSelector.NumFilesPerCompressedFile.Max = 1
 			}
 
-			if err := ctrl.SetControllerReference(digitalTwin, pureDataSet, r.Scheme); err != nil {
-				logger.Error(err, fmt.Sprintf("Cannot set controller reference for pure DataSet for Schema \"%s\"", schemaSelector.Name))
+			if err := ctrl.SetControllerReference(digitalTwin, biasDataSet, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for bias DataSet for Schema \"%s\"", schemaSelector.Name))
 				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
-				digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for pure DataSet for Schema \"%s\": %s", schemaSelector.Name, err)
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for bias DataSet for Schema \"%s\": %s", schemaSelector.Name, err)
 				return ctrl.Result{}, nil
 			}
-			if err := r.Create(ctx, pureDataSet); client.IgnoreAlreadyExists(err) != nil {
-				logger.Error(err, fmt.Sprintf("Cannot create pure DataSet for Schema \"%s\"", schemaSelector.Name))
+			if err := r.Create(ctx, biasDataSet); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create bias DataSet for Schema \"%s\"", schemaSelector.Name))
 				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
-				digitalTwin.Status.Error = fmt.Sprintf("Cannot create pure DataSet for Schema \"%s\": %s", schemaSelector.Name, err)
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot create bias DataSet for Schema \"%s\": %s", schemaSelector.Name, err)
 				return ctrl.Result{}, nil
 			} else if err == nil {
-				logger.Info(fmt.Sprintf("Created pure DataSet for Schema \"%s\"", schemaSelector.Name))
+				logger.Info(fmt.Sprintf("Created bias DataSet for Schema \"%s\"", schemaSelector.Name))
 			}
 		}
 
@@ -174,7 +174,7 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 
 		// Create Experiments
 		for schemaIdx, schemaSelector := range dataSet.Spec.Schemas {
-			pureExperiment := &windtunnelv1alpha1.Experiment{
+			biasExperiment := &windtunnelv1alpha1.Experiment{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: digitalTwin.Namespace,
 					Name:      utils.GetBiasExperimentName(digitalTwin.Name, schemaIdx),
@@ -195,21 +195,22 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 							},
 						},
 					},
+					UseEndDetection: true,
 				},
 			}
-			if err := ctrl.SetControllerReference(digitalTwin, pureExperiment, r.Scheme); err != nil {
-				logger.Error(err, fmt.Sprintf("Cannot set controller reference for pure Experiment for Schema \"%s\"", schemaSelector.Name))
+			if err := ctrl.SetControllerReference(digitalTwin, biasExperiment, r.Scheme); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot set controller reference for bias Experiment for Schema \"%s\"", schemaSelector.Name))
 				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
-				digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for pure Experiment for Schema \"%s\": %s", schemaSelector.Name, err)
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot set controller reference for bias Experiment for Schema \"%s\": %s", schemaSelector.Name, err)
 				return ctrl.Result{}, nil
 			}
-			if err := r.Create(ctx, pureExperiment); client.IgnoreAlreadyExists(err) != nil {
-				logger.Error(err, fmt.Sprintf("Cannot create pure Experiment for Schema \"%s\"", schemaSelector.Name))
+			if err := r.Create(ctx, biasExperiment); client.IgnoreAlreadyExists(err) != nil {
+				logger.Error(err, fmt.Sprintf("Cannot create bias Experiment for Schema \"%s\"", schemaSelector.Name))
 				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
-				digitalTwin.Status.Error = fmt.Sprintf("Cannot create pure Experiment for Schema \"%s\": %s", schemaSelector.Name, err)
+				digitalTwin.Status.Error = fmt.Sprintf("Cannot create bias Experiment for Schema \"%s\": %s", schemaSelector.Name, err)
 				return ctrl.Result{}, nil
 			} else if err == nil {
-				logger.Info(fmt.Sprintf("Created pure Experiment for Schema \"%s\"", schemaSelector.Name))
+				logger.Info(fmt.Sprintf("Created bias Experiment for Schema \"%s\"", schemaSelector.Name))
 			}
 		}
 
@@ -245,24 +246,24 @@ func (r *DigitalTwinReconciler) reconcileRunning(ctx context.Context, digitalTwi
 
 		// Check if any Experiment is completed or failed
 		for schemaIdx, _ := range dataSet.Spec.Schemas {
-			pureExperimentName := types.NamespacedName{
+			biasExperimentName := types.NamespacedName{
 				Namespace: digitalTwin.Namespace,
 				Name:      utils.GetBiasExperimentName(digitalTwin.Name, schemaIdx),
 			}
-			pureExperiment := &windtunnelv1alpha1.Experiment{}
-			if err := r.Get(ctx, pureExperimentName, pureExperiment); err != nil {
-				logger.Error(err, fmt.Sprintf("Lost pure Experiment \"%s\"", pureExperimentName))
+			biasExperiment := &windtunnelv1alpha1.Experiment{}
+			if err := r.Get(ctx, biasExperimentName, biasExperiment); err != nil {
+				logger.Error(err, fmt.Sprintf("Lost bias Experiment \"%s\"", biasExperimentName))
 				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
-				digitalTwin.Status.Error = fmt.Sprintf("Lost pure Experiment \"%s\": %s", pureExperimentName, err)
+				digitalTwin.Status.Error = fmt.Sprintf("Lost bias Experiment \"%s\": %s", biasExperimentName, err)
 				return ctrl.Result{}, nil
 			}
 
-			if pureExperiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted {
+			if biasExperiment.Status.JobStatus == windtunnelv1alpha1.ExperimentCompleted {
 				continue
-			} else if pureExperiment.Status.JobStatus == windtunnelv1alpha1.ExperimentFailed {
-				logger.Info(fmt.Sprintf("Pure Experiment \"%s\" failed", pureExperimentName))
+			} else if biasExperiment.Status.JobStatus == windtunnelv1alpha1.ExperimentFailed {
+				logger.Info(fmt.Sprintf("Bias Experiment \"%s\" failed", biasExperimentName))
 				digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinFailed
-				digitalTwin.Status.Error = fmt.Sprintf("Experiment \"%s\" failed", pureExperimentName)
+				digitalTwin.Status.Error = fmt.Sprintf("Experiment \"%s\" failed", biasExperimentName)
 				return ctrl.Result{}, nil
 			} else {
 				return ctrl.Result{RequeueAfter: digitalTwinPollingInterval}, nil
@@ -270,7 +271,7 @@ func (r *DigitalTwinReconciler) reconcileRunning(ctx context.Context, digitalTwi
 		}
 
 		// All Experiments are completed
-		logger.Info("All pure Experiments are completed")
+		logger.Info("All bias Experiments are completed")
 		digitalTwin.Status.JobStatus = windtunnelv1alpha1.DigitalTwinCompleted
 		return ctrl.Result{}, nil
 	}
