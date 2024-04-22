@@ -143,7 +143,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		costExporter.Status.IsRunning = true
 		if err := r.Status().Update(ctx, costExporter); err != nil {
 			logger.Error(err, "Cannot update the status")
-			return ctrl.Result{RequeueAfter: costExporterPollingInterval}, err
+			return ctrl.Result{}, err
 		}
 	} else {
 		// Check the Job status
@@ -171,12 +171,12 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			costExporter.Status.IsRunning = false
 			if err := r.Status().Update(ctx, costExporter); err != nil {
 				logger.Error(err, "Cannot update the status")
-				return ctrl.Result{RequeueAfter: costExporterPollingInterval}, err
+				return ctrl.Result{}, err
 			}
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: costExporterPollingInterval}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -1,5 +1,5 @@
-from cost.exporters.aws_cost_exporter import AWSCostService
-from cost.exporters.azure_cost_exporter import AzureCostService
+from cost.exporters.aws_cost_exporter import AWSCostExporter
+from cost.exporters.azure_cost_exporter import AzureCostExporter
 
 
 class CostServiceFactory:
