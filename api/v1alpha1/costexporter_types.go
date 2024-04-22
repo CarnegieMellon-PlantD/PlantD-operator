@@ -22,10 +22,10 @@ type CostExporterSpec struct {
 
 // CostExporterStatus defines the observed state of CostExporter.
 type CostExporterStatus struct {
-	// Time when the last successful completion of the Job.
-	LastCompletionTime *metav1.Time `json:"lastCompletionTime,omitempty"`
-	// Time when the last failed completion of the Job.
-	LastFailureTime *metav1.Time `json:"lastFailureTime,omitempty"`
+	// Time of the last successful Job run.
+	LastSuccess *metav1.Time `json:"lastSuccess,omitempty"`
+	// Time of the last failed Job run.
+	LastFailure *metav1.Time `json:"lastFailure,omitempty"`
 	// Whether the Job is running. For internal use only.
 	IsRunning bool `json:"isRunning,omitempty"`
 }
@@ -36,7 +36,8 @@ type CostExporterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="LastCompletionTime",type="string",JSONPath=".status.lastCompletionTime"
+//+kubebuilder:printcolumn:name="LastSuccess",type="string",JSONPath=".status.lastSuccess"
+//+kubebuilder:printcolumn:name="LastFailure",type="string",JSONPath=".status.lastFailure"
 
 // CostExporter is the Schema for the costexporters API
 // +kubebuilder:validation:XValidation:rule="size(self.metadata.name) <= 44",message="must contain at most 44 characters"

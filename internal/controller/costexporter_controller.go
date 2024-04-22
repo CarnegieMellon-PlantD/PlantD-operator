@@ -59,14 +59,16 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if !costExporter.Status.IsRunning {
 		// Check if the Job should be run now
 		curTime := time.Now()
-		if costExporter.Status.LastCompletionTime != nil && costExporter.Status.LastFailureTime != nil {
-			sinceLastSuccess := curTime.Sub(costExporter.Status.LastCompletionTime.Time)
-			sinceLastFailure := curTime.Sub(costExporter.Status.LastFailureTime.Time)
-			if sinceLastSuccess < costExporterInterval || sinceLastFailure < costExporterRetryInterval {
-				waitTime := costExporterInterval - sinceLastSuccess
-				if costExporterRetryInterval-sinceLastFailure > waitTime {
-					waitTime = costExporterRetryInterval - sinceLastFailure
-				}
+		if costExporter.Status.LastSuccess != nil || costExporter.Status.LastFailure != nil {
+			var successWaitTime, failureWaitTime time.Duration
+			if costExporter.Status.LastSuccess != nil {
+				successWaitTime = costExporterInterval - curTime.Sub(costExporter.Status.LastSuccess.Time)
+			}
+			if costExporter.Status.LastFailure != nil {
+				failureWaitTime = costExporterRetryInterval - curTime.Sub(costExporter.Status.LastFailure.Time)
+			}
+			if successWaitTime > 0 || failureWaitTime > 0 {
+				waitTime := max(successWaitTime, failureWaitTime)
 				logger.Info(fmt.Sprintf("Wait for \"%s\" before running the Job", waitTime))
 				return ctrl.Result{RequeueAfter: waitTime}, nil
 			}
@@ -78,7 +80,7 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		var allExperimentTags []*cost.ExperimentTags
+		allExperimentTags := make([]*cost.ExperimentTags, 0)
 		earliestTime := time.Now()
 		for _, experiment := range allExperiments.Items {
 			// Filter Experiments with CSP
@@ -177,10 +179,11 @@ func (r *CostExporterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			switch jobConditionType {
 			case kbatch.JobComplete:
 				logger.Info("Cost exporter Job completed")
-				costExporter.Status.LastCompletionTime = &metav1.Time{Time: time.Now()}
+				costExporter.Status.LastSuccess = &metav1.Time{Time: time.Now()}
 
 			case kbatch.JobFailed:
 				logger.Info("Cost exporter Job failed")
+				costExporter.Status.LastFailure = &metav1.Time{Time: time.Now()}
 			}
 
 			costExporter.Status.IsRunning = false

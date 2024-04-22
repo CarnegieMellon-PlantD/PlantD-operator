@@ -15,8 +15,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.lastCompletionTime
-      name: LastCompletionTime
+    - jsonPath: .status.lastSuccess
+      name: LastSuccess
+      type: string
+    - jsonPath: .status.lastFailure
+      name: LastFailure
       type: string
     name: v1alpha1
     schema:
@@ -77,12 +80,12 @@ spec:
               isRunning:
                 description: Whether the Job is running. For internal use only.
                 type: boolean
-              lastCompletionTime:
-                description: Time when the last successful completion of the Job.
+              lastFailure:
+                description: Time of the last failed Job run.
                 format: date-time
                 type: string
-              lastFailureTime:
-                description: Time when the last failed completion of the Job.
+              lastSuccess:
+                description: Time of the last successful Job run.
                 format: date-time
                 type: string
             type: object
