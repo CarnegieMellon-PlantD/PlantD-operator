@@ -837,8 +837,9 @@ func (r *ExperimentReconciler) reconcileDraining(ctx context.Context, experiment
 				experiment.Status.JobStatus = windtunnelv1alpha1.ExperimentFailed
 				experiment.Status.Error = fmt.Sprintf("End detector Job \"%s\" failed", endDetectorJobName)
 			}
+		} else {
+			return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 		}
-		return true, ctrl.Result{RequeueAfter: experimentPollingInterval}, nil
 	}
 
 	// Check if the draining time has been fulfilled

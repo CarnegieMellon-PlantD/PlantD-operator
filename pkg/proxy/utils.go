@@ -35,7 +35,7 @@ const (
 	PlantDCoreKind   string = "PlantDCore"
 )
 
-// AllKinds is the list of all possible kinds.
+// AllKinds is the list of all possible kinds for import/export.
 var AllKinds = []string{
 	SchemaKind,
 	DatasetKind,
@@ -48,7 +48,6 @@ var AllKinds = []string{
 	TrafficModelKind,
 	NetCostKind,
 	ScenarioKind,
-	PlantDCoreKind,
 }
 
 // ForObject returns a client.Object instance based on the provided kind.
