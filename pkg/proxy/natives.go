@@ -90,3 +90,15 @@ func ListSecrets(ctx context.Context, client client.Client) (*corev1.SecretList,
 
 	return secretList, nil
 }
+
+// GetSecret retrieves a Secret with the provided namespace and name.
+func GetSecret(ctx context.Context, client client.Client, namespace, name string) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+
+	err := client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, secret)
+	if err != nil {
+		return nil, err
+	}
+
+	return secret, nil
+}

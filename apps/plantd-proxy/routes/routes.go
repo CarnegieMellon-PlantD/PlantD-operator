@@ -33,6 +33,7 @@ func getRoutes(router *chi.Mux, client client.Client, queryAgent *proxy.QueryAge
 
 		r.Get("/services", listServicesHandler(client))
 		r.Get("/secrets", listSecretsHandler(client))
+		r.Get("/secrets/{namespace}/{name}", getSecretHandler(client))
 
 		r.Get("/schemas", getObjectListHandler(client, proxy.SchemaKind))
 		r.Get("/schemas/{namespace}/{name}", getObjectHandler(client, proxy.SchemaKind))

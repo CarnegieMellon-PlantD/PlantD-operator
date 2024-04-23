@@ -123,7 +123,6 @@ type ExperimentStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="JobStatus",type="string",JSONPath=".status.jobStatus"
 //+kubebuilder:printcolumn:name="Durations",type="string",JSONPath=".status.durations"
-//+kubebuilder:printcolumn:name="Draining",type="string",JSONPath=".spec.drainingTime"
 //+kubebuilder:printcolumn:name="ScheduledTime",type="string",JSONPath=".spec.scheduledTime"
 //+kubebuilder:printcolumn:name="StartTime",type="string",JSONPath=".status.startTime"
 //+kubebuilder:printcolumn:name="CompletionTime",type="string",JSONPath=".status.completionTime"

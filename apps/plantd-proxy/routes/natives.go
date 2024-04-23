@@ -109,3 +109,28 @@ func listSecretsHandler(client client.Client) http.HandlerFunc {
 		}
 	}
 }
+
+// getSecretHandler returns an HTTP handler function that handles GET requests to fetch a Secret.
+// It returns an HTTP handler function that handles requests to fetch the Secret.
+// The handler function reads the namespace and name parameters from the request URL.
+// It calls the proxy.GetSecret function to fetch the Secret using the provided client.
+// If successful, it responds an HTTP 200 status code with an Secret in JSON.
+// If an error occurs, it responds an HTTP 500 status code with an ErrorResponse in JSON.
+func getSecretHandler(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		namespace := chi.URLParam(r, "namespace")
+		name := chi.URLParam(r, "name")
+
+		obj, err := proxy.GetSecret(ctx, client, namespace, name)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(proxy.ErrorResponse{Message: err.Error()})
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(obj)
+		}
+	}
+}
