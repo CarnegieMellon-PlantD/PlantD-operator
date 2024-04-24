@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -104,9 +103,6 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 			return ctrl.Result{}, nil
 		}
 
-		// Calculate the size of the DataSets
-		dataSetSize := int32(math.Ceil(float64(digitalTwinExperimentDuration) * float64(digitalTwin.Spec.PipelineCapacity) / 2))
-
 		// Create DataSets
 		for schemaIdx, schemaSelector := range dataSet.Spec.Schemas {
 			biasDataSetName := utils.GetBiasDataSetName(digitalTwin.Name, schemaIdx)
@@ -115,7 +111,7 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 			// Avoid error "resourceVersion should not be set on objects to be created"
 			biasDataSet.ResourceVersion = ""
 			biasDataSet.Name = biasDataSetName
-			biasDataSet.Spec.NumberOfFiles = dataSetSize
+			biasDataSet.Spec.NumberOfFiles = 100
 			for schemaSelectorIdx, _ := range biasDataSet.Spec.Schemas {
 				if schemaSelectorIdx == schemaIdx {
 					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 100
