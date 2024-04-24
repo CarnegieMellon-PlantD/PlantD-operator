@@ -122,11 +122,11 @@ func GetSampleDataSet(ctx context.Context, c client.Client, namespace, name stri
 	// and 1 file per Schema per compressed file if compression is enabled
 	dataSet.Spec.NumberOfFiles = 1
 	if dataSet.Spec.CompressedFileFormat != "" {
-		for _, schemaSelector := range dataSet.Spec.Schemas {
-			schemaSelector.NumFilesPerCompressedFile = windtunnelv1alpha1.NaturalIntRange{
-				Min: 1,
-				Max: 1,
-			}
+		for schemaSelectorIdx, _ := range dataSet.Spec.Schemas {
+			dataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 1
+			dataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Max = 1
+			dataSet.Spec.Schemas[schemaSelectorIdx].NumFilesPerCompressedFile.Min = 1
+			dataSet.Spec.Schemas[schemaSelectorIdx].NumFilesPerCompressedFile.Max = 1
 		}
 	}
 
