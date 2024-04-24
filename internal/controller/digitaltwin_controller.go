@@ -116,16 +116,16 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 			biasDataSet.ResourceVersion = ""
 			biasDataSet.Name = biasDataSetName
 			biasDataSet.Spec.NumberOfFiles = dataSetSize
-			for schemaSelectorIdx, schemaSelector := range biasDataSet.Spec.Schemas {
+			for schemaSelectorIdx, _ := range biasDataSet.Spec.Schemas {
 				if schemaSelectorIdx == schemaIdx {
-					schemaSelector.NumRecords.Min = 100
-					schemaSelector.NumRecords.Max = 100
+					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 100
+					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Max = 100
 				} else {
-					schemaSelector.NumRecords.Min = 1
-					schemaSelector.NumRecords.Max = 1
+					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 1
+					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Max = 1
 				}
-				schemaSelector.NumFilesPerCompressedFile.Min = 1
-				schemaSelector.NumFilesPerCompressedFile.Max = 1
+				biasDataSet.Spec.Schemas[schemaSelectorIdx].NumFilesPerCompressedFile.Min = 1
+				biasDataSet.Spec.Schemas[schemaSelectorIdx].NumFilesPerCompressedFile.Max = 1
 			}
 
 			if err := ctrl.SetControllerReference(digitalTwin, biasDataSet, r.Scheme); err != nil {
