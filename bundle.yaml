@@ -499,9 +499,6 @@ spec:
     - jsonPath: .status.durations
       name: Durations
       type: string
-    - jsonPath: .spec.drainingTime
-      name: Draining
-      type: string
     - jsonPath: .spec.scheduledTime
       name: ScheduledTime
       type: string

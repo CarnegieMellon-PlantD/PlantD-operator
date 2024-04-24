@@ -23,7 +23,7 @@ var (
 	redisPort      = config.GetInt32("core.redis.servicePort")
 	redisPwd       = ""
 	prometheusHost = fmt.Sprintf("http://%s:%d",
-		utils.GetServiceARecord(config.GetString("core.prometheus.name"), config.GetString("core.namespace")),
+		utils.GetServiceARecord(config.GetString("core.thanos.querier.name"), config.GetString("core.namespace")),
 		config.GetInt32("core.prometheus.servicePort"),
 	)
 	prometheusPwd      = ""
