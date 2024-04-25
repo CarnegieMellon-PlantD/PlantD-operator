@@ -104,8 +104,7 @@ func CreateSimulationJob(simulation *windtunnelv1alpha1.Simulation, digitalTwin 
 			return nil, err
 		}
 		env = append(env, []corev1.EnvVar{
-			{Name: "NETCOST_NAME", Value: fmt.Sprintf("%s.%s", netCost.Namespace, netCost.Name)},
-			{Name: "NETCOST", Value: string(jsonNetCost)},
+			{Name: "NETCOSTS", Value: string(jsonNetCost)},
 		}...)
 	}
 
@@ -171,7 +170,7 @@ func CreateEndDetectorJob(experiment *windtunnelv1alpha1.Experiment, debouncePer
 
 		{Name: "DEBOUNCE_PERIOD", Value: strconv.FormatInt(debouncePeriod, 10)},
 		{Name: "QUERY_WINDOW", Value: strconv.FormatInt(queryWindow, 10)},
-		{Name: "POD_DETATCH_ADJUSTMENT", Value: strconv.FormatInt(podDetachAdjustment, 10)},
+		{Name: "POD_DETACH_ADJUSTMENT", Value: strconv.FormatInt(podDetachAdjustment, 10)},
 	}
 
 	job := &kbatch.Job{
