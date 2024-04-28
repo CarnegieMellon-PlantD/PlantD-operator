@@ -19,16 +19,16 @@ type SimulationSpec struct {
 	// Container image to use for the simulation.
 	Image string `json:"image,omitempty"`
 	// DigitalTwin object for the Simulation.
-	DigitalTwinRef *corev1.ObjectReference `json:"digitalTwinRef"`
+	DigitalTwinRef *corev1.ObjectReference `json:"digitalTwinRef,omitempty"`
 	// TrafficModel object for the Simulation.
 	TrafficModelRef *corev1.ObjectReference `json:"trafficModelRef"`
 	// NetCost object for the Simulation.
-	// Optional if the `digitalTwinType` field of the DigitalTwin is `schemaaware`.
+	// Optional if the `digitalTwinType` field is specified and the target DigitalTwin is of type `schemaaware`.
 	// Always ignored otherwise.
 	NetCostRef *corev1.ObjectReference `json:"netCostRef,omitempty"`
 	// Scenario object for the Simulation.
 	// The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin.
-	// Required if the `digitalTwinType` field of the DigitalTwin is `schemaaware`.
+	// Required if the `digitalTwinType` field is specified and the target DigitalTwin is of type `schemaaware`.
 	// Always ignored otherwise.
 	ScenarioRef *corev1.ObjectReference `json:"scenarioRef,omitempty"`
 }

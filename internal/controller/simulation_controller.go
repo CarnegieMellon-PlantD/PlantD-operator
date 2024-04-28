@@ -93,16 +93,19 @@ func (r *SimulationReconciler) reconcileCreated(ctx context.Context, simulation 
 	logger := log.FromContext(ctx)
 
 	// Get the DigitalTwin
-	digitalTwin := &windtunnelv1alpha1.DigitalTwin{}
-	digitalTwinName := types.NamespacedName{
-		Namespace: simulation.Spec.DigitalTwinRef.Namespace,
-		Name:      simulation.Spec.DigitalTwinRef.Name,
-	}
-	if err := r.Get(ctx, digitalTwinName, digitalTwin); err != nil {
-		logger.Error(err, fmt.Sprintf("Cannot get DigitalTwin \"%s\"", digitalTwinName))
-		simulation.Status.JobStatus = windtunnelv1alpha1.SimulationFailed
-		simulation.Status.Error = fmt.Sprintf("Cannot find DigitalTwin \"%s\": %s", digitalTwinName, err)
-		return ctrl.Result{}, nil
+	var digitalTwin *windtunnelv1alpha1.DigitalTwin
+	if simulation.Spec.DigitalTwinRef != nil {
+		digitalTwin = &windtunnelv1alpha1.DigitalTwin{}
+		digitalTwinName := types.NamespacedName{
+			Namespace: simulation.Spec.DigitalTwinRef.Namespace,
+			Name:      simulation.Spec.DigitalTwinRef.Name,
+		}
+		if err := r.Get(ctx, digitalTwinName, digitalTwin); err != nil {
+			logger.Error(err, fmt.Sprintf("Cannot get DigitalTwin \"%s\"", digitalTwinName))
+			simulation.Status.JobStatus = windtunnelv1alpha1.SimulationFailed
+			simulation.Status.Error = fmt.Sprintf("Cannot find DigitalTwin \"%s\": %s", digitalTwinName, err)
+			return ctrl.Result{}, nil
+		}
 	}
 
 	// Get the TrafficModel
@@ -119,8 +122,20 @@ func (r *SimulationReconciler) reconcileCreated(ctx context.Context, simulation 
 	}
 
 	var job *kbatch.Job
-	switch digitalTwin.Spec.DigitalTwinType {
-	case "regular":
+	if digitalTwin == nil {
+		// Create the Job
+		var err error
+		job, err = digitaltwin.CreateSimulationJob(simulation, nil,
+			trafficModel, nil, nil,
+			nil, nil, nil, nil,
+		)
+		if err != nil {
+			logger.Error(err, "Cannot create manifest for Job")
+			simulation.Status.JobStatus = windtunnelv1alpha1.SimulationFailed
+			simulation.Status.Error = fmt.Sprintf("Cannot create manifest for Job: %s", err)
+			return ctrl.Result{}, nil
+		}
+	} else if digitalTwin.Spec.DigitalTwinType == "regular" {
 		// Get the Experiments
 		experimentList := &windtunnelv1alpha1.ExperimentList{}
 		for _, experimentRef := range digitalTwin.Spec.Experiments {
@@ -205,8 +220,7 @@ func (r *SimulationReconciler) reconcileCreated(ctx context.Context, simulation 
 			simulation.Status.Error = fmt.Sprintf("Cannot create manifest for Job: %s", err)
 			return ctrl.Result{}, nil
 		}
-
-	case "schemaaware":
+	} else if digitalTwin.Spec.DigitalTwinType == "schemaaware" {
 		// Get the NetCost
 		var netCost *windtunnelv1alpha1.NetCost
 		if simulation.Spec.NetCostRef != nil {

@@ -80,7 +80,8 @@ spec:
                 type: string
               netCostRef:
                 description: NetCost object for the Simulation. Optional if the `digitalTwinType`
-                  field of the DigitalTwin is `schemaaware`. Always ignored otherwise.
+                  field is specified and the target DigitalTwin is of type `schemaaware`.
+                  Always ignored otherwise.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -119,8 +120,9 @@ spec:
               scenarioRef:
                 description: Scenario object for the Simulation. The task names in
                   the Scenario must be the name of a Schema in the DataSet used by
-                  the DigitalTwin. Required if the `digitalTwinType` field of the
-                  DigitalTwin is `schemaaware`. Always ignored otherwise.
+                  the DigitalTwin. Required if the `digitalTwinType` field is specified
+                  and the target DigitalTwin is of type `schemaaware`. Always ignored
+                  otherwise.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -194,7 +196,6 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
             required:
-            - digitalTwinRef
             - trafficModelRef
             type: object
           status:
