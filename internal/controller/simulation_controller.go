@@ -123,10 +123,39 @@ func (r *SimulationReconciler) reconcileCreated(ctx context.Context, simulation 
 
 	var job *kbatch.Job
 	if digitalTwin == nil {
+		// Get the NetCost
+		var netCost *windtunnelv1alpha1.NetCost
+		if simulation.Spec.NetCostRef != nil {
+			netCost = &windtunnelv1alpha1.NetCost{}
+			netCostName := types.NamespacedName{
+				Namespace: simulation.Spec.NetCostRef.Namespace,
+				Name:      simulation.Spec.NetCostRef.Name,
+			}
+			if err := r.Get(ctx, netCostName, netCost); err != nil {
+				logger.Error(err, fmt.Sprintf("Cannot get NetCost \"%s\"", netCostName))
+				simulation.Status.JobStatus = windtunnelv1alpha1.SimulationFailed
+				simulation.Status.Error = fmt.Sprintf("Cannot find NetCost \"%s\": %s", netCostName, err)
+				return ctrl.Result{}, nil
+			}
+		}
+
+		// Get the Scenario
+		scenario := &windtunnelv1alpha1.Scenario{}
+		scenarioName := types.NamespacedName{
+			Namespace: simulation.Spec.ScenarioRef.Namespace,
+			Name:      simulation.Spec.ScenarioRef.Name,
+		}
+		if err := r.Get(ctx, scenarioName, scenario); err != nil {
+			logger.Error(err, fmt.Sprintf("Cannot get Scenario \"%s\"", scenarioName))
+			simulation.Status.JobStatus = windtunnelv1alpha1.SimulationFailed
+			simulation.Status.Error = fmt.Sprintf("Cannot find Scenario \"%s\": %s", scenarioName, err)
+			return ctrl.Result{}, nil
+		}
+
 		// Create the Job
 		var err error
 		job, err = digitaltwin.CreateSimulationJob(simulation, nil,
-			trafficModel, nil, nil,
+			trafficModel, netCost, scenario,
 			nil, nil, nil, nil,
 		)
 		if err != nil {

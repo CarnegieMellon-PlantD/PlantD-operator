@@ -23,12 +23,12 @@ type SimulationSpec struct {
 	// TrafficModel object for the Simulation.
 	TrafficModelRef *corev1.ObjectReference `json:"trafficModelRef"`
 	// NetCost object for the Simulation.
-	// Optional if the `digitalTwinType` field is specified and the target DigitalTwin is of type `schemaaware`.
+	// Optional if the `digitalTwinType` field is unspecified or the DigitalTwin is of type `schemaaware`.
 	// Always ignored otherwise.
 	NetCostRef *corev1.ObjectReference `json:"netCostRef,omitempty"`
 	// Scenario object for the Simulation.
 	// The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin.
-	// Required if the `digitalTwinType` field is specified and the target DigitalTwin is of type `schemaaware`.
+	// Required if the `digitalTwinType` field is unspecified or the DigitalTwin is of type `schemaaware`.
 	// Always ignored otherwise.
 	ScenarioRef *corev1.ObjectReference `json:"scenarioRef,omitempty"`
 }

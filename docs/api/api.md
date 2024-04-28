@@ -926,8 +926,8 @@ _Appears in:_
 | `image` _string_ | Container image to use for the simulation. |
 | `digitalTwinRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | DigitalTwin object for the Simulation. |
 | `trafficModelRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | TrafficModel object for the Simulation. |
-| `netCostRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | NetCost object for the Simulation. Optional if the `digitalTwinType` field is specified and the target DigitalTwin is of type `schemaaware`. Always ignored otherwise. |
-| `scenarioRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Scenario object for the Simulation. The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin. Required if the `digitalTwinType` field is specified and the target DigitalTwin is of type `schemaaware`. Always ignored otherwise. |
+| `netCostRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | NetCost object for the Simulation. Optional if the `digitalTwinType` field is unspecified or the DigitalTwin is of type `schemaaware`. Always ignored otherwise. |
+| `scenarioRef` _[ObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#objectreference-v1-core)_ | Scenario object for the Simulation. The task names in the Scenario must be the name of a Schema in the DataSet used by the DigitalTwin. Required if the `digitalTwinType` field is unspecified or the DigitalTwin is of type `schemaaware`. Always ignored otherwise. |
 
 
 

@@ -56,9 +56,6 @@ func CreateSimulationJob(simulation *windtunnelv1alpha1.Simulation, digitalTwin 
 		{Name: "OPENCOST_ENDPOINT", Value: openCostEndpoint},
 
 		{Name: "SIM_NAME", Value: fmt.Sprintf("%s.%s", simulation.Namespace, simulation.Name)},
-
-		{Name: "TRAFFIC_MODEL_NAME", Value: trafficModel.Name},
-		{Name: "TRAFFIC_MODEL", Value: trafficModel.Spec.Config},
 	}
 
 	if digitalTwin != nil {
@@ -67,11 +64,35 @@ func CreateSimulationJob(simulation *windtunnelv1alpha1.Simulation, digitalTwin 
 			{Name: "MODEL_TYPE", Value: digitalTwin.Spec.ModelType},
 			{Name: "DIGITAL_TWIN_TYPE", Value: digitalTwin.Spec.DigitalTwinType},
 		}...)
-	} else {
+	}
+
+	if trafficModel != nil {
 		env = append(env, []corev1.EnvVar{
-			{Name: "TWIN_NAME", Value: ""},
-			{Name: "MODEL_TYPE", Value: ""},
-			{Name: "DIGITAL_TWIN_TYPE", Value: ""},
+			{Name: "TRAFFIC_MODEL_NAME", Value: trafficModel.Name},
+			{Name: "TRAFFIC_MODEL", Value: trafficModel.Spec.Config},
+		}...)
+	}
+
+	if netCost != nil {
+		jsonNetCost, err := json.Marshal(netCost)
+		if err != nil {
+			return nil, err
+		}
+
+		env = append(env, []corev1.EnvVar{
+			{Name: "NETCOSTS", Value: string(jsonNetCost)},
+		}...)
+	}
+
+	if scenario != nil {
+		jsonScenario, err := json.Marshal(scenario)
+		if err != nil {
+			return nil, err
+		}
+
+		env = append(env, []corev1.EnvVar{
+			{Name: "SCENARIO_NAME", Value: fmt.Sprintf("%s.%s", scenario.Namespace, scenario.Name)},
+			{Name: "SCENARIO", Value: string(jsonScenario)},
 		}...)
 	}
 
@@ -82,30 +103,10 @@ func CreateSimulationJob(simulation *windtunnelv1alpha1.Simulation, digitalTwin 
 			pipelineLabelKeys = append(pipelineLabelKeys, k)
 			pipelineLabelValues = append(pipelineLabelValues, v)
 		}
+
 		env = append(env, []corev1.EnvVar{
 			{Name: "PIPELINE_LABEL_KEYS", Value: strings.Join(pipelineLabelKeys, ",")},
 			{Name: "PIPELINE_LABEL_VALUES", Value: strings.Join(pipelineLabelValues, ",")},
-		}...)
-	}
-
-	if experiments != nil {
-		experimentNames := make([]string, 0, len(experiments.Items))
-		for _, experiment := range experiments.Items {
-			experimentNames = append(experimentNames, fmt.Sprintf("%s.%s", experiment.Namespace, experiment.Name))
-		}
-
-		jsonExperiments, err := json.Marshal(experiments)
-		if err != nil {
-			return nil, err
-		}
-
-		env = append(env, []corev1.EnvVar{
-			{Name: "EXPERIMENT_NAMES", Value: strings.Join(experimentNames, ",")},
-			{Name: "EXPERIMENT_JSON", Value: string(jsonExperiments)},
-		}...)
-	} else {
-		env = append(env, []corev1.EnvVar{
-			{Name: "EXPERIMENT_NAMES", Value: ""},
 		}...)
 	}
 
@@ -131,28 +132,20 @@ func CreateSimulationJob(simulation *windtunnelv1alpha1.Simulation, digitalTwin 
 		}...)
 	}
 
-	if netCost != nil {
-		jsonNetCost, err := json.Marshal(netCost)
-		if err != nil {
-			return nil, err
+	if experiments != nil {
+		experimentNames := make([]string, 0, len(experiments.Items))
+		for _, experiment := range experiments.Items {
+			experimentNames = append(experimentNames, fmt.Sprintf("%s.%s", experiment.Namespace, experiment.Name))
 		}
-		env = append(env, []corev1.EnvVar{
-			{Name: "NETCOSTS", Value: string(jsonNetCost)},
-		}...)
-	} else {
-		env = append(env, []corev1.EnvVar{
-			{Name: "NETCOSTS", Value: ""},
-		}...)
-	}
 
-	if scenario != nil {
-		jsonScenario, err := json.Marshal(scenario)
+		jsonExperiments, err := json.Marshal(experiments)
 		if err != nil {
 			return nil, err
 		}
+
 		env = append(env, []corev1.EnvVar{
-			{Name: "SCENARIO_NAME", Value: fmt.Sprintf("%s.%s", scenario.Namespace, scenario.Name)},
-			{Name: "SCENARIO", Value: string(jsonScenario)},
+			{Name: "EXPERIMENT_NAMES", Value: strings.Join(experimentNames, ",")},
+			{Name: "EXPERIMENT_JSON", Value: string(jsonExperiments)},
 		}...)
 	}
 
