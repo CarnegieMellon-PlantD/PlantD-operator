@@ -67,6 +67,12 @@ func CreateSimulationJob(simulation *windtunnelv1alpha1.Simulation, digitalTwin 
 			{Name: "MODEL_TYPE", Value: digitalTwin.Spec.ModelType},
 			{Name: "DIGITAL_TWIN_TYPE", Value: digitalTwin.Spec.DigitalTwinType},
 		}...)
+	} else {
+		env = append(env, []corev1.EnvVar{
+			{Name: "TWIN_NAME", Value: ""},
+			{Name: "MODEL_TYPE", Value: ""},
+			{Name: "DIGITAL_TWIN_TYPE", Value: ""},
+		}...)
 	}
 
 	if pipeline != nil {
