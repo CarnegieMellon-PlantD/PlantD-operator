@@ -114,8 +114,8 @@ func (r *DigitalTwinReconciler) reconcileCreated(ctx context.Context, digitalTwi
 			biasDataSet.Spec.NumberOfFiles = 100
 			for schemaSelectorIdx, _ := range biasDataSet.Spec.Schemas {
 				if schemaSelectorIdx == schemaIdx {
-					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 100
-					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Max = 100
+					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 5
+					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Max = 5
 				} else {
 					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Min = 1
 					biasDataSet.Spec.Schemas[schemaSelectorIdx].NumRecords.Max = 1
